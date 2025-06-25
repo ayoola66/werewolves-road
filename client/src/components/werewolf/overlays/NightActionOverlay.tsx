@@ -18,10 +18,11 @@ export default function NightActionOverlay({ gameState }: NightActionOverlayProp
           targets: game?.alivePlayers?.filter((p: any) => p.role !== 'werewolf') || []
         };
       case 'seer':
+        const investigationsLeft = game?.seerInvestigationsLeft?.[gameState.playerId] || 0;
         return {
           title: 'Divine a Player',
-          description: 'Choose a player to learn their role.',
-          targets: game?.alivePlayers?.filter((p: any) => p.playerId !== gameState.playerId) || []
+          description: `Choose a player to learn their role. Investigations remaining: ${investigationsLeft}`,
+          targets: investigationsLeft > 0 ? (game?.alivePlayers?.filter((p: any) => p.playerId !== gameState.playerId) || []) : []
         };
       case 'healer':
         return {

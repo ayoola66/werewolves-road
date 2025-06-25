@@ -13,6 +13,7 @@ export interface GameState {
   phaseTimer: number;
   votes: Record<string, string>; // voterId -> targetId
   nightActions: Record<string, any>; // playerId -> action
+  seerInvestigationsLeft: Record<string, number>; // playerId -> remaining investigations
 }
 
 export class GameLogic {
@@ -39,7 +40,8 @@ export class GameLogic {
       phase: game.currentPhase as Phase,
       phaseTimer: game.phaseTimer || 0,
       votes: {},
-      nightActions: {}
+      nightActions: {},
+      seerInvestigationsLeft: {}
     };
 
     this.gameStates.set(gameCode, gameState);
@@ -159,6 +161,12 @@ export class GameLogic {
         role: roles[i]
       });
       players[i].role = roles[i];
+
+      // Set seer investigation limit based on werewolf count (30% of werewolves, minimum 3)
+      if (roles[i] === 'seer') {
+        const seerInvestigations = Math.max(3, Math.ceil(werewolfCount * 0.3));
+        gameState.seerInvestigationsLeft[players[i].playerId] = seerInvestigations;
+      }
     }
 
     // Assign sheriff if enabled
@@ -203,6 +211,15 @@ export class GameLogic {
 
     const player = gameState.alivePlayers.find(p => p.playerId === playerId);
     if (!player || !this.hasNightAction(player.role as Role)) return false;
+
+    // Check seer investigation limit
+    if (player.role === 'seer') {
+      const investigationsLeft = gameState.seerInvestigationsLeft[playerId] || 0;
+      if (investigationsLeft <= 0) {
+        return false; // No investigations left
+      }
+      gameState.seerInvestigationsLeft[playerId] = investigationsLeft - 1;
+    }
 
     await storage.addGameAction({
       gameId: gameState.game.id,
@@ -288,7 +305,21 @@ export class GameLogic {
           if (action.targetId) bodyguardProtected.push(action.targetId);
           break;
         case 'seer':
-          // Seer results are handled separately
+          // Send seer result to the player
+          if (action.targetId) {
+            const target = gameState.players.find(p => p.playerId === action.targetId);
+            if (target) {
+              const investigationsLeft = gameState.seerInvestigationsLeft[playerId] || 0;
+              // Store seer result for later delivery
+              storage.addChatMessage({
+                gameId: gameState.game.id,
+                playerId: playerId,
+                playerName: 'Seer Vision',
+                message: `${target.name} is a ${target.role}. Investigations remaining: ${investigationsLeft}`,
+                type: 'system'
+              });
+            }
+          }
           break;
         case 'witch':
           // Witch actions are handled separately

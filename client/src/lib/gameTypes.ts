@@ -58,6 +58,7 @@ export interface GameState {
   votes: Record<string, string>;
   nightActions: Record<string, any>;
   chatMessages?: ChatMessage[];
+  seerInvestigationsLeft?: Record<string, number>;
 }
 
 export interface WSMessage {
@@ -78,7 +79,7 @@ export const ROLE_INFO: Record<Role, { name: string; description: string; color:
   },
   seer: {
     name: 'SEER',
-    description: 'You are the seer. Each night, you can divine the true role of another player. Use this knowledge to guide the village.',
+    description: 'You are the seer. You have limited investigations to divine the true role of other players. Use them wisely to guide the village.',
     color: 'text-blue-500'
   },
   healer: {

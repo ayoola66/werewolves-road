@@ -103,7 +103,10 @@ This is a real-time multiplayer Werewolf (Mafia) game built with React and Expre
 
 ```
 Changelog:
-- June 25, 2025. Initial setup
+- June 25, 2025: Initial setup
+- June 25, 2025: Transformed basic HTML into complete multiplayer Werewolf game
+- June 25, 2025: Added medieval theming with castle background and golden effects
+- June 25, 2025: Implemented Seer investigation limits (30% of werewolf count, min 3)
 ```
 
 ## User Preferences
