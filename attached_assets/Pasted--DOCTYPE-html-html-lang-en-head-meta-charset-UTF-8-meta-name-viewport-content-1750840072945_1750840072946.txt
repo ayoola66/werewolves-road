@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Werewolf</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-image: url('https://images.pexels.com/photos/1183021/pexels-photo-1183021.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'); background-size: cover; background-position: center; background-attachment: fixed; }
+        .font-cinzel { font-family: 'Cinzel Decorative', cursive; }
+        .hidden { display: none; }
+        .panel { background-color: rgba(17, 24, 39, 0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(55, 65, 81, 0.4); }
+        .btn-primary { background-color: #991b1b; } .btn-primary:hover { background-color: #7f1d1d; }
+        .btn-secondary { background-color: #374151; } .btn-secondary:hover { background-color: #1f2937; }
+        .btn-cancel { background-color: #4b5563; } .btn-cancel:hover { background-color: #374151; }
+        .switch { position: relative; display: inline-block; width: 60px; height: 34px; } .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #374151; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #16a34a; } input:checked + .slider:before { transform: translateX(26px); }
+        .ghost-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 50; }
+        .ghost { position: absolute; color: rgba(255, 255, 255, 0.1); font-size: 50px; animation: drift 20s linear infinite; opacity: 0; }
+        @keyframes drift {
+            from { transform: translateX(-100px) translateY(0) rotate(0deg); opacity: 1; }
+            50% { transform: translateX(calc(100vw / 2)) translateY(20px) rotate(15deg); }
+            to { transform: translateX(calc(100vw + 100px)) translateY(-20px) rotate(-15deg); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="text-white flex items-center justify-center min-h-screen p-4">
+    <div class="absolute inset-0 bg-black/60 z-0"></div>
+    <div id="ghost-container" class="ghost-container hidden"></div>
+
+    <div id="game-container" class="w-full max-w-5xl mx-auto z-10 relative">
+
+        <!-- Initial Screen -->
+        <div id="initial-screen" class="text-center">
+             <h1 class="font-cinzel text-6xl md:text-8xl font-bold mb-4 text-red-500" style="text-shadow: 0 0 15px rgba(239, 68, 68, 0.7);">WEREWOLF</h1>
+            <p class="text-gray-300 mb-12 text-lg">A game of deception and survival in a cursed village.</p>
+            <div class="space-y-4 md:space-y-0 md:space-x-4">
+                <button id="create-game-btn" class="btn-primary text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-transform transform hover:scale-105 w-full md:w-auto">Create New Game</button>
+                <button id="join-game-btn" class="btn-secondary text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-transform transform hover:scale-105 w-full md:w-auto">Join Existing Game</button>
+            </div>
+            <div id="join-game-form" class="hidden mt-8 max-w-sm mx-auto">
+                 <input type="text" id="game-code-input" placeholder="Enter Game Code" class="w-full bg-gray-800 border border-gray-600 rounded-lg py-3 px-4 text-center text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500">
+                <input type="text" id="player-name-input-join" placeholder="Enter Your Name" class="mt-4 w-full bg-gray-800 border border-gray-600 rounded-lg py-3 px-4 text-center text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500">
+                <button id="enter-lobby-btn" class="mt-4 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg w-full transition-transform transform hover:scale-105">Enter Lobby</button>
+            </div>
+             <div id="create-game-form" class="hidden mt-8 max-w-sm mx-auto">
+                <input type="text" id="player-name-input-create" placeholder="Enter Your Name" class="w-full bg-gray-800 border border-gray-600 rounded-lg py-3 px-4 text-center text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500">
+                <button id="show-settings-btn" class="mt-4 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg w-full transition-transform transform hover:scale-105">Set Up Game</button>
+            </div>
+        </div>
+
+        <!-- Game Settings Screen -->
+        <div id="game-settings-screen" class="hidden panel rounded-lg shadow-2xl p-6">
+            <h2 class="font-cinzel text-4xl font-bold text-center mb-6">Game Settings</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="bg-gray-800/50 p-4 rounded-lg flex flex-col justify-between"><div><h3 class="font-bold text-lg">Number of Werewolves</h3><p class="text-sm text-gray-400 mt-1">Default is ~30% of players.</p></div><input type="number" id="werewolf-count-input" value="1" min="1" class="w-24 mt-3 bg-gray-900 border border-gray-600 rounded-lg py-2 px-3 text-center text-white self-end"></div>
+                <div class="bg-gray-800/50 p-4 rounded-lg flex flex-col justify-between"><div class="flex justify-between items-start"><div><h3 class="font-bold text-lg">Include Seer</h3><p class="text-sm text-gray-400 mt-1">Can check a player's role.</p></div><label class="switch flex-shrink-0 ml-4"><input type="checkbox" id="seer-toggle" checked><span class="slider"></span></label></div><div id="seer-sees-setting" class="flex justify-between items-center mt-3"><label for="seer-sees-input" class="text-sm text-gray-300"># of Sees:</label><input type="number" id="seer-sees-input" value="2" min="1" class="w-20 bg-gray-900 border border-gray-600 rounded-lg py-1 px-2 text-center text-white"></div></div>
+                <div class="bg-gray-800/50 p-4 rounded-lg flex justify-between items-start"><div><h3 class="font-bold text-lg">Include Healer</h3><p class="text-sm text-gray-400 mt-1">Protects one player each night.</p></div><label class="switch flex-shrink-0 ml-4"><input type="checkbox" id="healer-toggle" checked><span class="slider"></span></label></div>
+                <div class="bg-gray-800/50 p-4 rounded-lg flex justify-between items-start"><div><h3 class="font-bold text-lg">Universal Shield</h3><p class="text-sm text-gray-400 mt-1">One-time night protection for all.</p></div><label class="switch flex-shrink-0 ml-4"><input type="checkbox" id="shield-toggle" checked><span class="slider"></span></label></div>
+                <div class="bg-gray-800/50 p-4 rounded-lg flex justify-between items-start"><div><h3 class="font-bold text-lg">Include Minion</h3><p class="text-sm text-gray-400 mt-1">A villager on the wolves' team.</p></div><label class="switch flex-shrink-0 ml-4"><input type="checkbox" id="minion-toggle"><span class="slider"></span></label></div>
+                <div class="bg-gray-800/50 p-4 rounded-lg flex justify-between items-start"><div><h3 class="font-bold text-lg">Include Jester</h3><p class="text-sm text-gray-400 mt-1">Wins if voted out by villagers.</p></div><label class="switch flex-shrink-0 ml-4"><input type="checkbox" id="jester-toggle"><span class="slider"></span></label></div>
+                <div class="bg-gray-800/50 p-4 rounded-lg flex justify-between items-start"><div><h3 class="font-bold text-lg">Include Hunter</h3><p class="text-sm text-gray-400 mt-1">When killed, takes someone with them.</p></div><label class="switch flex-shrink-0 ml-4"><input type="checkbox" id="hunter-toggle"><span class="slider"></span></label></div>
+                <div class="bg-gray-800/50 p-4 rounded-lg flex justify-between items-start"><div><h3 class="font-bold text-lg">Include Witch</h3><p class="text-sm text-gray-400 mt-1">Has one poison and one save potion.</p></div><label class="switch flex-shrink-0 ml-4"><input type="checkbox" id="witch-toggle"><span class="slider"></span></label></div>
+                <div class="bg-gray-800/50 p-4 rounded-lg flex justify-between items-start"><div><h3 class="font-bold text-lg">Include Bodyguard</h3><p class="text-sm text-gray-400 mt-1">Protects a player, but dies if they are attacked.</p></div><label class="switch flex-shrink-0 ml-4"><input type="checkbox" id="bodyguard-toggle"><span class="slider"></span></label></div>
+                <div class="bg-gray-800/50 p-4 rounded-lg flex justify-between items-start md:col-span-full"><div><h3 class="font-bold text-lg">Enable Sheriff</h3><p class="text-sm text-gray-400 mt-1">One random (non-wolf) player is Sheriff. Their vote counts as two.</p></div><label class="switch flex-shrink-0 ml-4"><input type="checkbox" id="sheriff-toggle"><span class="slider"></span></label></div>
+            </div>
+            <div class="flex justify-between mt-8"><button id="back-to-main-btn" class="btn-cancel text-white font-bold py-3 px-8 rounded-lg shadow-lg">Back</button><button id="create-lobby-btn" class="bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-8 rounded-lg shadow-lg">Confirm & Create Lobby</button></div>
+        </div>
+
+        <!-- Lobby Screen -->
+        <div id="lobby-screen" class="hidden panel rounded-lg shadow-2xl p-6">
+            <h2 class="font-cinzel text-4xl font-bold text-center mb-2">LOBBY</h2>
+            <div class="text-center mb-6"><p class="text-gray-400">Share this code with your friends:</p><div class="bg-gray-800 border border-dashed border-gray-600 rounded-lg py-3 px-4 text-2xl font-bold text-red-400 inline-block mt-2 cursor-pointer" id="game-code-display">WAITING...</div></div>
+            <div><h3 class="text-2xl font-bold mb-4 border-b border-gray-700 pb-2 font-cinzel">Players Joined</h3><div id="player-list" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div></div>
+            <div class="flex justify-between mt-8"><button id="cancel-game-btn" class="btn-cancel text-white font-bold py-3 px-8 rounded-lg shadow-lg">Leave Game</button><button id="start-game-btn" class="bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-8 rounded-lg shadow-lg disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>Start Game</button></div>
+            <p id="start-game-message" class="text-center text-gray-500 mt-2">Only the host can start the game. Minimum 4 players required.</p>
+        </div>
+
+        <!-- Game Screen and Overlays -->
+        <div id="game-screen" class="hidden">
+            <div id="role-reveal-overlay" class="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 hidden"><h2 id="reveal-role-name" class="font-cinzel text-6xl text-red-500"></h2><p id="reveal-role-description" class="text-lg text-gray-300 mt-4 max-w-md text-center"></p><div id="reveal-werewolf-pack" class="mt-4 text-center hidden"><p class="text-gray-400">Your fellow werewolves are:</p><p id="reveal-pack-list" class="text-xl text-white font-bold"></p></div><p class="mt-8 text-gray-500 animate-pulse">The game will begin shortly...</p></div>
+            <div id="message-overlay" class="fixed inset-0 bg-black/80 flex flex-col items-center justify-center z-[60] hidden p-4"><div class="panel p-8 rounded-lg text-center max-w-lg"><h2 id="message-title" class="font-cinzel text-3xl mb-4"></h2><p id="message-text" class="text-lg"></p></div></div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-1 panel p-4 rounded-lg shadow-2xl"><h3 class="font-cinzel text-xl font-bold mb-3">Players</h3><div id="game-player-list" class="space-y-3"></div></div>
+                <div class="lg:col-span-2 panel p-6 rounded-lg shadow-2xl flex flex-col">
+                    <div class="flex justify-between items-center mb-4"><div id="phase-display"><h2 id="phase-title" class="font-cinzel text-4xl font-bold text-yellow-400"></h2></div><div id="timer-display" class="text-2xl font-bold text-gray-300 bg-gray-900/50 px-4 py-2 rounded-lg"></div></div>
+                    <div id="announcement" class="bg-red-900/70 border border-red-700 p-4 rounded-lg text-center mb-4 hidden"><p id="announcement-text" class="text-lg"></p></div>
+                    <div id="chat-log" class="flex-grow bg-black/30 p-3 rounded-lg overflow-y-auto h-48 md:h-64 mb-4"></div>
+                    <div id="action-area"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- CONFIG ---
+        const SERVER_URL = "YOUR_SERVER_URL"; // !!! IMPORTANT: REPLACE THIS !!!
+
+        // --- STATE ---
+        let socket, roomCode, myId, myName, isHost;
+        let gameState = { players: [] };
+        let timerInterval;
+
+        // --- DOM Elements ---
+        const Screens = {
+            initial: document.getElementById('initial-screen'),
+            settings: document.getElementById('game-settings-screen'),
+            lobby: document.getElementById('lobby-screen'),
+            game: document.getElementById('game-screen'),
+        };
+        const createGameBtn = document.getElementById('create-game-btn'), joinGameBtn = document.getElementById('join-game-btn');
+        const createGameForm = document.getElementById('create-game-form'), joinGameForm = document.getElementById('join-game-form');
+        const showSettingsBtn = document.getElementById('show-settings-btn'), enterLobbyBtn = document.getElementById('enter-lobby-btn');
+        const backToMainBtn = document.getElementById('back-to-main-btn'), createLobbyBtn = document.getElementById('create-lobby-btn');
+        const seerToggle = document.getElementById('seer-toggle'), seerSeesSetting = document.getElementById('seer-sees-setting');
+        const cancelGameBtn = document.getElementById('cancel-game-btn'), startGameBtn = document.getElementById('start-game-btn');
+        const gameCodeDisplay = document.getElementById('game-code-display'), playerList = document.getElementById('player-list');
+        const startGameMessage = document.getElementById('start-game-message');
+        const roleRevealOverlay = document.getElementById('role-reveal-overlay'), messageOverlay = document.getElementById('message-overlay');
+        const gamePlayerList = document.getElementById('game-player-list'), phaseTitle = document.getElementById('phase-title');
+        const timerDisplay = document.getElementById('timer-display'), announcement = document.getElementById('announcement');
+        const chatLog = document.getElementById('chat-log'), actionArea = document.getElementById('action-area');
+        const ghostContainer = document.getElementById('ghost-container');
+
+        // --- HELPER FUNCTIONS ---
+        function showScreen(screen) { Object.values(Screens).forEach(s => s.classList.add('hidden')); screen.classList.remove('hidden'); }
+        function showMessage(title, text, duration = 3000) {
+            document.getElementById('message-title').textContent = title;
+            document.getElementById('message-text').innerHTML = text; // Use innerHTML to allow for formatting
+            messageOverlay.classList.remove('hidden');
+            if (duration) setTimeout(() => messageOverlay.classList.add('hidden'), duration);
+        }
+        function startTimer(duration) {
+            clearInterval(timerInterval);
+            let timeLeft = duration;
+            timerInterval = setInterval(() => {
+                timeLeft -= 1000;
+                const minutes = Math.floor((timeLeft / 1000) / 60);
+                const seconds = Math.floor((timeLeft / 1000) % 60);
+                timerDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                if (timeLeft <= 0) clearInterval(timerInterval);
+            }, 1000);
+        }
+        
+        // --- RENDER FUNCTIONS ---
+        function renderLobbyPlayerList(players) {
+            playerList.innerHTML = '';
+            players.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'panel p-4 rounded-lg text-center';
+                card.innerHTML = `<p class="font-bold text-lg truncate">${p.name}</p>${p.isHost ? '<p class="text-sm text-yellow-400">Lobby Host</p>' : ''}`;
+                playerList.appendChild(card);
+            });
+            if (isHost) {
+                startGameBtn.disabled = players.length < 4;
+                startGameMessage.textContent = players.length < 4 ? `Need at least 4 players. (${players.length}/4)` : 'Ready to start!';
+            }
+        }
+
+        function renderGamePlayerList() {
+            gamePlayerList.innerHTML = '';
+            gameState.players.forEach(p => {
+                const playerDiv = document.createElement('div');
+                playerDiv.className = `flex items-center justify-between p-2 rounded-lg ${p.isAlive ? 'bg-gray-700/50' : 'bg-red-900/50 opacity-50'}`;
+                playerDiv.innerHTML = `<p class="font-bold ${!p.isAlive ? 'line-through' : ''}">${p.name} ${p.id === myId ? '(You)' : ''}</p>`;
+                gamePlayerList.appendChild(playerDiv);
+            });
+        }
+        
+        function renderActionArea(data = {}) {
+            actionArea.innerHTML = ''; // Clear previous actions
+            if (data.phase === 'night' && data.prompt) {
+                actionArea.innerHTML = `
+                    <h3 class="text-xl font-cinzel mb-2">Night Action</h3>
+                    <p class="text-lg mb-4 text-yellow-400">${data.prompt}</p>
+                    <div class="flex space-x-2">
+                         <input type="text" id="action-input" placeholder="Type player's exact name..." class="flex-grow bg-gray-900 border border-gray-600 rounded-lg py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-red-500">
+                         <button id="action-confirm-btn" class="bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-5 rounded-lg">Confirm</button>
+                    </div>`;
+                document.getElementById('action-confirm-btn').addEventListener('click', () => {
+                    const target = document.getElementById('action-input').value.trim();
+                    if (target) socket.emit('nightAction', { roomCode, target });
+                });
+            } else if (data.phase === 'day_discussion') {
+                actionArea.innerHTML = `<h3 class="text-xl font-cinzel mb-2">Vote for Elimination</h3><div id="vote-buttons" class="grid grid-cols-2 md:grid-cols-3 gap-2"></div>`;
+                const voteButtons = document.getElementById('vote-buttons');
+                gameState.players.filter(p => p.isAlive).forEach(p => {
+                    const btn = document.createElement('button');
+                    btn.className = 'bg-gray-600 hover:bg-red-700 p-3 rounded-lg w-full';
+                    btn.textContent = p.name;
+                    btn.addEventListener('click', () => socket.emit('vote', {roomCode, target: p.name}));
+                    voteButtons.appendChild(btn);
+                });
+            } else {
+                 actionArea.innerHTML = '<p class="text-gray-400">Waiting for the next phase...</p>';
+            }
+        }
+
+        // --- SOCKET.IO ---
+        function connectSocket() {
+            if (socket) socket.disconnect();
+            socket = io(SERVER_URL);
+            
+            socket.on('connect', () => console.log('Connected to server with ID:', socket.id));
+
+            socket.on('gameCreated', data => {
+                ({ roomCode, isHost, socketId: myId } = data);
+                myName = isHost ? document.getElementById('player-name-input-create').value : document.getElementById('player-name-input-join').value;
+                showScreen(Screens.lobby);
+                gameCodeDisplay.textContent = roomCode;
+                startGameBtn.style.display = isHost ? 'block' : 'none';
+                renderLobbyPlayerList(data.players);
+            });
+
+            socket.on('playerListUpdate', data => renderLobbyPlayerList(data.players));
+
+            socket.on('showError', data => {
+                showMessage('Error', data.message);
+                if (socket) socket.disconnect();
+                showScreen(Screens.initial);
+            });
+
+            socket.on('gameStarted', data => {
+                gameState.players = data.allPlayers;
+                showScreen(Screens.game);
+                const { role, werewolfPack } = data;
+                document.getElementById('reveal-role-name').textContent = role;
+                document.getElementById('reveal-role-description').textContent = getRoleDescription(role);
+                const packDiv = document.getElementById('reveal-werewolf-pack');
+                if (werewolfPack && werewolfPack.length > 0) {
+                    document.getElementById('reveal-pack-list').textContent = werewolfPack.filter(name => name !== myName).join(', ');
+                    packDiv.classList.remove('hidden');
+                } else {
+                    packDiv.classList.add('hidden');
+                }
+                roleRevealOverlay.classList.remove('hidden');
+                setTimeout(() => roleRevealOverlay.classList.add('hidden'), 5000);
+            });
+
+            socket.on('phaseChange', data => {
+                phaseTitle.textContent = data.phase.replace('_', ' ').toUpperCase();
+                announcement.classList.add('hidden');
+                ghostContainer.classList.toggle('hidden', data.phase !== 'night');
+                renderGamePlayerList();
+                if (data.phase === 'day_discussion') {
+                    startTimer(5 * 60 * 1000); // 5 mins
+                    let announcementText = 'The sun rises. ';
+                    if (data.results.killed.length > 0) {
+                        announcementText += `${data.results.killed.join(', ')} was found dead. `;
+                    }
+                    if (data.results.saved.length > 0) {
+                         announcementText += `${data.results.saved.join(', ')} was attacked but survived.`;
+                    }
+                    if(data.results.killed.length === 0 && data.results.saved.length === 0) {
+                        announcementText += 'It was a peaceful night... too peaceful.';
+                    }
+                    announcement.querySelector('p').textContent = announcementText;
+                    announcement.classList.remove('hidden');
+                    renderActionArea({ phase: 'day_discussion' });
+                } else {
+                    renderActionArea();
+                }
+            });
+
+            socket.on('yourTurn', data => renderActionArea({ phase: 'night', prompt: data.prompt }));
+            socket.on('actionResult', data => showMessage('Seer\'s Vision', data.message));
+            socket.on('actionReceived', data => showMessage('Success', data.message, 2000));
+            socket.on('timerSpeedUp', () => { showMessage('Vote Cast!', 'The timer has been halved!', 2000); startTimer(2.5 * 60 * 1000); });
+            socket.on('playerVoted', data => {
+                 const voter = gameState.players.find(p => p.id === data.voter)?.name || 'Someone';
+                 showMessage('Vote Cast', `${voter} has voted.`, 1500);
+            });
+            
+            socket.on('voteResult', data => {
+                gameState.players.find(p => p.name === data.eliminated).isAlive = false;
+                showMessage('Village Decision', data.message, 5000);
+                renderGamePlayerList();
+            });
+
+            socket.on('gameOver', data => {
+                clearInterval(timerInterval);
+                let allRolesText = data.players.map(p => `${p.name} was the <b>${p.role}</b>`).join('<br>');
+                showMessage(`Game Over! ${data.winner} Win!`, `${data.reason}<br><br><b>Final Roles:</b><br>${allRolesText}`, null);
+            });
+            
+             socket.on('playerDisconnected', data => {
+                const player = gameState.players.find(p => p.name === data.name);
+                if (player) player.isAlive = false;
+                renderGamePlayerList();
+                showMessage('Player Left', `${data.name} has disconnected from the game.`, 3000);
+            });
+        }
+        
+        // --- EVENT BINDINGS ---
+        createGameBtn.addEventListener('click', () => { createGameForm.classList.remove('hidden'); joinGameForm.classList.add('hidden'); });
+        joinGameBtn.addEventListener('click', () => { joinGameForm.classList.remove('hidden'); createGameForm.classList.add('hidden'); });
+        showSettingsBtn.addEventListener('click', () => { if (document.getElementById('player-name-input-create').value.trim()) showScreen(Screens.settings); });
+        backToMainBtn.addEventListener('click', () => showScreen(Screens.initial));
+        seerToggle.addEventListener('change', () => seerSeesSetting.classList.toggle('hidden', !seerToggle.checked));
+        createLobbyBtn.addEventListener('click', () => {
+            connectSocket();
+            socket.emit('createGame', {
+                playerName: document.getElementById('player-name-input-create').value.trim(),
+                gameSettings: {
+                    werewolves: document.getElementById('werewolf-count-input').value, seer: seerToggle.checked, seerSees: document.getElementById('seer-sees-input').value,
+                    healer: document.getElementById('healer-toggle').checked, shield: document.getElementById('shield-toggle').checked, minion: document.getElementById('minion-toggle').checked,
+                    jester: document.getElementById('jester-toggle').checked, hunter: document.getElementById('hunter-toggle').checked, witch: document.getElementById('witch-toggle').checked,
+                    bodyguard: document.getElementById('bodyguard-toggle').checked, sheriff: document.getElementById('sheriff-toggle').checked,
+                }
+            });
+        });
+        enterLobbyBtn.addEventListener('click', () => {
+            const playerName = document.getElementById('player-name-input-join').value.trim();
+            const rc = document.getElementById('game-code-input').value.trim().toUpperCase();
+            if (playerName && rc) { connectSocket(); socket.emit('joinGame', { playerName, roomCode: rc }); }
+        });
+        startGameBtn.addEventListener('click', () => { if (isHost) socket.emit('startGame', roomCode); });
+        cancelGameBtn.addEventListener('click', () => { if (socket) socket.disconnect(); showScreen(Screens.initial); });
+        gameCodeDisplay.addEventListener('click', () => { navigator.clipboard.writeText(roomCode).then(() => showMessage('Success!', `Copied code ${roomCode} to clipboard!`)); });
+
+        function getRoleDescription(role) {
+            const descriptions = {
+                'Werewolf': 'Each night, choose a villager to eliminate. Win when werewolves equal or outnumber villagers.', 'Villager': 'You have no special powers. Find the werewolves and vote to eliminate them.',
+                'Seer': 'Each night, you can check one player to see if they are a werewolf.', 'Healer': 'Each night, you can choose one person to protect from a werewolf attack.',
+                'Minion': "You are a villager aligned with evil. You know who the werewolves are. You win when the werewolves win.", 'Jester': 'You are a neutral trickster. You only win if the village votes to eliminate you.',
+                'Hunter': 'If you are killed, you take one last shot, killing another player of your choice.', 'Witch': 'You have two potions: one to save a player, and one to poison a player. Each can be used once.',
+                'Bodyguard': 'Each night, choose a player to protect. If they are attacked, you die in their place.', 'Sheriff': 'You are a villager, but your vote counts as two.'
+            };
+            return descriptions[role] || 'A mysterious role...';
+        }
+    </script>
+</body>
+</html>
