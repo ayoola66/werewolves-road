@@ -109,6 +109,8 @@ Changelog:
 - June 25, 2025: Implemented Seer investigation limits (30% of werewolf count, min 3)
 - June 25, 2025: Added custom Seer investigation count option in Game Settings
 - June 25, 2025: Integrated PostgreSQL database for persistent multiplayer sessions
+- June 25, 2025: Enhanced game flow with role reveal countdown, day/night visuals
+- June 25, 2025: Implemented advanced bodyguard mechanics and majority voting system
 ```
 
 ## User Preferences

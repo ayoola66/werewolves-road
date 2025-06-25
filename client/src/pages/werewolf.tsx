@@ -3,6 +3,7 @@ import InitialScreen from '@/components/werewolf/InitialScreen';
 import GameSettings from '@/components/werewolf/GameSettings';
 import Lobby from '@/components/werewolf/Lobby';
 import GameScreen from '@/components/werewolf/GameScreen';
+import RoleRevealOverlay from '@/components/werewolf/overlays/RoleRevealOverlay';
 
 export default function WerewolfGame() {
   const gameState = useGameState();
@@ -28,12 +29,26 @@ export default function WerewolfGame() {
       </div>
       
       {/* Main content */}
-      <div className="relative z-10 text-white flex items-center justify-center min-h-screen p-4">
+      <div className={`relative z-10 text-white flex items-center justify-center min-h-screen p-4 transition-all duration-1000 ${
+        gameState.gameState?.phase === 'night' ? 'brightness-50' : 
+        gameState.gameState?.phase === 'day' ? 'brightness-110' : ''
+      }`}>
         <div className="w-full max-w-5xl mx-auto">
           {gameState.currentScreen === 'initial' && <InitialScreen gameState={gameState} />}
           {gameState.currentScreen === 'settings' && <GameSettings gameState={gameState} />}  
           {gameState.currentScreen === 'lobby' && <Lobby gameState={gameState} />}
           {gameState.currentScreen === 'game' && <GameScreen gameState={gameState} />}
+          
+          {/* Role Reveal Overlay */}
+          {gameState.currentScreen === 'game' && 
+           gameState.gameState?.phase === 'role_reveal' && 
+           gameState.getPlayerRole() && (
+            <RoleRevealOverlay 
+              role={gameState.getPlayerRole()}
+              phaseTimer={gameState.gameState.phaseTimer || 10}
+              gameState={gameState.gameState}
+            />
+          )}
         </div>
       </div>
     </div>

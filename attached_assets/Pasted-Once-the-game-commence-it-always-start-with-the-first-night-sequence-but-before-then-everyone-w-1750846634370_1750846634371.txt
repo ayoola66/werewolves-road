@@ -1,0 +1,19 @@
+Once the game commence, it always start with the first night sequence... but before then, everyone will know their role for 10 seconds and the message automatically disappears (with a countdown so they can see to memorise whatever information shown).
+
+Night time ends and day time starts for players to discuss when all the roles available have completed their actions regardless if shield were used or not. Only then will the players know who died, who was protected, who was saved, who was body guarded etc. We will not reveal the names but we will only use words like, attempted murdered (because either by healer/doctor saved or shield used or body guarded without revealing how the person was saved). and if someone was successfully killed or anyone who died at night time, just as the night time ends, they get the notification that the “person’s name has died - community meeting - discuss” or any similar wording with a bit of humour, wittiness and corniness
+
+Werewolves message will include who else is a werewolves and that's it. No one else can know what other people roles are.
+
+First night, the chats opens up for everyone to start chatting. Werewolves chats with themselves, everybody else chats randomly stuff on their screen, they can be asked to speed type random words they see. 
+
+Everyone with a role will type the person name to confirm whatever actions their role is.
+
+Villagers can be chatting random stuff with the screen but they will have a chance to use their shield which is one per active game. 
+
+Werewolves can chat with each other to choose who they want to kill, they must type exactly the name of the victim they want to kill - character case doesn't matter here as long as they got the letters of the name right.
+
+Seer can use who is who, one see per night. They type the name of the person and use the action button - the action buttons should be adaptive enough based on the person role - either see (for seer), save (for doctor/healer), kill (for werewolves), protect (for bodyguard)
+
+Bodyguard is quite unique in some sense. If a werewolves tries to kill someone that a bodyguard has chosen to protect, they do not die. However, if the bodyguard is killed during the night time, even if the bodyguard has chose to protect a werewolves unknowingly, both the bodyguard and the werewolves dies.
+
+Don’t forget to add screen lit and darken to simulate day and night in gameplay. Discussion time is 2 min with on-screen countdown. However, people can choose to click on the screen the name of the person they want to vote out and once the current active players reaches over 50%, the votes ends,, the person is with majority is now inactive and 10 second after that, night time starts

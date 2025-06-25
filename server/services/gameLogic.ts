@@ -2,7 +2,7 @@ import { storage } from "../storage";
 import { type Game, type Player, type GameSettings } from "@shared/schema";
 
 export type Role = 'werewolf' | 'villager' | 'seer' | 'healer' | 'hunter' | 'witch' | 'bodyguard' | 'minion' | 'jester';
-export type Phase = 'waiting' | 'night' | 'day' | 'voting' | 'game_over';
+export type Phase = 'waiting' | 'role_reveal' | 'night' | 'day' | 'voting' | 'game_over';
 
 export interface GameState {
   game: Game;
@@ -109,19 +109,19 @@ export class GameLogic {
     // Assign roles
     await this.assignRoles(gameState);
 
-    // Update game status
+    // Update game status to role reveal phase
     await storage.updateGame(gameCode, {
       status: 'playing',
-      currentPhase: 'night',
-      phaseTimer: 60
+      currentPhase: 'role_reveal',
+      phaseTimer: 10
     });
 
     gameState.game.status = 'playing';
-    gameState.phase = 'night';
-    gameState.phaseTimer = 60;
+    gameState.phase = 'role_reveal';
+    gameState.phaseTimer = 10;
 
-    // Start phase timer
-    this.startPhaseTimer(gameCode, 60, () => this.resolveNightPhase(gameCode));
+    // Start with 10-second role reveal, then transition to first night
+    this.startPhaseTimer(gameCode, 10, () => this.startNightPhase(gameCode));
 
     return gameState;
   }
@@ -204,6 +204,28 @@ export class GameLogic {
     });
 
     gameState.votes[playerId] = targetId;
+
+    // Check if majority has voted (over 50%)
+    const totalVoters = gameState.alivePlayers.length;
+    const currentVotes = Object.keys(gameState.votes).length;
+    
+    if (currentVotes > totalVoters * 0.5) {
+      // Majority reached - end voting early with 10 second delay
+      this.clearTimer(gameCode);
+      
+      await storage.addChatMessage({
+        gameId: gameState.game.id,
+        playerId: null,
+        playerName: 'Game Master',
+        message: 'Majority vote reached! Results will be revealed in 10 seconds.',
+        type: 'system'
+      });
+
+      setTimeout(() => {
+        this.resolveVotingPhase(gameCode);
+      }, 10000);
+    }
+
     return true;
   }
 
@@ -285,7 +307,7 @@ export class GameLogic {
     }
 
     // Start day phase
-    await this.startDayPhase(gameCode);
+    setTimeout(() => this.startDayPhase(gameCode), 2000);
   }
 
   private async processNightActions(gameState: GameState): Promise<Player[]> {
@@ -366,8 +388,8 @@ export class GameLogic {
     await storage.addChatMessage({
       gameId: gameState.game.id,
       playerId: null,
-      playerName: 'System',
-      message: 'Day breaks. Discuss who might be the werewolf.',
+      playerName: 'Game Master',
+      message: 'Dawn breaks. Discuss what happened during the night and decide who to vote out.',
       type: 'system'
     });
 
@@ -448,22 +470,22 @@ export class GameLogic {
 
     await storage.updateGame(gameCode, {
       currentPhase: 'night',
-      phaseTimer: 60
+      phaseTimer: 180
     });
 
     gameState.phase = 'night';
-    gameState.phaseTimer = 60;
+    gameState.phaseTimer = 180;
     gameState.nightActions = {};
 
     await storage.addChatMessage({
       gameId: gameState.game.id,
       playerId: null,
-      playerName: 'System',
-      message: 'Night falls over the village. Special roles, perform your actions.',
+      playerName: 'Game Master',
+      message: 'Night falls over the village. Those with night abilities, make your choices wisely.',
       type: 'system'
     });
 
-    this.startPhaseTimer(gameCode, 60, () => this.resolveNightPhase(gameCode));
+    this.startPhaseTimer(gameCode, 180, () => this.resolveNightPhase(gameCode));
   }
 
   private countVotesAndGetEliminated(gameState: GameState): Player | null {

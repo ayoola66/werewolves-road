@@ -1,5 +1,5 @@
 export type Role = 'werewolf' | 'villager' | 'seer' | 'healer' | 'hunter' | 'witch' | 'bodyguard' | 'minion' | 'jester';
-export type Phase = 'waiting' | 'night' | 'day' | 'voting' | 'game_over';
+export type Phase = 'waiting' | 'role_reveal' | 'night' | 'day' | 'voting' | 'game_over';
 export type GameStatus = 'waiting' | 'playing' | 'finished';
 
 export interface GameSettings {

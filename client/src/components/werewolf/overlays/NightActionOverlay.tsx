@@ -14,21 +14,24 @@ export default function NightActionOverlay({ gameState }: NightActionOverlayProp
       case 'werewolf':
         return {
           title: 'Choose Your Victim',
-          description: 'Select a player to eliminate tonight.',
-          targets: game?.alivePlayers?.filter((p: any) => p.role !== 'werewolf') || []
+          description: 'Select a player to eliminate tonight. Type their name exactly to confirm.',
+          targets: game?.alivePlayers?.filter((p: any) => p.role !== 'werewolf') || [],
+          actionText: 'Kill'
         };
       case 'seer':
         const investigationsLeft = game?.seerInvestigationsLeft?.[gameState.playerId] || 0;
         return {
           title: 'Divine a Player',
           description: `Choose a player to learn their role. Investigations remaining: ${investigationsLeft}`,
-          targets: investigationsLeft > 0 ? (game?.alivePlayers?.filter((p: any) => p.playerId !== gameState.playerId) || []) : []
+          targets: investigationsLeft > 0 ? (game?.alivePlayers?.filter((p: any) => p.playerId !== gameState.playerId) || []) : [],
+          actionText: 'Investigate'
         };
       case 'healer':
         return {
           title: 'Protect a Player',
           description: 'Choose a player to protect from werewolf attacks.',
-          targets: game?.alivePlayers || []
+          targets: game?.alivePlayers || [],
+          actionText: 'Heal'
         };
       case 'witch':
         return {
@@ -40,7 +43,8 @@ export default function NightActionOverlay({ gameState }: NightActionOverlayProp
         return {
           title: 'Guard a Player',
           description: 'Choose a player to protect. You will die if they are attacked.',
-          targets: game?.alivePlayers?.filter((p: any) => p.playerId !== gameState.playerId) || []
+          targets: game?.alivePlayers?.filter((p: any) => p.playerId !== gameState.playerId) || [],
+          actionText: 'Protect'
         };
       default:
         return {
