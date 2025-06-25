@@ -229,7 +229,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteGame(gameCode: string): Promise<boolean> {
     const result = await db.delete(games).where(eq(games.gameCode, gameCode));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   async addPlayerToGame(insertPlayer: InsertPlayer): Promise<Player> {
@@ -265,7 +265,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(players)
       .where(and(eq(players.gameId, gameId), eq(players.playerId, playerId)));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   async addGameAction(insertAction: InsertGameAction): Promise<GameAction> {
@@ -277,13 +277,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getGameActionsByGame(gameId: number, phase?: string): Promise<GameAction[]> {
-    let query = db.select().from(gameActions).where(eq(gameActions.gameId, gameId));
-    
     if (phase) {
-      query = query.where(eq(gameActions.phase, phase));
+      return await db
+        .select()
+        .from(gameActions)
+        .where(and(eq(gameActions.gameId, gameId), eq(gameActions.phase, phase)));
     }
     
-    return await query;
+    return await db.select().from(gameActions).where(eq(gameActions.gameId, gameId));
   }
 
   async getPlayerVote(gameId: number, playerId: string, phase: string): Promise<GameAction | undefined> {

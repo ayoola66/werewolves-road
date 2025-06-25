@@ -95,6 +95,7 @@ export const gameSettingsSchema = z.object({
   witch: z.boolean().default(false),
   bodyguard: z.boolean().default(false),
   sheriff: z.boolean().default(false),
+  seerInvestigations: z.number().min(1).max(20).optional(),
 });
 
 export type GameSettings = z.infer<typeof gameSettingsSchema>;

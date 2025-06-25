@@ -162,9 +162,11 @@ export class GameLogic {
       });
       players[i].role = roles[i];
 
-      // Set seer investigation limit based on werewolf count (30% of werewolves, minimum 3)
+      // Set seer investigation limit based on settings or default rule (30% of werewolves, minimum 3)
       if (roles[i] === 'seer') {
-        const seerInvestigations = Math.max(3, Math.ceil(werewolfCount * 0.3));
+        const customCount = settings.seerInvestigations;
+        const defaultCount = Math.max(3, Math.ceil(werewolfCount * 0.3));
+        const seerInvestigations = customCount || defaultCount;
         gameState.seerInvestigationsLeft[players[i].playerId] = seerInvestigations;
       }
     }

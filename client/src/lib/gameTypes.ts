@@ -13,6 +13,7 @@ export interface GameSettings {
   witch: boolean;
   bodyguard: boolean;
   sheriff: boolean;
+  seerInvestigations?: number; // Custom seer investigation count
 }
 
 export interface Player {

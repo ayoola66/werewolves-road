@@ -107,6 +107,8 @@ Changelog:
 - June 25, 2025: Transformed basic HTML into complete multiplayer Werewolf game
 - June 25, 2025: Added medieval theming with castle background and golden effects
 - June 25, 2025: Implemented Seer investigation limits (30% of werewolf count, min 3)
+- June 25, 2025: Added custom Seer investigation count option in Game Settings
+- June 25, 2025: Integrated PostgreSQL database for persistent multiplayer sessions
 ```
 
 ## User Preferences

@@ -20,7 +20,8 @@ export default function GameSettings({ gameState }: GameSettingsProps) {
     hunter: false,
     witch: false,
     bodyguard: false,
-    sheriff: false
+    sheriff: false,
+    seerInvestigations: undefined // Will use default (30% of werewolves, min 3)
   });
 
   const handleCreateLobby = () => {
@@ -104,6 +105,29 @@ export default function GameSettings({ gameState }: GameSettingsProps) {
               value={settings.werewolves}
               onChange={(e) => setSettings(prev => ({ ...prev, werewolves: Math.max(1, parseInt(e.target.value) || 1) }))}
               min={1}
+              className="w-24 mt-3 bg-gray-900 border border-gray-600 text-center text-white self-end"
+            />
+          </div>
+
+          {/* Seer Investigations */}
+          <div className="bg-gray-800/50 p-4 rounded-lg flex flex-col justify-between">
+            <div>
+              <h3 className="font-bold text-lg">Seer Investigations</h3>
+              <p className="text-sm text-gray-400 mt-1">Default: 30% of werewolves (min 3). Set custom amount or leave blank for default.</p>
+            </div>
+            <Input
+              type="number"
+              value={settings.seerInvestigations || ''}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSettings(prev => ({ 
+                  ...prev, 
+                  seerInvestigations: value === '' ? undefined : Math.max(1, Math.min(20, parseInt(value) || 1))
+                }));
+              }}
+              min={1}
+              max={20}
+              placeholder="Auto"
               className="w-24 mt-3 bg-gray-900 border border-gray-600 text-center text-white self-end"
             />
           </div>
