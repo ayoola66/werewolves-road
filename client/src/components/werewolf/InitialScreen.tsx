@@ -25,8 +25,10 @@ export default function InitialScreen({ gameState }: InitialScreenProps) {
 
   return (
     <div className="text-center">
-      <h1 className="font-cinzel text-6xl md:text-8xl font-bold mb-4 text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.7)] [text-shadow:_0_0_40px_rgba(255,255,255,0.8),_0_0_80px_rgba(255,255,255,0.4)]">
-        WEREWOLF
+      <h1 className="font-cinzel text-6xl md:text-8xl font-bold mb-4 text-red-500 relative">
+        <span className="absolute inset-0 text-white blur-sm opacity-80 transform scale-105">WEREWOLF</span>
+        <span className="absolute inset-0 text-yellow-300 blur-md opacity-40 transform scale-110">WEREWOLF</span>
+        <span className="relative bg-gradient-to-b from-red-400 to-red-600 bg-clip-text text-transparent drop-shadow-2xl">WEREWOLF</span>
       </h1>
       <p className="text-gray-300 mb-12 text-lg font-medium">
         Where pointing fingers is totally normal and trust issues are a feature, not a bug!

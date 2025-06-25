@@ -13,13 +13,19 @@ export default function WerewolfGame() {
       <div 
         className="absolute inset-0 bg-cover bg-center bg-fixed"
         style={{
-          backgroundImage: "url('https://images.unsplash.com/photo-1520637836862-4d197d17c23a?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080')"
+          backgroundImage: "url('https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080')"
         }}
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/80 z-0" />
+      <div className="absolute inset-0 bg-gradient-to-b from-purple-900/40 via-red-900/50 to-black/70 z-0" />
+      <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-transparent to-black/30 z-0" />
       
-      {/* Ghost animation container */}
-      <div className="ghost-container fixed inset-0 pointer-events-none overflow-hidden z-50" />
+      {/* Magical particles */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-10">
+        <div className="sparkle"></div>
+        <div className="sparkle"></div>
+        <div className="sparkle"></div>
+        <div className="sparkle"></div>
+      </div>
       
       {/* Main content */}
       <div className="relative z-10 text-white flex items-center justify-center min-h-screen p-4">
