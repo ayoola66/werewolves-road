@@ -1,4 +1,6 @@
 import { games, players, gameActions, chatMessages, type Game, type Player, type GameAction, type ChatMessage, type InsertGame, type InsertPlayer, type InsertGameAction, type InsertChatMessage } from "@shared/schema";
+import { db } from './db';
+import { eq, and, desc } from 'drizzle-orm';
 
 export interface IStorage {
   // Games
@@ -202,4 +204,119 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  async createGame(insertGame: InsertGame): Promise<Game> {
+    const [game] = await db
+      .insert(games)
+      .values(insertGame)
+      .returning();
+    return game;
+  }
+
+  async getGameByCode(gameCode: string): Promise<Game | undefined> {
+    const [game] = await db.select().from(games).where(eq(games.gameCode, gameCode));
+    return game || undefined;
+  }
+
+  async updateGame(gameCode: string, updates: Partial<Game>): Promise<Game | undefined> {
+    const [game] = await db
+      .update(games)
+      .set(updates)
+      .where(eq(games.gameCode, gameCode))
+      .returning();
+    return game || undefined;
+  }
+
+  async deleteGame(gameCode: string): Promise<boolean> {
+    const result = await db.delete(games).where(eq(games.gameCode, gameCode));
+    return result.rowCount > 0;
+  }
+
+  async addPlayerToGame(insertPlayer: InsertPlayer): Promise<Player> {
+    const [player] = await db
+      .insert(players)
+      .values(insertPlayer)
+      .returning();
+    return player;
+  }
+
+  async getPlayersByGameId(gameId: number): Promise<Player[]> {
+    return await db.select().from(players).where(eq(players.gameId, gameId));
+  }
+
+  async getPlayerByGameAndPlayerId(gameId: number, playerId: string): Promise<Player | undefined> {
+    const [player] = await db
+      .select()
+      .from(players)
+      .where(and(eq(players.gameId, gameId), eq(players.playerId, playerId)));
+    return player || undefined;
+  }
+
+  async updatePlayer(gameId: number, playerId: string, updates: Partial<Player>): Promise<Player | undefined> {
+    const [player] = await db
+      .update(players)
+      .set(updates)
+      .where(and(eq(players.gameId, gameId), eq(players.playerId, playerId)))
+      .returning();
+    return player || undefined;
+  }
+
+  async removePlayerFromGame(gameId: number, playerId: string): Promise<boolean> {
+    const result = await db
+      .delete(players)
+      .where(and(eq(players.gameId, gameId), eq(players.playerId, playerId)));
+    return result.rowCount > 0;
+  }
+
+  async addGameAction(insertAction: InsertGameAction): Promise<GameAction> {
+    const [action] = await db
+      .insert(gameActions)
+      .values(insertAction)
+      .returning();
+    return action;
+  }
+
+  async getGameActionsByGame(gameId: number, phase?: string): Promise<GameAction[]> {
+    let query = db.select().from(gameActions).where(eq(gameActions.gameId, gameId));
+    
+    if (phase) {
+      query = query.where(eq(gameActions.phase, phase));
+    }
+    
+    return await query;
+  }
+
+  async getPlayerVote(gameId: number, playerId: string, phase: string): Promise<GameAction | undefined> {
+    const [vote] = await db
+      .select()
+      .from(gameActions)
+      .where(
+        and(
+          eq(gameActions.gameId, gameId),
+          eq(gameActions.playerId, playerId),
+          eq(gameActions.phase, phase),
+          eq(gameActions.actionType, 'vote')
+        )
+      );
+    return vote || undefined;
+  }
+
+  async addChatMessage(insertMessage: InsertChatMessage): Promise<ChatMessage> {
+    const [message] = await db
+      .insert(chatMessages)
+      .values(insertMessage)
+      .returning();
+    return message;
+  }
+
+  async getChatMessagesByGame(gameId: number, limit = 50): Promise<ChatMessage[]> {
+    return await db
+      .select()
+      .from(chatMessages)
+      .where(eq(chatMessages.gameId, gameId))
+      .orderBy(desc(chatMessages.createdAt))
+      .limit(limit);
+  }
+}
+
+export const storage = new DatabaseStorage();
