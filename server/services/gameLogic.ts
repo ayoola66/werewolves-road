@@ -1,7 +1,7 @@
 import { storage } from "../storage";
 import { type Game, type Player, type GameSettings } from "@shared/schema";
 
-export type Role = 'werewolf' | 'villager' | 'seer' | 'healer' | 'hunter' | 'witch' | 'bodyguard' | 'minion' | 'jester';
+export type Role = 'werewolf' | 'villager' | 'seer' | 'doctor' | 'hunter' | 'witch' | 'bodyguard' | 'minion' | 'jester';
 export type Phase = 'waiting' | 'role_reveal' | 'night' | 'day' | 'voting' | 'game_over';
 
 export interface GameState {
@@ -140,7 +140,7 @@ export class GameLogic {
 
     // Add special roles based on settings
     if (settings.seer) roles.push('seer');
-    if (settings.healer) roles.push('healer');
+    if (settings.doctor) roles.push('doctor');
     if (settings.hunter) roles.push('hunter');
     if (settings.witch) roles.push('witch');
     if (settings.bodyguard) roles.push('bodyguard');
@@ -259,7 +259,7 @@ export class GameLogic {
   }
 
   private hasNightAction(role: Role): boolean {
-    return ['werewolf', 'seer', 'healer', 'witch', 'bodyguard'].includes(role);
+    return ['werewolf', 'seer', 'doctor', 'witch', 'bodyguard'].includes(role);
   }
 
   private async resolveNightPhase(gameCode: string): Promise<void> {
@@ -322,7 +322,7 @@ export class GameLogic {
         case 'werewolf':
           if (action.targetId) werewolfTargets.push(action.targetId);
           break;
-        case 'healer':
+        case 'doctor':
           if (action.targetId) healerProtected.push(action.targetId);
           break;
         case 'bodyguard':

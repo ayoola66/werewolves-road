@@ -1,11 +1,11 @@
-export type Role = 'werewolf' | 'villager' | 'seer' | 'healer' | 'hunter' | 'witch' | 'bodyguard' | 'minion' | 'jester';
+export type Role = 'werewolf' | 'villager' | 'seer' | 'doctor' | 'hunter' | 'witch' | 'bodyguard' | 'minion' | 'jester';
 export type Phase = 'waiting' | 'role_reveal' | 'night' | 'day' | 'voting' | 'game_over';
 export type GameStatus = 'waiting' | 'playing' | 'finished';
 
 export interface GameSettings {
   werewolves: number;
   seer: boolean;
-  healer: boolean;
+  doctor: boolean;
   shield: boolean;
   minion: boolean;
   jester: boolean;
@@ -83,9 +83,9 @@ export const ROLE_INFO: Record<Role, { name: string; description: string; color:
     description: 'You are the seer. You have limited investigations to divine the true role of other players. Use them wisely to guide the village.',
     color: 'text-blue-500'
   },
-  healer: {
-    name: 'HEALER',
-    description: 'You are the healer. Each night, you can protect one player from werewolf attacks. You cannot protect the same player twice in a row.',
+  doctor: {
+    name: 'DOCTOR',
+    description: 'You are the doctor. Each night, you can protect one player from werewolf attacks. You can save yourself or others.',
     color: 'text-emerald-500'
   },
   hunter: {

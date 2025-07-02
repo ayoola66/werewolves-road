@@ -87,7 +87,7 @@ export type ChatMessage = typeof chatMessages.$inferSelect;
 export const gameSettingsSchema = z.object({
   werewolves: z.number().min(1),
   seer: z.boolean().default(true),
-  healer: z.boolean().default(true),
+  doctor: z.boolean().default(true),
   shield: z.boolean().default(true),
   minion: z.boolean().default(false),
   jester: z.boolean().default(false),

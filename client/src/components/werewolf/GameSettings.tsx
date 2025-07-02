@@ -13,7 +13,7 @@ export default function GameSettings({ gameState }: GameSettingsProps) {
   const [settings, setSettings] = useState<GameSettingsType>({
     werewolves: 1,
     seer: true,
-    healer: true,
+    doctor: true,
     shield: true,
     minion: false,
     jester: false,
@@ -36,9 +36,9 @@ export default function GameSettings({ gameState }: GameSettingsProps) {
       type: 'switch'
     },
     {
-      key: 'healer',
-      title: 'Include Healer', 
-      description: 'Protects one player each night.',
+      key: 'doctor',
+      title: 'Include Doctor', 
+      description: 'Protects one player each night, including themselves.',
       type: 'switch'
     },
     {

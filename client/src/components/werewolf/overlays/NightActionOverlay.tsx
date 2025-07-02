@@ -26,12 +26,12 @@ export default function NightActionOverlay({ gameState }: NightActionOverlayProp
           targets: investigationsLeft > 0 ? (game?.alivePlayers?.filter((p: any) => p.playerId !== gameState.playerId) || []) : [],
           actionText: 'Investigate'
         };
-      case 'healer':
+      case 'doctor':
         return {
           title: 'Protect a Player',
-          description: 'Choose a player to protect from werewolf attacks.',
+          description: 'Choose a player to protect from werewolf attacks. You can save yourself or others.',
           targets: game?.alivePlayers || [],
-          actionText: 'Heal'
+          actionText: 'Save'
         };
       case 'witch':
         return {
