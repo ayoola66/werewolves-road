@@ -111,6 +111,8 @@ Changelog:
 - June 25, 2025: Integrated PostgreSQL database for persistent multiplayer sessions
 - June 25, 2025: Enhanced game flow with role reveal countdown, day/night visuals
 - June 25, 2025: Implemented advanced bodyguard mechanics and majority voting system
+- July 2, 2025: Added comprehensive player disconnection handling system
+- July 2, 2025: Created complete README.md documentation with setup and gameplay guides
 ```
 
 ## User Preferences
