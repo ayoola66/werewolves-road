@@ -205,25 +205,30 @@ export class GameLogic {
 
     gameState.votes[playerId] = targetId;
 
-    // Check if majority has voted (over 50%)
+    // Check if all alive players have voted OR majority has voted (over 50%)
     const totalVoters = gameState.alivePlayers.length;
     const currentVotes = Object.keys(gameState.votes).length;
     
-    if (currentVotes > totalVoters * 0.5) {
-      // Majority reached - end voting early with 10 second delay
+    if (currentVotes >= totalVoters || currentVotes > totalVoters * 0.5) {
+      // All players voted or majority reached - end voting early
       this.clearTimer(gameCode);
+      
+      const message = currentVotes >= totalVoters 
+        ? 'All players have voted! Results will be revealed in 5 seconds.'
+        : 'Majority vote reached! Results will be revealed in 10 seconds.';
       
       await storage.addChatMessage({
         gameId: gameState.game.id,
         playerId: null,
         playerName: 'Game Master',
-        message: 'Majority vote reached! Results will be revealed in 10 seconds.',
+        message,
         type: 'system'
       });
 
+      const delay = currentVotes >= totalVoters ? 5000 : 10000;
       setTimeout(() => {
         this.resolveVotingPhase(gameCode);
-      }, 10000);
+      }, delay);
     }
 
     return true;
@@ -603,29 +608,114 @@ export class GameLogic {
     const gameState = await this.getGameState(gameCode);
     if (!gameState) return false;
 
+    const leavingPlayer = gameState.players.find(p => p.playerId === playerId);
+    if (!leavingPlayer) return false;
+
+    // Add disconnect message to chat
+    await storage.addChatMessage({
+      gameId: gameState.game.id,
+      playerId: null,
+      playerName: 'Game Master',
+      message: `${leavingPlayer.name} has disconnected from the game.`,
+      type: 'system'
+    });
+
     const removed = await storage.removePlayerFromGame(gameState.game.id, playerId);
     if (removed) {
       // Update local state
       gameState.players = gameState.players.filter(p => p.playerId !== playerId);
       gameState.alivePlayers = gameState.alivePlayers.filter(p => p.playerId !== playerId);
+      gameState.deadPlayers = gameState.deadPlayers.filter(p => p.playerId !== playerId);
+
+      // Remove any pending votes or actions from the disconnected player
+      delete gameState.votes[playerId];
+      delete gameState.nightActions[playerId];
+      delete gameState.seerInvestigationsLeft[playerId];
+
+      // Handle game state based on phase and remaining players
+      await this.handlePlayerDisconnection(gameState, gameCode);
 
       // If host left, assign new host or delete game
-      const player = gameState.players.find(p => p.isHost);
-      if (!player && gameState.players.length > 0) {
+      const remainingHost = gameState.players.find(p => p.isHost);
+      if (!remainingHost && gameState.players.length > 0) {
         const newHost = gameState.players[0];
         await storage.updatePlayer(gameState.game.id, newHost.playerId, { isHost: true });
         newHost.isHost = true;
         
         await storage.updateGame(gameCode, { hostId: newHost.playerId });
         gameState.game.hostId = newHost.playerId;
+
+        await storage.addChatMessage({
+          gameId: gameState.game.id,
+          playerId: null,
+          playerName: 'Game Master',
+          message: `${newHost.name} is now the game host.`,
+          type: 'system'
+        });
       } else if (gameState.players.length === 0) {
         await storage.deleteGame(gameCode);
         this.gameStates.delete(gameCode);
         this.clearTimer(gameCode);
+        return true;
       }
+
+      // Check if game should continue or end
+      if (gameState.players.length < 2) {
+        await this.endGame(gameCode, 'Game ended due to insufficient players');
+        return true;
+      }
+
+      // Update game state in memory
+      this.gameStates.set(gameCode, gameState);
     }
 
     return removed;
+  }
+
+  private async handlePlayerDisconnection(gameState: GameState, gameCode: string): Promise<void> {
+    // Check win conditions after player removal
+    const winner = this.checkWinConditions(gameState);
+    if (winner) {
+      await this.endGame(gameCode, winner);
+      return;
+    }
+
+    // Handle phase-specific disconnection logic
+    switch (gameState.phase) {
+      case 'voting':
+        // Check if majority can still be reached or all players voted
+        const totalVoters = gameState.alivePlayers.length;
+        const currentVotes = Object.keys(gameState.votes).length;
+        
+        if (currentVotes >= totalVoters || currentVotes > totalVoters * 0.5) {
+          // All players voted or majority reached - end voting early
+          this.clearTimer(gameCode);
+          setTimeout(() => {
+            this.resolveVotingPhase(gameCode);
+          }, 2000);
+        }
+        break;
+
+      case 'night':
+        // Check if all required night actions are complete
+        const alivePlayersWithActions = gameState.alivePlayers.filter(p => 
+          this.hasNightAction(p.role as Role)
+        );
+        const completedActions = Object.keys(gameState.nightActions).length;
+        
+        if (completedActions >= alivePlayersWithActions.length) {
+          // All remaining players have acted - resolve night early
+          this.clearTimer(gameCode);
+          setTimeout(() => {
+            this.resolveNightPhase(gameCode);
+          }, 2000);
+        }
+        break;
+
+      default:
+        // Other phases continue normally
+        break;
+    }
   }
 }
 

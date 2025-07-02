@@ -73,8 +73,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('WebSocket client disconnected');
       
       if (ws.gameCode && ws.playerId) {
-        // Remove player from game
-        await gameLogic.leaveGame(ws.gameCode, ws.playerId);
+        // Handle player leaving the game
+        const success = await gameLogic.leaveGame(ws.gameCode, ws.playerId);
+        
+        if (success) {
+          // Broadcast updated game state to remaining players
+          await broadcastGameState(ws.gameCode);
+        }
         
         // Remove from connections
         const connections = gameConnections.get(ws.gameCode);
