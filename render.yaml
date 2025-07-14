@@ -9,4 +9,11 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: werewolveshx-db
+          property: connectionString
+
+databases:
+  - name: werewolveshx-db
+    databaseName: werewolveshx
+    user: werewolveshx
