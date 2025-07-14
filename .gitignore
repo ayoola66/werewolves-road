@@ -1,6 +1,5 @@
-node_modules
-dist
+node_modules/
+.env
+dist/
+*.log
 .DS_Store
-server/public
-vite.config.ts.*
-*.tar.gz
