@@ -2,7 +2,8 @@ services:
   - type: web
     name: werewolveshx
     env: node
-    buildCommand: npm install -g vite && npm install && npm run build
+    nodeVersion: 18
+    buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
