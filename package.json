@@ -5,11 +5,14 @@
   "license": "MIT",
   "scripts": {
     "dev": "NODE_ENV=development tsx watch server/env.ts server/index.ts",
-    "build": "npm install vite @vitejs/plugin-react autoprefixer postcss tailwindcss @tailwindcss/typography && npx vite build && npx esbuild server/index.ts db/migrate.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+    "build:client": "npx vite build",
+    "build:server": "npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js --sourcemap",
+    "build:migrate": "npx esbuild db/migrate.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/migrate.js --sourcemap",
+    "build": "npm install && npm run build:client && npm run build:server && npm run build:migrate",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
     "db:push": "drizzle-kit push",
-    "migrate": "NODE_ENV=production node dist/db/migrate.js"
+    "migrate": "NODE_ENV=production node dist/migrate.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
