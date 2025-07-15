@@ -39,12 +39,18 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
+  // Error handling middleware
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    console.error('Error:', err);
+    
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
+    const details = app.get('env') === 'development' ? err.stack : undefined;
 
-    res.status(status).json({ message });
-    throw err;
+    res.status(status).json({ 
+      error: message,
+      ...(details && { details })
+    });
   });
 
   // importantly only setup vite in development and after
@@ -56,15 +62,17 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 3000; console.log(`Starting server on port ${port}...`);
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+  console.log(`Starting server on port ${port}...`);
+  
   server.listen({
     port,
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
-    log(`serving on port ${port}`);
+    log(`Server is running on port ${port}`);
   });
-})();
+})().catch(err => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
+});

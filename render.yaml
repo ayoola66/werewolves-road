@@ -2,7 +2,7 @@ services:
   - type: web
     name: werewolveshx
     env: node
-    nodeVersion: 18
+    nodeVersion: 20.11.0
     buildCommand: npm install && npm run build && npm run migrate
     startCommand: npm start
     envVars:
@@ -10,3 +10,8 @@ services:
         value: production
       - key: DATABASE_URL
         value: postgresql://werewolveshx_user:XYSXU8irIWITF1Fv0wmCuMuXeoHbzoIw@dpg-d1qg0mre5dus73e7hv6g-a/werewolveshx
+      - key: PORT
+        value: "10000"
+      - key: SESSION_SECRET
+        sync: false
+    healthCheckPath: /api/health
