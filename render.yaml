@@ -3,7 +3,7 @@ services:
     name: werewolveshx
     env: node
     nodeVersion: 20.11.0
-    buildCommand: npm install && npm run build
+    buildCommand: npm ci && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -14,5 +14,7 @@ services:
         value: "10000"
       - key: SESSION_SECRET
         sync: false
+      - key: VITE_API_URL
+        value: "https://werewolveshx.onrender.com"
     healthCheckPath: /api/health
     postDeployCommand: npm run migrate

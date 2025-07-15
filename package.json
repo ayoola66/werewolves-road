@@ -12,8 +12,7 @@
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
     "db:push": "drizzle-kit push:pg",
-    "migrate": "NODE_ENV=production drizzle-kit push:pg && node dist/migrate.js",
-    "postinstall": "npm run db:push"
+    "migrate": "NODE_ENV=production node dist/migrate.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
