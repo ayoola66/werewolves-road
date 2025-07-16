@@ -19,7 +19,7 @@ export const db = drizzle(pool, { schema });
 (async () => {
   try {
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
-    const migrationsFolder = path.resolve(__dirname, "..", "..", "db", "migrations");
+    const migrationsFolder = path.resolve(__dirname, "..", "..", "..", "db", "migrations");
     const journalPath = path.join(migrationsFolder, "meta", "_journal.json");
     if (!fs.existsSync(journalPath)) {
       fs.mkdirSync(path.dirname(journalPath), { recursive: true });
