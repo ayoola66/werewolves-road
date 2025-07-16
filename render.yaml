@@ -9,7 +9,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        value: postgresql://werewolveshx_user:XYSXU8irIWITF1Fv0wmCuMuXeoHbzoIw@dpg-d1qg0mre5dus73e7hv6g-a/werewolveshx
+        value: postgresql://werewolveshx_user:XYSXU8irIWITF1Fv0wmCuMuXeoHbzoIw@dpg-d1qg0mre5dus73e7hv6g-a.frankfurt-postgres.render.com/werewolveshx
       - key: PORT
         value: "10000"
       - key: SESSION_SECRET
