@@ -4,6 +4,7 @@ import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import * as schema from "../shared/schema";
+import fs from "fs";
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -19,6 +20,11 @@ export const db = drizzle(pool, { schema });
   try {
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
     const migrationsFolder = path.resolve(__dirname, "..", "..", "db", "migrations");
+    const journalPath = path.join(migrationsFolder, "meta", "_journal.json");
+    if (!fs.existsSync(journalPath)) {
+      fs.mkdirSync(path.dirname(journalPath), { recursive: true });
+      fs.writeFileSync(journalPath, JSON.stringify({ entries: [] }, null, 2));
+    }
     await migrate(db, { migrationsFolder });
     console.log("Database migrations are up to date.");
   } catch (err) {
