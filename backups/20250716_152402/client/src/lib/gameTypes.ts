@@ -1,14 +1,6 @@
 export type Role = 'werewolf' | 'villager' | 'seer' | 'doctor' | 'hunter' | 'witch' | 'bodyguard' | 'minion' | 'jester';
 export type Phase = 'waiting' | 'role_reveal' | 'night' | 'day' | 'voting' | 'game_over';
 export type GameStatus = 'waiting' | 'playing' | 'finished';
-export type ActionType = 'kill' | 'save' | 'protect' | 'investigate' | 'poison' | 'shield' | 'vote';
-
-export interface RequiredAction {
-  role: Role;
-  actionType: ActionType;
-  playerId: string;
-  completed: boolean;
-}
 
 export interface GameSettings {
   werewolves: number;
@@ -21,10 +13,7 @@ export interface GameSettings {
   witch: boolean;
   bodyguard: boolean;
   sheriff: boolean;
-  seerInvestigations?: number;
-  nightDuration?: number; // Duration of night phase in seconds
-  dayDuration?: number;   // Duration of day phase in seconds
-  voteDuration?: number;  // Duration of voting phase in seconds
+  seerInvestigations?: number; // Custom seer investigation count
 }
 
 export interface Player {
@@ -37,8 +26,6 @@ export interface Player {
   isHost: boolean;
   isSheriff: boolean;
   joinedAt: Date;
-  hasShield?: boolean;
-  actionUsed?: boolean;
 }
 
 export interface Game {
@@ -50,12 +37,6 @@ export interface Game {
   currentPhase: Phase;
   phaseTimer: number;
   createdAt: Date;
-  nightCount: number;
-  dayCount: number;
-  lastPhaseChange: Date;
-  requiredActions: RequiredAction[];
-  completedActions: RequiredAction[];
-  phaseEndTime: Date | null;
 }
 
 export interface ChatMessage {
@@ -64,7 +45,7 @@ export interface ChatMessage {
   playerId: string | null;
   playerName: string;
   message: string;
-  type: 'player' | 'system' | 'death' | 'elimination' | 'werewolf' | 'scrambled';
+  type: 'player' | 'system' | 'death' | 'elimination';
   createdAt: Date;
 }
 
@@ -79,8 +60,6 @@ export interface GameState {
   nightActions: Record<string, any>;
   chatMessages?: ChatMessage[];
   seerInvestigationsLeft?: Record<string, number>;
-  werewolfCount?: number;
-  villagerCount?: number;
 }
 
 export interface WSMessage {

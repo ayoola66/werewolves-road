@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, boolean, integer, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -12,52 +12,44 @@ export const games = pgTable("games", {
   id: serial("id").primaryKey(),
   gameCode: text("game_code").notNull().unique(),
   hostId: text("host_id").notNull(),
-  status: text("status").notNull().default("waiting"),
+  status: text("status").notNull().default("waiting"), // waiting, playing, finished
   settings: jsonb("settings").notNull(),
-  currentPhase: text("current_phase").notNull().default("waiting"),
+  currentPhase: text("current_phase").notNull().default("waiting"), // waiting, night, day, voting, game_over
   phaseTimer: integer("phase_timer").default(0),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  nightCount: integer("night_count").default(0),
-  dayCount: integer("day_count").default(0),
-  lastPhaseChange: timestamp("last_phase_change").defaultNow(),
-  requiredActions: jsonb("required_actions").default("[]"),
-  completedActions: jsonb("completed_actions").default("[]"),
-  phaseEndTime: timestamp("phase_end_time"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const players = pgTable("players", {
   id: serial("id").primaryKey(),
-  gameId: integer("game_id").references(() => games.id, { onDelete: "cascade" }).notNull(),
+  gameId: integer("game_id").references(() => games.id).notNull(),
   playerId: text("player_id").notNull(),
   name: text("name").notNull(),
   role: text("role"),
-  isAlive: boolean("is_alive").notNull().default(true),
-  isHost: boolean("is_host").notNull().default(false),
-  isSheriff: boolean("is_sheriff").notNull().default(false),
-  hasShield: boolean("has_shield").default(false),
-  actionUsed: boolean("action_used").default(false),
-  joinedAt: timestamp("joined_at").notNull().defaultNow(),
+  isAlive: boolean("is_alive").default(true).notNull(),
+  isHost: boolean("is_host").default(false).notNull(),
+  isSheriff: boolean("is_sheriff").default(false).notNull(),
+  joinedAt: timestamp("joined_at").defaultNow().notNull(),
 });
 
 export const gameActions = pgTable("game_actions", {
   id: serial("id").primaryKey(),
-  gameId: integer("game_id").references(() => games.id, { onDelete: "cascade" }).notNull(),
+  gameId: integer("game_id").references(() => games.id).notNull(),
   playerId: text("player_id").notNull(),
-  actionType: text("action_type").notNull(),
+  actionType: text("action_type").notNull(), // vote, night_action, chat
   targetId: text("target_id"),
   data: jsonb("data"),
   phase: text("phase").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const chatMessages = pgTable("chat_messages", {
   id: serial("id").primaryKey(),
-  gameId: integer("game_id").references(() => games.id, { onDelete: "cascade" }).notNull(),
+  gameId: integer("game_id").references(() => games.id).notNull(),
   playerId: text("player_id"),
   playerName: text("player_name").notNull(),
   message: text("message").notNull(),
-  type: text("type").notNull().default("player"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  type: text("type").notNull().default("player"), // player, system, death, elimination
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // Zod schemas
