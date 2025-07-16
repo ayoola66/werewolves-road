@@ -17,4 +17,4 @@ services:
       - key: VITE_API_URL
         value: "https://werewolveshx.onrender.com"
     healthCheckPath: /api/health
-    postDeployCommand: npm run db:deploy
+    postDeployCommand: npm run migrate
