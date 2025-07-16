@@ -1,4 +1,4 @@
-import { games, players, gameActions, chatMessages, type Game, type Player, type GameAction, type ChatMessage, type InsertGame, type InsertPlayer, type InsertGameAction, type InsertChatMessage } from "@shared/schema";
+import { games, players, gameActions, chatMessages, type Game, type Player, type GameAction, type ChatMessage, type InsertGame, type InsertPlayer, type InsertGameAction, type InsertChatMessage } from "../shared/schema";
 import { db } from './db';
 import { eq, and, desc } from 'drizzle-orm';
 
@@ -59,6 +59,12 @@ export class MemStorage implements IStorage {
       currentPhase: insertGame.currentPhase || 'waiting',
       phaseTimer: insertGame.phaseTimer || 0,
       createdAt: new Date(),
+      nightCount: insertGame.nightCount || 0,
+      dayCount: insertGame.dayCount || 0,
+      lastPhaseChange: insertGame.lastPhaseChange || new Date(),
+      requiredActions: insertGame.requiredActions || [],
+      completedActions: insertGame.completedActions || [],
+      phaseEndTime: insertGame.phaseEndTime || null
     };
     this.games.set(id, game);
     return game;
@@ -108,6 +114,8 @@ export class MemStorage implements IStorage {
       isAlive: insertPlayer.isAlive !== undefined ? insertPlayer.isAlive : true,
       isHost: insertPlayer.isHost !== undefined ? insertPlayer.isHost : false,
       isSheriff: insertPlayer.isSheriff !== undefined ? insertPlayer.isSheriff : false,
+      hasShield: insertPlayer.hasShield !== undefined ? insertPlayer.hasShield : false,
+      actionUsed: insertPlayer.actionUsed !== undefined ? insertPlayer.actionUsed : false,
       joinedAt: new Date(),
     };
     
