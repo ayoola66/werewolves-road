@@ -1,8 +1,16 @@
 import { storage } from "../storage";
-import { type Game, type Player, type GameSettings } from "@shared/schema";
+import { type Game, type Player, type GameSettings } from "../../shared/schema";
 
 export type Role = 'werewolf' | 'villager' | 'seer' | 'doctor' | 'hunter' | 'witch' | 'bodyguard' | 'minion' | 'jester';
 export type Phase = 'waiting' | 'role_reveal' | 'night' | 'day' | 'voting' | 'game_over';
+export type ActionType = 'kill' | 'save' | 'protect' | 'investigate' | 'poison' | 'shield' | 'vote';
+
+export interface RequiredAction {
+  role: Role;
+  actionType: ActionType;
+  playerId: string;
+  completed: boolean;
+}
 
 export interface GameState {
   game: Game;
@@ -11,9 +19,11 @@ export interface GameState {
   deadPlayers: Player[];
   phase: Phase;
   phaseTimer: number;
-  votes: Record<string, string>; // voterId -> targetId
-  nightActions: Record<string, any>; // playerId -> action
-  seerInvestigationsLeft: Record<string, number>; // playerId -> remaining investigations
+  votes: Record<string, string>;
+  nightActions: Record<string, any>;
+  seerInvestigationsLeft: Record<string, number>;
+  werewolfCount: number;
+  villagerCount: number;
 }
 
 export class GameLogic {
@@ -31,6 +41,8 @@ export class GameLogic {
     const players = await storage.getPlayersByGameId(game.id);
     const alivePlayers = players.filter(p => p.isAlive);
     const deadPlayers = players.filter(p => !p.isAlive);
+    const werewolfCount = alivePlayers.filter(p => p.role === 'werewolf').length;
+    const villagerCount = alivePlayers.filter(p => p.role !== 'werewolf' && p.role !== 'minion').length;
 
     const gameState: GameState = {
       game,
@@ -41,7 +53,9 @@ export class GameLogic {
       phaseTimer: game.phaseTimer || 0,
       votes: {},
       nightActions: {},
-      seerInvestigationsLeft: {}
+      seerInvestigationsLeft: {},
+      werewolfCount,
+      villagerCount
     };
 
     this.gameStates.set(gameCode, gameState);
@@ -234,32 +248,113 @@ export class GameLogic {
     return true;
   }
 
-  async handleNightAction(gameCode: string, playerId: string, targetId?: string, actionData?: any): Promise<boolean> {
+  async handleNightAction(gameCode: string, playerId: string, targetId?: string, actionType?: ActionType): Promise<boolean> {
     const gameState = await this.getGameState(gameCode);
     if (!gameState || gameState.phase !== 'night') return false;
 
     const player = gameState.alivePlayers.find(p => p.playerId === playerId);
-    if (!player || !this.hasNightAction(player.role as Role)) return false;
+    if (!player || player.actionUsed) return false;
 
-    // Check seer investigation limit
-    if (player.role === 'seer') {
-      const investigationsLeft = gameState.seerInvestigationsLeft[playerId] || 0;
-      if (investigationsLeft <= 0) {
-        return false; // No investigations left
-      }
-      gameState.seerInvestigationsLeft[playerId] = investigationsLeft - 1;
+    const target = gameState.players.find(p => p.playerId === targetId);
+    if (!target && actionType !== 'shield') return false;
+
+    let actionValid = false;
+    let actionMessage = '';
+
+    switch (player.role) {
+      case 'werewolf':
+        if (actionType === 'kill' && target && target.role !== 'werewolf') {
+          actionValid = true;
+          actionMessage = `A werewolf has chosen their target.`;
+        } else if (actionType === 'shield') {
+          actionValid = true;
+          actionMessage = `A player has used their shield.`;
+        }
+        break;
+
+      case 'seer':
+        if (actionType === 'investigate' && target && gameState.seerInvestigationsLeft[playerId] > 0) {
+          actionValid = true;
+          actionMessage = `The seer has investigated a player.`;
+          gameState.seerInvestigationsLeft[playerId]--;
+        }
+        break;
+
+      case 'doctor':
+        if (actionType === 'save' && target) {
+          actionValid = true;
+          actionMessage = `The doctor has chosen someone to save.`;
+        }
+        break;
+
+      case 'witch':
+        if ((actionType === 'save' || actionType === 'poison') && target) {
+          actionValid = true;
+          actionMessage = `The witch has used their ${actionType} potion.`;
+        }
+        break;
+
+      case 'bodyguard':
+        if (actionType === 'protect' && target) {
+          actionValid = true;
+          actionMessage = `The bodyguard has chosen someone to protect.`;
+        }
+        break;
+
+      case 'villager':
+        if (actionType === 'shield') {
+          actionValid = true;
+          actionMessage = `A player has used their shield.`;
+        }
+        break;
     }
 
+    if (!actionValid) return false;
+
+    // Record the action
     await storage.addGameAction({
       gameId: gameState.game.id,
       playerId,
-      actionType: 'night_action',
+      actionType: actionType || 'night_action',
       targetId,
       phase: 'night',
-      data: actionData
+      data: { role: player.role }
     });
 
-    gameState.nightActions[playerId] = { targetId, actionData, role: player.role };
+    // Mark action as completed
+    await storage.updatePlayer(gameState.game.id, playerId, { actionUsed: true });
+    
+    // Update completed actions
+    const requiredActions = gameState.game.requiredActions as RequiredAction[];
+    const completedActions = gameState.game.completedActions as RequiredAction[];
+    const actionIndex = requiredActions.findIndex(a => a.playerId === playerId && !a.completed);
+    
+    if (actionIndex !== -1) {
+      requiredActions[actionIndex].completed = true;
+      completedActions.push(requiredActions[actionIndex]);
+      
+      await storage.updateGame(gameCode, {
+        requiredActions,
+        completedActions
+      });
+    }
+
+    // Add system message
+    await storage.addChatMessage({
+      gameId: gameState.game.id,
+      playerId: null,
+      playerName: 'Game Master',
+      message: actionMessage,
+      type: 'system'
+    });
+
+    // Check if all required actions are completed
+    const allActionsCompleted = requiredActions.every(a => a.completed);
+    if (allActionsCompleted) {
+      this.clearTimer(gameCode);
+      await this.resolveNightPhase(gameCode);
+    }
+
     return true;
   }
 
@@ -305,7 +400,7 @@ export class GameLogic {
     }
 
     // Check win conditions
-    const winner = this.checkWinConditions(gameState);
+    const winner = await this.checkWinConditions(gameState);
     if (winner) {
       await this.endGame(gameCode, winner);
       return;
@@ -378,26 +473,106 @@ export class GameLogic {
     return killedPlayers;
   }
 
+  async handleChat(gameCode: string, playerId: string, message: string): Promise<boolean> {
+    const gameState = await this.getGameState(gameCode);
+    if (!gameState || gameState.phase === 'game_over') return false;
+
+    const player = gameState.players.find(p => p.playerId === playerId);
+    if (!player || !player.isAlive) return false;
+
+    // Handle night phase chat restrictions
+    if (gameState.phase === 'night') {
+      // Only werewolves can chat normally at night
+      if (player.role === 'werewolf') {
+        await storage.addChatMessage({
+          gameId: gameState.game.id,
+          playerId: player.playerId,
+          playerName: player.name,
+          message,
+          type: 'werewolf'
+        });
+        return true;
+      }
+
+      // Villagers and other roles get scrambled messages at night
+      const scrambledMessage = this.scrambleMessage(message);
+      await storage.addChatMessage({
+        gameId: gameState.game.id,
+        playerId: player.playerId,
+        playerName: player.name,
+        message: scrambledMessage,
+        type: 'scrambled'
+      });
+      return true;
+    }
+
+    // Day phase - all players can chat normally
+    await storage.addChatMessage({
+      gameId: gameState.game.id,
+      playerId: player.playerId,
+      playerName: player.name,
+      message,
+      type: 'player'
+    });
+    return true;
+  }
+
+  private scrambleMessage(message: string): string {
+    // Split message into words
+    const words = message.split(' ');
+    
+    // Scramble each word that's longer than 2 characters
+    const scrambledWords = words.map(word => {
+      if (word.length <= 2) return word;
+      
+      // Keep first and last letter, scramble middle
+      const first = word[0];
+      const last = word[word.length - 1];
+      let middle = word.slice(1, -1).split('');
+      
+      // Shuffle middle letters
+      for (let i = middle.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [middle[i], middle[j]] = [middle[j], middle[i]];
+      }
+      
+      return first + middle.join('') + last;
+    });
+    
+    return scrambledWords.join(' ');
+  }
+
   private async startDayPhase(gameCode: string): Promise<void> {
     const gameState = await this.getGameState(gameCode);
     if (!gameState) return;
 
+    const dayCount = (gameState.game.dayCount || 0) + 1;
+
+    // Update game state
     await storage.updateGame(gameCode, {
       currentPhase: 'day',
-      phaseTimer: 120
+      dayCount,
+      phaseTimer: 120, // 2 minutes for discussion
+      lastPhaseChange: new Date(),
+      phaseEndTime: new Date(Date.now() + 120000)
     });
 
+    // Update local state
+    gameState.game.currentPhase = 'day';
+    gameState.game.dayCount = dayCount;
     gameState.phase = 'day';
     gameState.phaseTimer = 120;
 
+    // Notify players
     await storage.addChatMessage({
       gameId: gameState.game.id,
       playerId: null,
       playerName: 'Game Master',
-      message: 'Dawn breaks. Discuss what happened during the night and decide who to vote out.',
+      message: `Day ${dayCount} has begun. The village has 2 minutes to discuss before voting.`,
       type: 'system'
     });
 
+    // Start day phase timer
     this.startPhaseTimer(gameCode, 120, () => this.startVotingPhase(gameCode));
   }
 
@@ -459,7 +634,7 @@ export class GameLogic {
     gameState.deadPlayers = gameState.players.filter(p => !p.isAlive);
 
     // Check win conditions
-    const winner = this.checkWinConditions(gameState);
+    const winner = await this.checkWinConditions(gameState);
     if (winner) {
       await this.endGame(gameCode, winner);
       return;
@@ -473,24 +648,83 @@ export class GameLogic {
     const gameState = await this.getGameState(gameCode);
     if (!gameState) return;
 
+    const nightCount = (gameState.game.nightCount || 0) + 1;
+    const requiredActions: RequiredAction[] = [];
+
+    // Reset all player actions
+    for (const player of gameState.alivePlayers) {
+      await storage.updatePlayer(gameState.game.id, player.playerId, {
+        actionUsed: false
+      });
+
+      // Add required actions for each role
+      if (player.role === 'werewolf') {
+        requiredActions.push({
+          role: 'werewolf',
+          actionType: 'kill',
+          playerId: player.playerId,
+          completed: false
+        });
+      } else if (player.role === 'seer' && gameState.seerInvestigationsLeft[player.playerId] > 0) {
+        requiredActions.push({
+          role: 'seer',
+          actionType: 'investigate',
+          playerId: player.playerId,
+          completed: false
+        });
+      } else if (player.role === 'doctor') {
+        requiredActions.push({
+          role: 'doctor',
+          actionType: 'save',
+          playerId: player.playerId,
+          completed: false
+        });
+      } else if (player.role === 'witch') {
+        requiredActions.push({
+          role: 'witch',
+          actionType: 'poison',
+          playerId: player.playerId,
+          completed: false
+        });
+      } else if (player.role === 'bodyguard') {
+        requiredActions.push({
+          role: 'bodyguard',
+          actionType: 'protect',
+          playerId: player.playerId,
+          completed: false
+        });
+      }
+    }
+
+    // Update game state
     await storage.updateGame(gameCode, {
       currentPhase: 'night',
-      phaseTimer: 180
+      nightCount,
+      phaseTimer: 120, // 2 minutes for night phase
+      requiredActions,
+      completedActions: [],
+      lastPhaseChange: new Date(),
+      phaseEndTime: new Date(Date.now() + 120000)
     });
 
+    // Update local state
+    gameState.game.currentPhase = 'night';
+    gameState.game.nightCount = nightCount;
     gameState.phase = 'night';
-    gameState.phaseTimer = 180;
+    gameState.phaseTimer = 120;
     gameState.nightActions = {};
 
+    // Start night phase timer
+    this.startPhaseTimer(gameCode, 120, () => this.resolveNightPhase(gameCode));
+
+    // Notify players of night phase start
     await storage.addChatMessage({
       gameId: gameState.game.id,
       playerId: null,
       playerName: 'Game Master',
-      message: 'Night falls over the village. Those with night abilities, make your choices wisely.',
+      message: `Night ${nightCount} has fallen. All players must close their eyes.`,
       type: 'system'
     });
-
-    this.startPhaseTimer(gameCode, 180, () => this.resolveNightPhase(gameCode));
   }
 
   private countVotesAndGetEliminated(gameState: GameState): Player | null {
@@ -521,26 +755,23 @@ export class GameLogic {
     return null; // Tie
   }
 
-  private checkWinConditions(gameState: GameState): string | null {
-    const aliveWerewolves = gameState.alivePlayers.filter(p => p.role === 'werewolf').length;
-    const aliveVillagers = gameState.alivePlayers.filter(p => 
-      p.role !== 'werewolf' && p.role !== 'minion'
-    ).length;
+  private async checkWinConditions(gameState: GameState): Promise<string | null> {
+    const alivePlayers = gameState.alivePlayers;
+    const aliveWerewolves = alivePlayers.filter(p => p.role === 'werewolf');
+    const aliveVillagers = alivePlayers.filter(p => p.role !== 'werewolf' && p.role !== 'minion');
+    
+    // Update counts
+    gameState.werewolfCount = aliveWerewolves.length;
+    gameState.villagerCount = aliveVillagers.length;
 
-    // Check for Jester win
-    const jesterWon = gameState.deadPlayers.some(p => 
-      p.role === 'jester' && !p.isAlive
-    );
-    if (jesterWon) return 'Jester Wins!';
-
-    // Werewolves win if they equal or outnumber villagers
-    if (aliveWerewolves >= aliveVillagers && aliveVillagers > 0) {
-      return 'Werewolves Win!';
+    // No werewolves left - Village wins
+    if (aliveWerewolves.length === 0) {
+      return 'village';
     }
 
-    // Villagers win if all werewolves are eliminated
-    if (aliveWerewolves === 0) {
-      return 'Villagers Win!';
+    // Werewolves equal or outnumber villagers - Werewolves win
+    if (aliveWerewolves.length >= aliveVillagers.length) {
+      return 'werewolves';
     }
 
     return null;
@@ -674,7 +905,7 @@ export class GameLogic {
 
   private async handlePlayerDisconnection(gameState: GameState, gameCode: string): Promise<void> {
     // Check win conditions after player removal
-    const winner = this.checkWinConditions(gameState);
+    const winner = await this.checkWinConditions(gameState);
     if (winner) {
       await this.endGame(gameCode, winner);
       return;
