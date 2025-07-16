@@ -5,12 +5,12 @@ import { config } from "dotenv";
 
 config();
 
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
-  throw new Error("DATABASE_URL environment variable is not set");
-}
-
 async function runMigrations() {
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error("DATABASE_URL environment variable is not set");
+  }
+
   const sql = postgres(connectionString, { max: 1 });
   const db = drizzle(sql);
 

@@ -1,24 +1,24 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { gameLogic } from "./services/gameLogic";
-import { wsMessageSchema, type WSMessage, gameSettingsSchema } from "@shared/schema";
+import { wsMessageSchema, type WSMessage, gameSettingsSchema } from "../shared/schema";
 
-interface ExtendedWebSocket extends WebSocket {
+type ExtendedWebSocket = WebSocket & {
   playerId?: string;
   gameCode?: string;
   playerName?: string;
-}
+};
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // REST API routes
-  app.get("/api/health", (req, res) => {
+  app.get("/api/health", (_req: Request, res: Response) => {
     res.json({ status: "ok" });
   });
 
   // Get game state
-  app.get("/api/games/:gameCode", async (req, res) => {
+  app.get("/api/games/:gameCode", async (req: Request, res: Response) => {
     try {
       const { gameCode } = req.params;
       const game = await storage.getGameByCode(gameCode.toUpperCase());
@@ -51,56 +51,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const gameConnections = new Map<string, Set<ExtendedWebSocket>>();
 
-  wss.on('connection', (ws: ExtendedWebSocket) => {
+  wss.on('connection', (ws: WebSocket) => {
+    const extendedWs = ws as ExtendedWebSocket;
     console.log('WebSocket client connected');
 
-    ws.on('message', async (data: Buffer) => {
+    extendedWs.on('message', async (data: Buffer) => {
       try {
         const message = JSON.parse(data.toString()) as WSMessage;
         const validatedMessage = wsMessageSchema.parse(message);
 
-        await handleWebSocketMessage(ws, validatedMessage);
+        await handleWebSocketMessage(extendedWs, validatedMessage);
       } catch (error) {
         console.error('WebSocket message error:', error);
-        ws.send(JSON.stringify({
+        extendedWs.send(JSON.stringify({
           type: 'error',
           message: 'Invalid message format'
         }));
       }
     });
 
-    ws.on('close', async () => {
+    extendedWs.on('close', async () => {
       console.log('WebSocket client disconnected');
       
-      if (ws.gameCode && ws.playerId) {
+      if (extendedWs.gameCode && extendedWs.playerId) {
         // Handle player leaving the game
-        const success = await gameLogic.leaveGame(ws.gameCode, ws.playerId);
+        const success = await gameLogic.leaveGame(extendedWs.gameCode, extendedWs.playerId);
         
         if (success) {
           // Broadcast updated game state to remaining players
-          await broadcastGameState(ws.gameCode);
+          await broadcastGameState(extendedWs.gameCode);
         }
         
         // Remove from connections
-        const connections = gameConnections.get(ws.gameCode);
+        const connections = gameConnections.get(extendedWs.gameCode);
         if (connections) {
-          connections.delete(ws);
+          connections.delete(extendedWs);
           if (connections.size === 0) {
-            gameConnections.delete(ws.gameCode);
+            gameConnections.delete(extendedWs.gameCode);
           }
         }
 
         // Broadcast player left
-        await broadcastToGame(ws.gameCode, {
+        await broadcastToGame(extendedWs.gameCode, {
           type: 'player_left',
-          playerId: ws.playerId,
-          playerName: ws.playerName
+          playerId: extendedWs.playerId,
+          playerName: extendedWs.playerName
         });
 
         // Send updated game state
-        const gameState = await gameLogic.getGameState(ws.gameCode);
+        const gameState = await gameLogic.getGameState(extendedWs.gameCode);
         if (gameState) {
-          await broadcastGameState(ws.gameCode);
+          await broadcastGameState(extendedWs.gameCode);
         }
       }
     });
