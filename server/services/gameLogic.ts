@@ -146,8 +146,8 @@ export class GameLogic {
     const settings = gameState.game.settings as GameSettings;
     const roles: Role[] = [];
 
-    // Add werewolves
-    const werewolfCount = Math.max(1, Math.floor(playerCount * 0.3));
+    // Add werewolves based on settings or default calculation
+    const werewolfCount = settings.werewolves || Math.max(1, Math.floor(playerCount * 0.3));
     for (let i = 0; i < werewolfCount; i++) {
       roles.push('werewolf');
     }
@@ -866,13 +866,27 @@ export class GameLogic {
       // Handle game state based on phase and remaining players
       await this.handlePlayerDisconnection(gameState, gameCode);
 
-      // If host left, assign new host or delete game
+      // If no players remain
+      if (gameState.players.length === 0) {
+        if (gameState.game.status === 'waiting') {
+          // Safe to delete the game entirely
+          await storage.deleteGame(gameCode);
+          this.gameStates.delete(gameCode);
+        } else {
+          // Game was in progress – mark as finished and clear timers but keep DB row
+          await this.endGame(gameCode, 'Game ended due to all players leaving');
+        }
+        this.clearTimer(gameCode);
+        return true;
+      }
+
+      // If host left, assign new host
       const remainingHost = gameState.players.find(p => p.isHost);
-      if (!remainingHost && gameState.players.length > 0) {
+      if (!remainingHost) {
         const newHost = gameState.players[0];
         await storage.updatePlayer(gameState.game.id, newHost.playerId, { isHost: true });
         newHost.isHost = true;
-        
+
         await storage.updateGame(gameCode, { hostId: newHost.playerId });
         gameState.game.hostId = newHost.playerId;
 
@@ -883,17 +897,6 @@ export class GameLogic {
           message: `${newHost.name} is now the game host.`,
           type: 'system'
         });
-      } else if (gameState.players.length === 0) {
-        await storage.deleteGame(gameCode);
-        this.gameStates.delete(gameCode);
-        this.clearTimer(gameCode);
-        return true;
-      }
-
-      // Check if game should continue or end
-      if (gameState.players.length < 2) {
-        await this.endGame(gameCode, 'Game ended due to insufficient players');
-        return true;
       }
 
       // Update game state in memory

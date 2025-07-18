@@ -52,15 +52,23 @@ export function useGameState() {
     setGameState(message.gameState);
     
     // Handle phase transitions
-    if (message.gameState.phase === 'night' && !hasPerformedNightAction) {
+    if (message.gameState.phase === 'night') {
+      setHasPerformedNightAction(false); // Reset night action state
       const currentPlayer = message.gameState.alivePlayers.find((p: Player) => p.playerId === playerId);
       if (currentPlayer && hasNightAction(currentPlayer.role)) {
-        setTimeout(() => setShowNightActionOverlay(true), 2000);
+        setTimeout(() => {
+          if (!showRoleReveal) { // Only show night action if role reveal is done
+            setShowNightActionOverlay(true);
+          }
+        }, 2000);
       }
-    }
-    
-    if (message.gameState.phase === 'game_over') {
+    } else if (message.gameState.phase === 'day') {
+      setShowNightActionOverlay(false);
+      setHasPerformedNightAction(false);
+    } else if (message.gameState.phase === 'game_over') {
       setShowGameOverOverlay(true);
+      setShowNightActionOverlay(false);
+      setShowVoteOverlay(false);
     }
   });
 
@@ -189,7 +197,7 @@ export function useGameState() {
   }, [sendMessage, gameState]);
 
   const hasNightAction = (role: string | null): boolean => {
-    return role ? ['werewolf', 'seer', 'healer', 'witch', 'bodyguard'].includes(role) : false;
+    return role ? ['werewolf', 'seer', 'doctor', 'witch', 'bodyguard'].includes(role) : false;
   };
 
   const getCurrentPlayer = (): Player | undefined => {
