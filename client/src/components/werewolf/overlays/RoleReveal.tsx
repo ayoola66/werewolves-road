@@ -26,7 +26,7 @@ export default function RoleReveal({ gameState }: RoleRevealProps) {
     return () => clearInterval(timer);
   }, [gameState]);
   
-  if (!playerRole) return null;
+  if (!playerRole || countdown <= 0) return null;
 
   const roleInfo = ROLE_INFO[playerRole as keyof typeof ROLE_INFO];
   const werewolfPack = game?.players.filter((p: any) => 
