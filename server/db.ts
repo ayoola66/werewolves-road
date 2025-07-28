@@ -30,24 +30,11 @@ export const db = drizzle(pool, { schema });
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
     const migrationsFolder = path.resolve(__dirname, "..", "db", "migrations");
 
-    // Ensure migrations directory exists
-    if (!fs.existsSync(migrationsFolder)) {
-      fs.mkdirSync(migrationsFolder, { recursive: true });
-    }
-
-    // Ensure journal directory exists
-    const journalPath = path.join(migrationsFolder, "meta", "_journal.json");
-    if (!fs.existsSync(journalPath)) {
-      fs.mkdirSync(path.dirname(journalPath), { recursive: true });
-      fs.writeFileSync(journalPath, JSON.stringify({ entries: [] }, null, 2));
-    }
-
     console.log("Running database migrations...");
     await migrate(db, { migrationsFolder });
-    console.log("Database migrations completed successfully.");
-  } catch (err) {
-    console.error("Failed to run migrations:", err);
-    console.error(err);
-    process.exit(1); // Exit if migrations fail
+    console.log("Database migrations completed successfully!");
+  } catch (error) {
+    console.error("Failed to run migrations:", error);
+    // Don't exit the process, just log the error
   }
 })();

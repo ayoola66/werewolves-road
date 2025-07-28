@@ -8,4 +8,7 @@ export const env = {
   PORT: process.env.PORT || "8080",
   HOST: process.env.HOST || "0.0.0.0",
   SENTRY_DSN: process.env.SENTRY_DSN || "",
+  // Railway-specific environment variables
+  RAILWAY_STATIC_URL: process.env.RAILWAY_STATIC_URL || "",
+  RAILWAY_PUBLIC_DOMAIN: process.env.RAILWAY_PUBLIC_DOMAIN || "",
 };

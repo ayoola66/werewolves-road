@@ -1,29 +1,27 @@
 import { drizzle } from "drizzle-orm/postgres-js";
-import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
-import { config } from "dotenv";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
+import { env } from "../server/env";
 
-config();
+const sql = postgres(env.DATABASE_URL, {
+  ssl:
+    env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
+});
 
-async function runMigrations() {
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
-    throw new Error("DATABASE_URL environment variable is not set");
-  }
-
-  const sql = postgres(connectionString, { max: 1 });
-  const db = drizzle(sql);
-
+async function main() {
   try {
     console.log("Running migrations...");
-    await migrate(db, { migrationsFolder: "db/migrations" });
+    const db = drizzle(sql);
+    await sql`CREATE SCHEMA IF NOT EXISTS public`;
+    await sql`SET search_path TO public`;
+    await migrate(db, { migrationsFolder: "./db/migrations" });
     console.log("Migrations completed successfully!");
-    await sql.end();
-    process.exit(0);
-  } catch (error) {
-    console.error("Error running migrations:", error);
+  } catch (err) {
+    console.error("Failed to run migrations:", err);
     process.exit(1);
+  } finally {
+    await sql.end();
   }
 }
 
-runMigrations();
+main();
