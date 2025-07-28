@@ -1,0 +1,29 @@
+FROM node:18-slim
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig*.json ./
+COPY vite.config.ts ./
+COPY postcss.config.js ./
+COPY tailwind.config.ts ./
+COPY drizzle.config.ts ./
+
+# Install dependencies
+RUN npm install
+
+# Copy source code
+COPY client/ ./client/
+COPY server/ ./server/
+COPY shared/ ./shared/
+COPY db/ ./db/
+
+# Build the application
+RUN npm run build
+
+# Expose the port
+EXPOSE 8080
+
+# Start the server
+CMD ["npm", "run", "start"] 
