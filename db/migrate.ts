@@ -4,8 +4,10 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { env } from "../server/env";
 
 const sql = postgres(env.DATABASE_URL, {
-  ssl:
-    env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
+  ssl: {
+    rejectUnauthorized: false,
+    require: true,
+  },
 });
 
 async function main() {
@@ -13,7 +15,7 @@ async function main() {
     console.log("Running migrations...");
     const db = drizzle(sql);
     await sql`CREATE SCHEMA IF NOT EXISTS public`;
-    await sql`SET search_path TO public`;
+    await sql`SET search_path TO public`; // Explicitly set search path
     await migrate(db, { migrationsFolder: "./db/migrations" });
     console.log("Migrations completed successfully!");
   } catch (err) {
