@@ -1,5 +1,8 @@
 FROM node:18-slim
 
+# Install PostgreSQL client
+RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Copy package files
@@ -10,7 +13,7 @@ COPY postcss.config.js ./
 COPY tailwind.config.ts ./
 COPY drizzle.config.ts ./
 
-# Install dependencies with legacy peer deps
+# Install dependencies
 RUN npm install --legacy-peer-deps
 
 # Copy source code
