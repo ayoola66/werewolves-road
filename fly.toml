@@ -1,4 +1,9 @@
-app = "werewolves-road"
+# fly.toml app configuration file generated for werewolves-road-wispy-violet-795 on 2025-07-28T21:58:11+01:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = "werewolves-game"
 primary_region = "lhr" # London region, but you can change this
 
 [build]
@@ -24,4 +29,4 @@ primary_region = "lhr" # London region, but you can change this
 
 [mounts]
   source="werewolves_data"
-  destination="/data" 
+  destination="/data"
