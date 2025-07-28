@@ -2,7 +2,7 @@ app = "werewolves-road"
 primary_region = "lhr" # London region, but you can change this
 
 [build]
-  builder = "heroku/buildpacks:20"
+  dockerfile = "Dockerfile"
 
 [env]
   PORT = "8080"
