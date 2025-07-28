@@ -7,6 +7,7 @@ import {
   json,
 } from "drizzle-orm/pg-core";
 import { type InferModel } from "drizzle-orm";
+import { z } from "zod";
 
 export const games = pgTable("games", {
   id: serial("id").primaryKey(),
@@ -80,3 +81,60 @@ export type InsertPlayer = InferModel<typeof players, "insert">;
 export type InsertChatMessage = InferModel<typeof chatMessages, "insert">;
 export type InsertVote = InferModel<typeof votes, "insert">;
 export type InsertNightAction = InferModel<typeof nightActions, "insert">;
+
+// Game settings schema
+export const gameSettingsSchema = z.object({
+  werewolves: z.number().min(1),
+  seer: z.boolean().default(true),
+  doctor: z.boolean().default(true),
+  shield: z.boolean().default(true),
+  minion: z.boolean().default(false),
+  jester: z.boolean().default(false),
+  hunter: z.boolean().default(false),
+  witch: z.boolean().default(false),
+  bodyguard: z.boolean().default(false),
+  sheriff: z.boolean().default(false),
+  seerInvestigations: z.number().min(1).max(20).optional(),
+});
+
+export type GameSettings = z.infer<typeof gameSettingsSchema>;
+
+// WebSocket message types
+export const wsMessageSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("join_game"),
+    gameCode: z.string(),
+    playerName: z.string(),
+  }),
+  z.object({
+    type: z.literal("create_game"),
+    playerName: z.string(),
+    settings: gameSettingsSchema,
+  }),
+  z.object({
+    type: z.literal("start_game"),
+    gameCode: z.string(),
+  }),
+  z.object({
+    type: z.literal("chat_message"),
+    gameCode: z.string(),
+    message: z.string(),
+  }),
+  z.object({
+    type: z.literal("vote"),
+    gameCode: z.string(),
+    targetId: z.string(),
+  }),
+  z.object({
+    type: z.literal("night_action"),
+    gameCode: z.string(),
+    targetId: z.string().optional(),
+    actionData: z.any().optional(),
+  }),
+  z.object({
+    type: z.literal("leave_game"),
+    gameCode: z.string(),
+  }),
+]);
+
+export type WSMessage = z.infer<typeof wsMessageSchema>;
