@@ -3,28 +3,14 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import * as Sentry from "@sentry/node";
 
+const app = express();
+
 // Initialize Sentry
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
-  integrations: [
-    // Enable HTTP calls tracing
-    new Sentry.Integrations.Http({ tracing: true }),
-    // Enable Express middleware tracing
-    new Sentry.Integrations.Express({ app }),
-  ],
-  // Performance Monitoring
+  environment: process.env.NODE_ENV || "development",
   tracesSampleRate: 1.0,
-  // Set sampling rate for profiling - this is relative to tracesSampleRate
-  profilesSampleRate: 1.0,
 });
-
-const app = express();
-
-// The request handler must be the first middleware on the app
-app.use(Sentry.Handlers.requestHandler());
-
-// TracingHandler creates a trace for every incoming request
-app.use(Sentry.Handlers.tracingHandler());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -61,9 +47,6 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 (async () => {
   const server = await registerRoutes(app);
-
-  // The error handler must be registered before any other error middleware and after all controllers
-  app.use(Sentry.Handlers.errorHandler());
 
   // Error handling middleware
   app.use((err: any, req: Request, res: Response, next: NextFunction) => {
