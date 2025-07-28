@@ -10,8 +10,8 @@ COPY postcss.config.js ./
 COPY tailwind.config.ts ./
 COPY drizzle.config.ts ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies with legacy peer deps
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY client/ ./client/
