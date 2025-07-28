@@ -6,7 +6,6 @@ import { env } from "../server/env";
 const sql = postgres(env.DATABASE_URL, {
   ssl: {
     rejectUnauthorized: false,
-    require: true,
   },
 });
 
