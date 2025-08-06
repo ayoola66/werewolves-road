@@ -3,8 +3,6 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import * as Sentry from "@sentry/node";
 
-console.log(`DATABASE_URL: ${process.env.DATABASE_URL}`);
-
 const app = express();
 
 // Initialize Sentry
