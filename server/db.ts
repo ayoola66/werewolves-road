@@ -9,15 +9,17 @@ import fs from "fs";
 const isProduction = process.env.NODE_ENV === "production";
 
 // For Railway's PostgreSQL, we need to use direct connection parameters
-// Ensure SSL is included in the connection string
-const connectionString = process.env.DATABASE_URL?.includes('sslmode=') 
-  ? process.env.DATABASE_URL 
-  : `${process.env.DATABASE_URL}?sslmode=require`;
+// Parse the connection string to add required SSL parameters
+const baseUrl = process.env.DATABASE_URL || '';
+const hasSSL = baseUrl.includes('sslmode=');
+const finalUrl = hasSSL ? baseUrl : `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}sslmode=require`;
 
 export const pool = new Pool({
-  connectionString,
+  connectionString: finalUrl,
   ssl: {
-    rejectUnauthorized: false
+    rejectUnauthorized: false,
+    // Required for Railway's PostgreSQL
+    require: true,
   },
   // Additional settings for better connection handling
   max: 20, // Maximum number of clients in the pool
