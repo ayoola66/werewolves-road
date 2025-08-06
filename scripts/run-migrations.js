@@ -7,7 +7,7 @@ async function runMigrations() {
   console.log("Starting database migration...");
   try {
     // Drop the drizzle schema if it exists to ensure a clean migration
-    await db.execute(`DROP SCHEMA IF EXISTS drizzle CASCADE;`);
+    await db.query.execute(`DROP SCHEMA IF EXISTS drizzle CASCADE;`);
     console.log("Dropped existing drizzle schema (if any).");
 
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
