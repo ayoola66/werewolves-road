@@ -2,14 +2,27 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { db, pool } from "../server/db.ts";
 import path from "path";
 import { fileURLToPath } from "url";
+import { Pool } from "pg";
 
 async function runMigrations() {
   console.log("Starting database migration...");
-  try {
-    // Drop the drizzle schema if it exists to ensure a clean migration
-    await db.query.execute(`DROP SCHEMA IF EXISTS drizzle CASCADE;`);
-    console.log("Dropped existing drizzle schema (if any).");
 
+  // Create a temporary, direct connection to drop the schema
+  const tempPool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false,
+    },
+  });
+
+  try {
+    console.log("Connecting directly to drop drizzle schema...");
+    await tempPool.query(`DROP SCHEMA IF EXISTS drizzle CASCADE;`);
+    console.log("Dropped existing drizzle schema (if any).");
+    await tempPool.end();
+    console.log("Direct connection closed.");
+
+    console.log("Proceeding with standard migration...");
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
     const migrationsFolder = path.join(__dirname, "..", "db", "migrations");
 
