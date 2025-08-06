@@ -5,6 +5,7 @@ import {
   timestamp,
   boolean,
   json,
+  integer,
 } from "drizzle-orm/pg-core";
 import { type InferModel } from "drizzle-orm";
 import { z } from "zod";
@@ -13,17 +14,11 @@ export const games = pgTable("games", {
   id: serial("id").primaryKey(),
   gameCode: text("game_code").notNull(),
   hostId: text("host_id").notNull(),
+  status: text("status").default("waiting").notNull(),
   settings: json("settings").notNull(),
-  status: text("status").default("lobby"),
-  currentPhase: text("current_phase").default("lobby"),
-  phaseTimer: text("phase_timer"),
-  nightCount: text("night_count").default("0"),
-  dayCount: text("day_count").default("0"),
-  lastPhaseChange: timestamp("last_phase_change").defaultNow(),
-  requiredActions: json("required_actions").default([]),
-  completedActions: json("completed_actions").default([]),
-  phaseEndTime: timestamp("phase_end_time"),
-  createdAt: timestamp("created_at").defaultNow(),
+  currentPhase: text("current_phase").default("waiting").notNull(),
+  phaseTimer: integer("phase_timer").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const players = pgTable("players", {

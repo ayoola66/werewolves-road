@@ -1,28 +1,42 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
-import { migrate } from "drizzle-orm/postgres-js/migrator";
-import { env } from "../server/env";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
+import { Pool } from "pg";
+import path from "path";
+import { fileURLToPath } from "url";
 
-const sql = postgres(env.DATABASE_URL, {
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false,
+    requestCert: true
   },
+  // Additional settings for better connection handling
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+  application_name: 'werewolveshx-migrate'
 });
+
+// Add error handler for the pool
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle client', err);
+  process.exit(-1);
+});
+
+const db = drizzle(pool);
 
 async function main() {
   try {
     console.log("Running migrations...");
-    const db = drizzle(sql);
-    await sql`CREATE SCHEMA IF NOT EXISTS public`;
-    await sql`SET search_path TO public`; // Explicitly set search path
-    await migrate(db, { migrationsFolder: "./db/migrations" });
+    await migrate(db, { migrationsFolder: path.join(__dirname, "migrations") });
     console.log("Migrations completed successfully!");
-  } catch (err) {
-    console.error("Failed to run migrations:", err);
+  } catch (error) {
+    console.error("Error running migrations:", error);
     process.exit(1);
-  } finally {
-    await sql.end();
   }
+  await pool.end();
 }
 
 main();

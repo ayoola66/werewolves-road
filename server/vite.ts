@@ -78,7 +78,12 @@ export function serveStatic(app: Express) {
 
   app.use(express.static(distPath));
 
-  app.use("*", (_req: Request, res: Response) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+  // Only serve index.html for non-API routes
+  app.use("*", (req: Request, res: Response, next: NextFunction) => {
+    if (req.path.startsWith("/api")) {
+      next();
+    } else {
+      res.sendFile(path.resolve(distPath, "index.html"));
+    }
   });
 }
