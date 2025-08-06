@@ -44,7 +44,7 @@ export default function WerewolfGame() {
            gameState.gameState?.phase === 'role_reveal' && 
            gameState.getPlayerRole() && (
             <RoleRevealOverlay 
-              role={gameState.getPlayerRole()}
+              role={gameState.getPlayerRole() || 'villager'}
               phaseTimer={gameState.gameState.phaseTimer || 10}
               gameState={gameState.gameState}
             />
