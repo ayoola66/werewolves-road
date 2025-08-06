@@ -2,6 +2,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import * as schema from "../shared/schema.ts";
 
@@ -13,14 +14,12 @@ async function runMigrations() {
     ssl: {
       rejectUnauthorized: false,
     },
-    // We need to end this pool, so a short timeout is fine
     idleTimeoutMillis: 1000,
   });
 
   const db = drizzle(migrationPool, { schema });
 
   try {
-    // Drop the drizzle schema if it exists to ensure a clean migration
     console.log("Attempting to drop drizzle schema (if it exists)...");
     await migrationPool.query(`DROP SCHEMA IF EXISTS drizzle CASCADE;`);
     console.log("Dropped existing drizzle schema.");
@@ -28,10 +27,17 @@ async function runMigrations() {
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
     const migrationsFolder = path.join(__dirname, "..", "db", "migrations");
 
+    // --- DIAGNOSTIC LOGGING ---
+    console.log(`Looking for migrations in: ${migrationsFolder}`);
+    const migrationFiles = fs.readdirSync(migrationsFolder);
+    console.log("Found migration files:", migrationFiles);
+    // -------------------------
+
     console.log("Running migrations with self-contained connection...");
     await migrate(db, { migrationsFolder });
-    console.log("Migrations completed successfully! Tables should now be created.");
-
+    console.log(
+      "Migrations completed successfully! Tables should now be created."
+    );
   } catch (error) {
     console.error("Error during self-contained migration:", error);
     process.exit(1);
