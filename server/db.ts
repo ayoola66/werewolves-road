@@ -10,17 +10,16 @@ const isProduction = process.env.NODE_ENV === "production";
 
 // For Railway's PostgreSQL, we need to use direct connection parameters
 // Parse the connection string to add required SSL parameters
-const baseUrl = process.env.DATABASE_URL || '';
-const hasSSL = baseUrl.includes('sslmode=');
-const finalUrl = hasSSL ? baseUrl : `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}sslmode=require`;
+const baseUrl = process.env.DATABASE_URL || "";
+const hasSSL = baseUrl.includes("sslmode=");
+const finalUrl = hasSSL
+  ? baseUrl
+  : `${baseUrl}${baseUrl.includes("?") ? "&" : "?"}sslmode=require`;
 
 export const pool = new Pool({
   connectionString: finalUrl,
-  ssl: {
-    rejectUnauthorized: false,
-    // Required for Railway's PostgreSQL
-    require: true,
-  },
+  // Force SSL for Railway PostgreSQL
+  ssl: true,
   // Additional settings for better connection handling
   max: 20, // Maximum number of clients in the pool
   idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
