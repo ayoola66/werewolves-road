@@ -6,17 +6,28 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import * as schema from "../shared/schema";
 import fs from "fs";
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?"
-  );
-}
+const isProduction = process.env.NODE_ENV === "production";
+
+// For Railway's PostgreSQL, we need to use direct connection parameters
+const connectionString = process.env.DATABASE_URL;
 
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
+  connectionString,
+  ssl: isProduction ? {
     rejectUnauthorized: false,
-  },
+    // Remove requestCert as it's causing issues
+  } : false,
+  // Additional settings for better connection handling
+  max: 20, // Maximum number of clients in the pool
+  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+  connectionTimeoutMillis: 10000, // Connection timeout
+  application_name: 'werewolveshx', // Identify our application in logs
+});
+
+// Add error handler for the pool
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle client', err);
+  process.exit(-1);
 });
 
 export const db = drizzle(pool, { schema });
@@ -25,13 +36,14 @@ export const db = drizzle(pool, { schema });
 (async () => {
   try {
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
-    const migrationsFolder = path.resolve(__dirname, "..", "db", "migrations");
-
-    console.log("Running database migrations...");
+    const migrationsFolder = path.join(__dirname, "..", "db", "migrations");
+    
+    console.log("Running migrations...");
     await migrate(db, { migrationsFolder });
-    console.log("Database migrations completed successfully!");
+    console.log("Migrations completed successfully!");
   } catch (error) {
-    console.error("Failed to run migrations:", error);
-    // Don't exit the process, just log the error
+    console.error("Error running migrations:", error);
+    // Don't exit on migration error, just log it
+    console.log("Continuing despite migration error...");
   }
 })();
