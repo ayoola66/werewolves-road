@@ -14,7 +14,8 @@
     "check": "tsc",
     "db:push": "drizzle-kit push:pg",
     "migrate": "NODE_ENV=production node dist/migrate.js",
-    "db:deploy": "npm run db:push && npm run migrate"
+    "db:deploy": "npm run db:push && npm run migrate",
+    "db:migrate:force": "tsx scripts/run-migrations.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
