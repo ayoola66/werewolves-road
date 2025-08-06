@@ -3,6 +3,8 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import * as Sentry from "@sentry/node";
 
+console.log(`DATABASE_URL: ${process.env.DATABASE_URL}`);
+
 const app = express();
 
 // Initialize Sentry
@@ -48,6 +50,13 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 (async () => {
   const server = await registerRoutes(app);
 
+  // importantly only setup vite in development and after
+  // setting up all the other routes so the catch-all route
+  // doesn't interfere with the other routes
+  if (app.get("env") === "development") {
+    await setupVite(app, server);
+  }
+
   // Error handling middleware
   app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     // Capture error in Sentry
@@ -71,12 +80,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     });
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
+  // Serve static files in production
+  if (app.get("env") === "production") {
     serveStatic(app);
   }
 
