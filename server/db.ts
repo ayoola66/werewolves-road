@@ -10,6 +10,7 @@ const isProduction = process.env.NODE_ENV === "production";
 
 // For Railway's PostgreSQL, we need to use direct connection parameters
 const connectionString = process.env.DATABASE_URL;
+console.log(`DATABASE_URL: ${connectionString}`);
 
 export const pool = new Pool({
   connectionString,
