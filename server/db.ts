@@ -30,19 +30,3 @@ pool.on("error", (err) => {
 });
 
 export const db = drizzle(pool, { schema });
-
-// Run migrations on startup (no-op if already up to date)
-(async () => {
-  try {
-    const __dirname = path.dirname(fileURLToPath(import.meta.url));
-    const migrationsFolder = path.join(__dirname, "..", "db", "migrations");
-
-    console.log("Running migrations...");
-    await migrate(db, { migrationsFolder });
-    console.log("Migrations completed successfully!");
-  } catch (error) {
-    console.error("Error running migrations:", error);
-    // Don't exit on migration error, just log it
-    console.log("Continuing despite migration error...");
-  }
-})();
