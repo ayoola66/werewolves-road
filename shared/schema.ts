@@ -1,95 +1,86 @@
-import { pgTable, serial, text, timestamp, boolean, integer, jsonb } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
+import {
+  pgTable,
+  serial,
+  text,
+  timestamp,
+  boolean,
+  json,
+} from "drizzle-orm/pg-core";
+import { type InferModel } from "drizzle-orm";
 import { z } from "zod";
-
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-});
 
 export const games = pgTable("games", {
   id: serial("id").primaryKey(),
-  gameCode: text("game_code").notNull().unique(),
+  gameCode: text("game_code").notNull(),
   hostId: text("host_id").notNull(),
-  status: text("status").notNull().default("waiting"),
-  settings: jsonb("settings").notNull(),
-  currentPhase: text("current_phase").notNull().default("waiting"),
-  phaseTimer: integer("phase_timer").default(0),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  nightCount: integer("night_count").default(0),
-  dayCount: integer("day_count").default(0),
+  settings: json("settings").notNull(),
+  status: text("status").default("lobby"),
+  currentPhase: text("current_phase").default("lobby"),
+  phaseTimer: text("phase_timer"),
+  nightCount: text("night_count").default("0"),
+  dayCount: text("day_count").default("0"),
   lastPhaseChange: timestamp("last_phase_change").defaultNow(),
-  requiredActions: jsonb("required_actions").default("[]"),
-  completedActions: jsonb("completed_actions").default("[]"),
+  requiredActions: json("required_actions").default([]),
+  completedActions: json("completed_actions").default([]),
   phaseEndTime: timestamp("phase_end_time"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const players = pgTable("players", {
   id: serial("id").primaryKey(),
-  gameId: integer("game_id").references(() => games.id, { onDelete: "cascade" }).notNull(),
+  gameId: text("game_id").notNull(),
   playerId: text("player_id").notNull(),
   name: text("name").notNull(),
   role: text("role"),
-  isAlive: boolean("is_alive").notNull().default(true),
-  isHost: boolean("is_host").notNull().default(false),
-  isSheriff: boolean("is_sheriff").notNull().default(false),
-  hasShield: boolean("has_shield").default(false),
-  actionUsed: boolean("action_used").default(false),
-  joinedAt: timestamp("joined_at").notNull().defaultNow(),
-});
-
-export const gameActions = pgTable("game_actions", {
-  id: serial("id").primaryKey(),
-  gameId: integer("game_id").references(() => games.id, { onDelete: "cascade" }).notNull(),
-  playerId: text("player_id").notNull(),
-  actionType: text("action_type").notNull(),
-  targetId: text("target_id"),
-  data: jsonb("data"),
-  phase: text("phase").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  isAlive: boolean("is_alive").default(true),
+  isHost: boolean("is_host").default(false),
+  isSheriff: boolean("is_sheriff").default(false),
+  hasShield: boolean("has_shield"),
+  actionUsed: boolean("action_used"),
+  joinedAt: timestamp("joined_at").defaultNow(),
 });
 
 export const chatMessages = pgTable("chat_messages", {
   id: serial("id").primaryKey(),
-  gameId: integer("game_id").references(() => games.id, { onDelete: "cascade" }).notNull(),
+  gameId: text("game_id").notNull(),
   playerId: text("player_id"),
   playerName: text("player_name").notNull(),
   message: text("message").notNull(),
-  type: text("type").notNull().default("player"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  type: text("type").default("player"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Zod schemas
-export const insertGameSchema = createInsertSchema(games).omit({
-  id: true,
-  createdAt: true,
+export const votes = pgTable("votes", {
+  id: serial("id").primaryKey(),
+  gameId: text("game_id").notNull(),
+  voterId: text("voter_id").notNull(),
+  targetId: text("target_id").notNull(),
+  phase: text("phase").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertPlayerSchema = createInsertSchema(players).omit({
-  id: true,
-  joinedAt: true,
+export const nightActions = pgTable("night_actions", {
+  id: serial("id").primaryKey(),
+  gameId: text("game_id").notNull(),
+  playerId: text("player_id").notNull(),
+  targetId: text("target_id"),
+  actionType: text("action_type").notNull(),
+  data: json("data"),
+  phase: text("phase").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertGameActionSchema = createInsertSchema(gameActions).omit({
-  id: true,
-  createdAt: true,
-});
+export type Game = InferModel<typeof games>;
+export type Player = InferModel<typeof players>;
+export type ChatMessage = InferModel<typeof chatMessages>;
+export type Vote = InferModel<typeof votes>;
+export type NightAction = InferModel<typeof nightActions>;
 
-export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
-  id: true,
-  createdAt: true,
-});
-
-// Types
-export type InsertGame = z.infer<typeof insertGameSchema>;
-export type Game = typeof games.$inferSelect;
-export type InsertPlayer = z.infer<typeof insertPlayerSchema>;
-export type Player = typeof players.$inferSelect;
-export type InsertGameAction = z.infer<typeof insertGameActionSchema>;
-export type GameAction = typeof gameActions.$inferSelect;
-export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
-export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertGame = InferModel<typeof games, "insert">;
+export type InsertPlayer = InferModel<typeof players, "insert">;
+export type InsertChatMessage = InferModel<typeof chatMessages, "insert">;
+export type InsertVote = InferModel<typeof votes, "insert">;
+export type InsertNightAction = InferModel<typeof nightActions, "insert">;
 
 // Game settings schema
 export const gameSettingsSchema = z.object({
