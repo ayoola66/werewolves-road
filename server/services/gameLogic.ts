@@ -99,6 +99,7 @@ async function handleCreateGame(
       playerId,
       name: message.playerName,
       isHost: true,
+      team: "village", // Default to village team
     });
 
     ws.playerId = playerId;
@@ -154,6 +155,7 @@ async function handleJoinGame(
       playerId,
       name: message.playerName,
       isHost: false,
+      team: "village", // Default to village team
     });
 
     ws.playerId = playerId;
