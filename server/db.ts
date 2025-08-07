@@ -17,8 +17,8 @@ const queryClient = postgres(connectionString, {
   idle_timeout: 30,
   connect_timeout: 10,
   types: {
-    name: "werewolveshx"
-  }
+    name: "werewolveshx",
+  },
 });
 
 export const db = drizzle(queryClient, { schema });

@@ -1,5 +1,3 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
 import {
   games,
   players,
@@ -7,11 +5,8 @@ import {
   votes,
   nightActions,
 } from "../shared/schema";
-import { env } from "./env";
 import { eq, and } from "drizzle-orm";
-
-const queryClient = postgres(env.DATABASE_URL);
-const db = drizzle(queryClient);
+import { db } from "./db";
 
 export interface DatabaseStorage {
   createGame: (data: any) => Promise<any>;
