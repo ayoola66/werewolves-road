@@ -50,7 +50,22 @@ export function useGameState() {
 
   onMessage('game_state_update', (message) => {
     console.log('Received game state update:', message);
-    setGameState(message.gameState);
+    if (!message.gameState) {
+      console.error('Invalid game state update:', message);
+      return;
+    }
+
+    // Ensure we have the correct game state structure
+    const newGameState = {
+      game: message.gameState.game,
+      players: message.gameState.players || [],
+      votes: message.gameState.votes || [],
+      nightActions: message.gameState.nightActions || [],
+      chatMessages: message.gameState.chatMessages || [],
+    };
+
+    console.log('Setting new game state:', newGameState);
+    setGameState(newGameState);
     
     // Handle phase transitions
     if (message.gameState.phase === 'night') {
@@ -74,9 +89,7 @@ export function useGameState() {
   });
 
   onMessage('player_joined', (message) => {
-    if (message.gameState) {
-      setGameState(message.gameState);
-    }
+    console.log('Player joined:', message);
     toast({
       title: "Player Joined",
       description: `${message.playerName} joined the game`,

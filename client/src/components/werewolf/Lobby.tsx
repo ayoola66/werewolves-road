@@ -12,7 +12,7 @@ interface LobbyProps {
 export default function Lobby({ gameState }: LobbyProps) {
   const { toast } = useToast();
   const game = gameState?.gameState;
-  console.log('Game state update:', game);
+  console.log('Rendering lobby with game state:', { game, players: game?.players });
 
   const copyGameCode = async () => {
     if (game?.game.gameCode) {
