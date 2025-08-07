@@ -1,140 +1,100 @@
-import { useState, useRef, useEffect } from 'react';
-import { Input } from '@/components/ui/input';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Send } from 'lucide-react';
-import { Moon, Sun } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface ChatProps {
   gameState: any;
+  isWerewolf: boolean;
+  isNightPhase: boolean;
 }
 
-export default function Chat({ gameState }: ChatProps) {
+function scrambleText(text: string): string {
+  return text
+    .split('')
+    .map(char => Math.random() > 0.5 ? '█' : char)
+    .join('');
+}
+
+export default function Chat({ gameState, isWerewolf, isNightPhase }: ChatProps) {
   const [message, setMessage] = useState('');
-  const chatLogRef = useRef<HTMLDivElement>(null);
-  const game = gameState.gameState;
-  const playerRole = gameState.getPlayerRole();
+  const [channel, setChannel] = useState<'public' | 'werewolf'>('public');
+  const [messages, setMessages] = useState<any[]>([]);
 
   useEffect(() => {
-    if (chatLogRef.current) {
-      chatLogRef.current.scrollTop = chatLogRef.current.scrollHeight;
+    if (gameState?.chatMessages) {
+      setMessages(gameState.chatMessages);
     }
-  }, [game?.chatMessages]);
+  }, [gameState?.chatMessages]);
 
-  const handleSendMessage = () => {
+  const sendMessage = () => {
     if (!message.trim()) return;
-    
-    gameState.sendChatMessage(message);
+
+    const isWerewolfChat = channel === 'werewolf' && isWerewolf;
+    const shouldScramble = !isWerewolfChat && isNightPhase;
+
+    gameState.sendMessage({
+      type: 'chat_message',
+      message,
+      channel,
+      isScrambled: shouldScramble
+    });
+
     setMessage('');
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSendMessage();
-    }
-  };
-
-  const getMessageStyle = (type: string, isNight: boolean) => {
-    switch (type) {
-      case 'system':
-        return 'bg-blue-900/30 text-blue-200';
-      case 'death':
-        return 'bg-red-900/30 text-red-200';
-      case 'elimination':
-        return 'bg-purple-900/30 text-purple-200';
-      case 'werewolf':
-        return 'bg-red-800/30 text-red-200';
-      case 'scrambled':
-        return 'bg-gray-800/30 text-gray-300 italic';
-      default:
-        return isNight ? 'bg-gray-800/30 text-gray-300' : 'bg-gray-800/30';
-    }
-  };
-
-  const shouldShowMessage = (msg: any) => {
-    if (msg.type === 'werewolf') {
-      return playerRole === 'werewolf' || playerRole === 'minion';
-    }
-    return true;
-  };
-
-  const getChatIcon = (type: string) => {
-    switch (type) {
-      case 'werewolf':
-        return <Moon className="w-4 h-4 text-red-400" />;
-      case 'scrambled':
-        return <Moon className="w-4 h-4 text-gray-400" />;
-      case 'player':
-        return game?.phase === 'night' ? 
-          <Moon className="w-4 h-4 text-gray-400" /> : 
-          <Sun className="w-4 h-4 text-yellow-400" />;
-      default:
-        return null;
-    }
-  };
-
   return (
-    <div className="flex flex-col h-full">
-      {/* Chat Log */}
-      <div
-        ref={chatLogRef}
-        className="flex-grow bg-black/30 p-3 rounded-lg overflow-y-auto h-48 md:h-64 mb-4 border border-gray-700"
-      >
-        {game?.chatMessages?.filter(shouldShowMessage).map((msg: any, index: number) => (
-          <div
-            key={index}
-            className={`chat-message mb-2 p-2 rounded-lg animate-in fade-in duration-300 ${getMessageStyle(msg.type, game?.phase === 'night')}`}
-          >
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  {getChatIcon(msg.type)}
-                  <span className="font-bold text-sm">{msg.playerName}</span>
-                </div>
-                <div className="mt-1 break-words">{msg.message}</div>
-              </div>
-              <span className="text-xs text-gray-500 ml-2 flex-shrink-0">
-                {new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle className="flex justify-between items-center">
+          <span>Chat</span>
+          {isWerewolf && (
+            <div className="space-x-2">
+              <Button
+                variant={channel === 'public' ? 'default' : 'outline'}
+                onClick={() => setChannel('public')}
+                size="sm"
+              >
+                Public
+              </Button>
+              <Button
+                variant={channel === 'werewolf' ? 'default' : 'outline'}
+                onClick={() => setChannel('werewolf')}
+                size="sm"
+                className="text-red-500"
+              >
+                Werewolf
+              </Button>
+            </div>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="h-[300px] overflow-y-auto space-y-2 mb-4">
+          {messages.map((msg, i) => (
+            <div
+              key={i}
+              className={`p-2 rounded ${
+                msg.channel === 'werewolf' ? 'bg-red-900/20' : 'bg-gray-800/50'
+              }`}
+            >
+              <span className="font-bold">{msg.playerName}: </span>
+              <span>
+                {msg.isScrambled ? scrambleText(msg.message) : msg.message}
               </span>
             </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Chat Input */}
-      {gameState.canChat() && (
-        <div className="flex space-x-2">
+          ))}
+        </div>
+        <div className="flex gap-2">
           <Input
-            type="text"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder={
-              game?.phase === 'night' && playerRole !== 'werewolf'
-                ? "Your message will be scrambled..."
-                : "Type your message..."
-            }
-            className="flex-1 bg-gray-800 border border-gray-600 text-white placeholder-gray-500"
-            maxLength={200}
+            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+            placeholder="Type your message..."
           />
-          <Button
-            onClick={handleSendMessage}
-            disabled={!message.trim()}
-            className={`text-white font-bold py-2 px-4 rounded-lg ${
-              game?.phase === 'night' && playerRole === 'werewolf'
-                ? 'bg-red-600 hover:bg-red-700'
-                : 'bg-blue-600 hover:bg-blue-700'
-            }`}
-          >
-            <Send className="w-4 h-4" />
-          </Button>
+          <Button onClick={sendMessage}>Send</Button>
         </div>
-      )}
-      
-      {!gameState.canChat() && (
-        <div className="text-center text-gray-500 py-2">
-          {game?.phase === 'night' ? 'You cannot speak during the night' : 'Dead players cannot speak'}
-        </div>
-      )}
-    </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -114,6 +114,8 @@ export const wsMessageSchema = z.discriminatedUnion("type", [
     type: z.literal("chat_message"),
     gameCode: z.string(),
     message: z.string(),
+    channel: z.enum(["public", "werewolf"]).default("public"),
+    isScrambled: z.boolean().default(true),
   }),
   z.object({
     type: z.literal("vote"),
@@ -130,6 +132,36 @@ export const wsMessageSchema = z.discriminatedUnion("type", [
     type: z.literal("leave_game"),
     gameCode: z.string(),
   }),
+  z.object({
+    type: z.literal("player_update"),
+    gameCode: z.string(),
+    players: z.array(z.object({
+      playerId: z.string(),
+      name: z.string(),
+      isHost: z.boolean(),
+      isConnected: z.boolean()
+    }))
+  }),
+  z.object({
+    type: z.literal("role_assigned"),
+    gameCode: z.string(),
+    role: z.string(),
+    teamInfo: z.object({
+      werewolves: z.array(z.string()).optional(),
+      minion: z.boolean().optional()
+    }),
+    timer: z.number()
+  }),
+  z.object({
+    type: z.literal("phase_change"),
+    gameCode: z.string(),
+    phase: z.enum(["day", "night"]),
+    timer: z.number(),
+    events: z.array(z.object({
+      type: z.string(),
+      message: z.string()
+    }))
+  })
 ]);
 
 export type WSMessage = z.infer<typeof wsMessageSchema>;

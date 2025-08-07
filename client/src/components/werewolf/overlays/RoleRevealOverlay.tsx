@@ -9,11 +9,18 @@ interface RoleRevealOverlayProps {
 }
 
 export default function RoleRevealOverlay({ role, phaseTimer, gameState }: RoleRevealOverlayProps) {
-  const [countdown, setCountdown] = useState(phaseTimer);
+  const [countdown, setCountdown] = useState(15); // Fixed 15-second timer
+  const [isVisible, setIsVisible] = useState(true);
   
   useEffect(() => {
     const timer = setInterval(() => {
-      setCountdown(prev => Math.max(0, prev - 1));
+      setCountdown(prev => {
+        const newCount = Math.max(0, prev - 1);
+        if (newCount === 0) {
+          setIsVisible(false);
+        }
+        return newCount;
+      });
     }, 1000);
     
     return () => clearInterval(timer);

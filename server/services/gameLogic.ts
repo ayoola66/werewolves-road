@@ -192,6 +192,12 @@ async function handleJoinGame(
   }
 }
 
+const PHASE_TIMERS = {
+  day: 180, // 3 minutes
+  night: 60, // 1 minute
+  roleReveal: 15 // 15 seconds
+};
+
 async function handleStartGame(
   ws: ExtendedWebSocket,
   message: { type: "start_game"; gameCode: string }
@@ -213,8 +219,52 @@ async function handleStartGame(
       return;
     }
 
-    await storage.updateGame(game.id, { status: "night" });
-    assignRoles(game, players);
+    await storage.updateGame(game.id, { 
+      status: "role_reveal",
+      currentPhase: "role_reveal",
+      phaseTimer: PHASE_TIMERS.roleReveal
+    });
+    
+    const roles = assignRoles(game, players);
+    
+    // Send role information to each player
+    const connections = gameConnections.get(message.gameCode);
+    if (connections) {
+      for (const playerWs of connections) {
+        const playerRole = roles.find(r => r.playerId === playerWs.playerId);
+        if (playerRole) {
+          const teamInfo = {
+            werewolves: playerRole.role === 'werewolf' || playerRole.role === 'minion' 
+              ? roles.filter(r => r.role === 'werewolf').map(r => r.playerId)
+              : undefined,
+            minion: playerRole.role === 'minion'
+          };
+          
+          playerWs.send(JSON.stringify({
+            type: "role_assigned",
+            role: playerRole.role,
+            teamInfo,
+            timer: PHASE_TIMERS.roleReveal
+          }));
+        }
+      }
+    }
+    
+    // Start role reveal timer
+    setTimeout(async () => {
+      await storage.updateGame(game.id, { 
+        status: "night",
+        currentPhase: "night",
+        phaseTimer: PHASE_TIMERS.night
+      });
+      
+      broadcastToGame(message.gameCode, {
+        type: "phase_change",
+        phase: "night",
+        timer: PHASE_TIMERS.night,
+        events: []
+      });
+    }, PHASE_TIMERS.roleReveal * 1000);
 
     broadcastToGame(message.gameCode, {
       type: "game_started",
@@ -451,14 +501,51 @@ async function getGameState(gameCode: string) {
 }
 
 function assignRoles(game: any, players: any[]) {
-  // Implement role assignment logic here
-  // This is a placeholder
-  players.forEach(async (player) => {
-    await storage.updatePlayer(game.id, player.playerId, {
-      role: "villager",
-      team: "village",
+  const settings = game.settings;
+  const roles: { playerId: string; role: string; team: string }[] = [];
+  const playerIds = [...players.map(p => p.playerId)];
+  
+  // Assign werewolves
+  for (let i = 0; i < settings.werewolves; i++) {
+    const idx = Math.floor(Math.random() * playerIds.length);
+    const playerId = playerIds.splice(idx, 1)[0];
+    roles.push({ playerId, role: "werewolf", team: "werewolf" });
+  }
+  
+  // Assign special roles
+  if (settings.seer && playerIds.length > 0) {
+    const idx = Math.floor(Math.random() * playerIds.length);
+    const playerId = playerIds.splice(idx, 1)[0];
+    roles.push({ playerId, role: "seer", team: "village" });
+  }
+  
+  if (settings.doctor && playerIds.length > 0) {
+    const idx = Math.floor(Math.random() * playerIds.length);
+    const playerId = playerIds.splice(idx, 1)[0];
+    roles.push({ playerId, role: "doctor", team: "village" });
+  }
+  
+  if (settings.minion && playerIds.length > 0) {
+    const idx = Math.floor(Math.random() * playerIds.length);
+    const playerId = playerIds.splice(idx, 1)[0];
+    roles.push({ playerId, role: "minion", team: "werewolf" });
+  }
+  
+  // Assign remaining players as villagers
+  playerIds.forEach(playerId => {
+    roles.push({ playerId, role: "villager", team: "village" });
+  });
+  
+  // Update database with roles
+  roles.forEach(async ({ playerId, role, team }) => {
+    await storage.updatePlayer(game.id, playerId, {
+      role,
+      team,
+      hasShield: settings.shield,
     });
   });
+  
+  return roles;
 }
 
 function generateGameCode(): string {

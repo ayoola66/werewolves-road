@@ -11,6 +11,13 @@ interface LobbyProps {
 export default function Lobby({ gameState }: LobbyProps) {
   const { toast } = useToast();
   const game = gameState.gameState;
+  const [players, setPlayers] = useState(game?.players || []);
+
+  useEffect(() => {
+    if (game?.players) {
+      setPlayers(game.players);
+    }
+  }, [game?.players]);
 
   const copyGameCode = async () => {
     if (game?.game.gameCode) {
