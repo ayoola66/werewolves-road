@@ -45,12 +45,26 @@ export const storage: DatabaseStorage = {
   },
 
   updateGame: async (id, data) => {
-    const [game] = await db
-      .update(games)
-      .set(data)
-      .where(eq(games.id, id))
-      .returning();
-    return game;
+    try {
+      // Create a properly typed update object
+      const updateData: Partial<typeof games.$inferInsert> = {};
+      
+      // Only include fields that exist in the schema
+      if ('status' in data) updateData.status = data.status;
+      if ('settings' in data) updateData.settings = data.settings;
+      if ('currentPhase' in data) updateData.currentPhase = data.currentPhase;
+      if ('phaseTimer' in data) updateData.phaseTimer = data.phaseTimer;
+      
+      const [game] = await db
+        .update(games)
+        .set(updateData)
+        .where(eq(games.id, id))
+        .returning();
+      return game;
+    } catch (error) {
+      console.error('Error updating game:', error);
+      throw error;
+    }
   },
 
   getPlayersByGameId: async (gameId) => {
@@ -63,36 +77,43 @@ export const storage: DatabaseStorage = {
   },
 
   updatePlayer: async (gameId, playerId, data) => {
-    // Get current player data
-    const [currentPlayer] = await db
-      .select()
-      .from(players)
-      .where(and(eq(players.gameId, gameId), eq(players.playerId, playerId)));
+    try {
+      // Get current player data
+      const [currentPlayer] = await db
+        .select()
+        .from(players)
+        .where(and(eq(players.gameId, gameId), eq(players.playerId, playerId)));
 
-    if (!currentPlayer) {
-      throw new Error('Player not found');
+      if (!currentPlayer) {
+        throw new Error('Player not found');
+      }
+
+      // Create a properly typed update object
+      const updateData: Partial<typeof players.$inferInsert> = {};
+
+      // Only include fields that exist in the schema
+      if ('role' in data) updateData.role = data.role;
+      if ('isAlive' in data) updateData.isAlive = data.isAlive;
+      if ('isHost' in data) updateData.isHost = data.isHost;
+      if ('isSheriff' in data) updateData.isSheriff = data.isSheriff;
+      if ('hasShield' in data) updateData.hasShield = data.hasShield;
+      if ('actionUsed' in data) updateData.actionUsed = data.actionUsed;
+
+      // Only perform update if there are changes
+      if (Object.keys(updateData).length > 0) {
+        const [player] = await db
+          .update(players)
+          .set(updateData)
+          .where(and(eq(players.gameId, gameId), eq(players.playerId, playerId)))
+          .returning();
+        return player;
+      }
+
+      return currentPlayer;
+    } catch (error) {
+      console.error('Error updating player:', error);
+      throw error;
     }
-
-    // Update only changed fields
-    const updateData = {};
-    if (data.role !== undefined) updateData.role = data.role;
-    if (data.isAlive !== undefined) updateData.isAlive = data.isAlive;
-    if (data.isHost !== undefined) updateData.isHost = data.isHost;
-    if (data.isSheriff !== undefined) updateData.isSheriff = data.isSheriff;
-    if (data.hasShield !== undefined) updateData.hasShield = data.hasShield;
-    if (data.actionUsed !== undefined) updateData.actionUsed = data.actionUsed;
-
-    // Only perform update if there are changes
-    if (Object.keys(updateData).length > 0) {
-      const [player] = await db
-        .update(players)
-        .set(updateData)
-        .where(and(eq(players.gameId, gameId), eq(players.playerId, playerId)))
-        .returning();
-      return player;
-    }
-
-    return currentPlayer;
   },
 
   getPlayer: async (gameId, playerId) => {
