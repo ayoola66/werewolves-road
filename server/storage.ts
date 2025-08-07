@@ -57,7 +57,7 @@ export const storage: DatabaseStorage = {
       }
 
       // Create update object with only valid columns
-      const updateData = {};
+      const updateData: Record<string, any> = {};
       if ('status' in data) updateData.status = data.status;
       if ('settings' in data) updateData.settings = data.settings;
       if ('currentPhase' in data) updateData.current_phase = data.currentPhase;
@@ -107,7 +107,7 @@ export const storage: DatabaseStorage = {
       }
 
       // Create update object with only valid columns
-      const updateData = {};
+      const updateData: Record<string, any> = {};
       if ('role' in data) updateData.role = data.role;
       if ('isAlive' in data) updateData.is_alive = data.isAlive;
       if ('isHost' in data) updateData.is_host = data.isHost;
