@@ -85,7 +85,7 @@ async function handleCreateGame(
     const validatedSettings = gameSettingsSchema.parse(message.settings);
 
     const game = await storage.createGame({
-      code: gameCode,
+      gameCode: gameCode,
       hostId: playerId,
       settings: validatedSettings,
       status: "lobby",
