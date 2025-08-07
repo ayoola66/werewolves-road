@@ -46,47 +46,50 @@ export const storage: DatabaseStorage = {
 
   updateGame: async (id, data) => {
     try {
-      // Build update SQL dynamically
-      const setClauses = [];
-      const values = [];
-      let paramIndex = 1;
+      // Get current game data
+      const [currentGame] = await db
+        .select()
+        .from(games)
+        .where(eq(games.id, id));
 
-      if ('status' in data && data.status !== undefined) {
-        setClauses.push(`status = $${paramIndex}`);
-        values.push(data.status);
-        paramIndex++;
-      }
-      if ('settings' in data && data.settings !== undefined) {
-        setClauses.push(`settings = $${paramIndex}`);
-        values.push(JSON.stringify(data.settings));
-        paramIndex++;
-      }
-      if ('currentPhase' in data && data.currentPhase !== undefined) {
-        setClauses.push(`current_phase = $${paramIndex}`);
-        values.push(data.currentPhase);
-        paramIndex++;
-      }
-      if ('phaseTimer' in data && data.phaseTimer !== undefined) {
-        setClauses.push(`phase_timer = $${paramIndex}`);
-        values.push(data.phaseTimer);
-        paramIndex++;
+      if (!currentGame) {
+        throw new Error('Game not found');
       }
 
-      if (setClauses.length === 0) {
-        const [game] = await db.select().from(games).where(eq(games.id, id));
-        return game;
+      // Only update fields that are provided and changed
+      const updates = {};
+      if ('status' in data && data.status !== currentGame.status) {
+        updates.status = data.status;
+      }
+      if ('settings' in data && JSON.stringify(data.settings) !== JSON.stringify(currentGame.settings)) {
+        updates.settings = data.settings;
+      }
+      if ('currentPhase' in data && data.currentPhase !== currentGame.currentPhase) {
+        updates.currentPhase = data.currentPhase;
+      }
+      if ('phaseTimer' in data && data.phaseTimer !== currentGame.phaseTimer) {
+        updates.phaseTimer = data.phaseTimer;
       }
 
-      const query = sql.raw(`
+      // If no changes, return current game
+      if (Object.keys(updates).length === 0) {
+        return currentGame;
+      }
+
+      // Use SQL template literals for the update
+      const updateQuery = sql`
         UPDATE games 
-        SET ${setClauses.join(', ')}
-        WHERE id = $${paramIndex}
+        SET ${sql.join(
+          Object.entries(updates).map(
+            ([key, value]) => sql`${sql.identifier(key)} = ${value}`
+          ),
+          sql`, `
+        )}
+        WHERE id = ${id}
         RETURNING *
-      `);
+      `;
 
-      values.push(id);
-
-      const [game] = await db.execute(query, values);
+      const [game] = await db.execute(updateQuery);
       return game;
     } catch (error) {
       console.error('Error updating game:', error);
@@ -115,56 +118,46 @@ export const storage: DatabaseStorage = {
         throw new Error('Player not found');
       }
 
-      // Build update SQL dynamically
-      const setClauses = [];
-      const values = [];
-      let paramIndex = 1;
-
-      if ('role' in data && data.role !== undefined) {
-        setClauses.push(`role = $${paramIndex}`);
-        values.push(data.role);
-        paramIndex++;
+      // Only update fields that are provided and changed
+      const updates = {};
+      if ('role' in data && data.role !== currentPlayer.role) {
+        updates.role = data.role;
       }
-      if ('isAlive' in data && data.isAlive !== undefined) {
-        setClauses.push(`is_alive = $${paramIndex}`);
-        values.push(data.isAlive);
-        paramIndex++;
+      if ('isAlive' in data && data.isAlive !== currentPlayer.isAlive) {
+        updates.isAlive = data.isAlive;
       }
-      if ('isHost' in data && data.isHost !== undefined) {
-        setClauses.push(`is_host = $${paramIndex}`);
-        values.push(data.isHost);
-        paramIndex++;
+      if ('isHost' in data && data.isHost !== currentPlayer.isHost) {
+        updates.isHost = data.isHost;
       }
-      if ('isSheriff' in data && data.isSheriff !== undefined) {
-        setClauses.push(`is_sheriff = $${paramIndex}`);
-        values.push(data.isSheriff);
-        paramIndex++;
+      if ('isSheriff' in data && data.isSheriff !== currentPlayer.isSheriff) {
+        updates.isSheriff = data.isSheriff;
       }
-      if ('hasShield' in data && data.hasShield !== undefined) {
-        setClauses.push(`has_shield = $${paramIndex}`);
-        values.push(data.hasShield);
-        paramIndex++;
+      if ('hasShield' in data && data.hasShield !== currentPlayer.hasShield) {
+        updates.hasShield = data.hasShield;
       }
-      if ('actionUsed' in data && data.actionUsed !== undefined) {
-        setClauses.push(`action_used = $${paramIndex}`);
-        values.push(data.actionUsed);
-        paramIndex++;
+      if ('actionUsed' in data && data.actionUsed !== currentPlayer.actionUsed) {
+        updates.actionUsed = data.actionUsed;
       }
 
-      if (setClauses.length === 0) {
+      // If no changes, return current player
+      if (Object.keys(updates).length === 0) {
         return currentPlayer;
       }
 
-      const query = sql.raw(`
+      // Use SQL template literals for the update
+      const updateQuery = sql`
         UPDATE players 
-        SET ${setClauses.join(', ')}
-        WHERE game_id = $${paramIndex} AND player_id = $${paramIndex + 1}
+        SET ${sql.join(
+          Object.entries(updates).map(
+            ([key, value]) => sql`${sql.identifier(key)} = ${value}`
+          ),
+          sql`, `
+        )}
+        WHERE game_id = ${gameId} AND player_id = ${playerId}
         RETURNING *
-      `);
+      `;
 
-      values.push(gameId, playerId);
-
-      const [player] = await db.execute(query, values);
+      const [player] = await db.execute(updateQuery);
       return player;
     } catch (error) {
       console.error('Error updating player:', error);
