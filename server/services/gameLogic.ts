@@ -94,7 +94,7 @@ async function handleCreateGame(
     await storage.createPlayer({
       gameId: game.id,
       playerId,
-      playerName: message.playerName,
+      name: message.playerName,
       isHost: true,
     });
 
@@ -149,7 +149,7 @@ async function handleJoinGame(
     await storage.createPlayer({
       gameId: game.id,
       playerId,
-      playerName: message.playerName,
+      name: message.playerName,
       isHost: false,
     });
 
