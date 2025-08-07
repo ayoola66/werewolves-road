@@ -14,8 +14,9 @@ export async function registerRoutes(app: express.Express): Promise<Server> {
   // API Routes
   app.post("/api/games", async (req: Request, res: Response) => {
     try {
-      const { hostId, settings } = req.body;
+      const { playerName, settings } = req.body;
       const gameCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const hostId = Math.random().toString(36).substring(2, 10);
       
       const [game] = await db.insert(games).values({
         gameCode,

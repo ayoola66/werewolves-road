@@ -56,25 +56,19 @@ export const storage: DatabaseStorage = {
         throw new Error('Game not found');
       }
 
-      // Create update object with only valid columns
-      const updateData: Record<string, any> = {};
-      if ('status' in data) updateData.status = data.status;
-      if ('settings' in data) updateData.settings = data.settings;
-      if ('currentPhase' in data) updateData.currentPhase = data.currentPhase;
-      if ('phaseTimer' in data) updateData.phaseTimer = data.phaseTimer;
+      // Build update query
+      const query = sql`
+        UPDATE games
+        SET
+          status = COALESCE(${data.status}, status),
+          settings = COALESCE(${data.settings}, settings),
+          current_phase = COALESCE(${data.currentPhase}, current_phase),
+          phase_timer = COALESCE(${data.phaseTimer}, phase_timer)
+        WHERE id = ${id}
+        RETURNING *
+      `;
 
-      // If no changes, return current game
-      if (Object.keys(updateData).length === 0) {
-        return currentGame;
-      }
-
-      // Use drizzle-orm's update builder
-      const [game] = await db
-        .update(games)
-        .set(updateData)
-        .where(eq(games.id, id))
-        .returning();
-
+      const [game] = await db.execute(query);
       return game;
     } catch (error) {
       console.error('Error updating game:', error);
@@ -103,27 +97,21 @@ export const storage: DatabaseStorage = {
         throw new Error('Player not found');
       }
 
-      // Create update object with only valid columns
-      const updateData: Record<string, any> = {};
-      if ('role' in data) updateData.role = data.role;
-      if ('isAlive' in data) updateData.isAlive = data.isAlive;
-      if ('isHost' in data) updateData.isHost = data.isHost;
-      if ('isSheriff' in data) updateData.isSheriff = data.isSheriff;
-      if ('hasShield' in data) updateData.hasShield = data.hasShield;
-      if ('actionUsed' in data) updateData.actionUsed = data.actionUsed;
+      // Build update query
+      const query = sql`
+        UPDATE players
+        SET
+          role = COALESCE(${data.role}, role),
+          is_alive = COALESCE(${data.isAlive}, is_alive),
+          is_host = COALESCE(${data.isHost}, is_host),
+          is_sheriff = COALESCE(${data.isSheriff}, is_sheriff),
+          has_shield = COALESCE(${data.hasShield}, has_shield),
+          action_used = COALESCE(${data.actionUsed}, action_used)
+        WHERE game_id = ${gameId} AND player_id = ${playerId}
+        RETURNING *
+      `;
 
-      // If no changes, return current player
-      if (Object.keys(updateData).length === 0) {
-        return currentPlayer;
-      }
-
-      // Use drizzle-orm's update builder
-      const [player] = await db
-        .update(players)
-        .set(updateData)
-        .where(and(eq(players.gameId, gameId), eq(players.playerId, playerId)))
-        .returning();
-
+      const [player] = await db.execute(query);
       return player;
     } catch (error) {
       console.error('Error updating player:', error);
