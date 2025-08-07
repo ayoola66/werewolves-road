@@ -16,6 +16,9 @@ COPY drizzle.config.ts ./
 # Install dependencies
 RUN npm install --legacy-peer-deps
 
+# Run Jest tests during build; fail the build if tests fail
+RUN npm test
+
 # Copy source code
 COPY client/ ./client/
 COPY server/ ./server/

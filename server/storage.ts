@@ -26,9 +26,13 @@ export interface DatabaseStorage {
 
 export const storage: DatabaseStorage = {
   createGame: async (data) => {
-    console.log('createGame data', data);
+    if (process.env.NODE_ENV !== "production") {
+      console.log("createGame data", data);
+    }
     const [game] = await db.insert(games).values(data).returning();
-    console.log('inserted game', game);
+    if (process.env.NODE_ENV !== "production") {
+      console.log("inserted game", game);
+    }
     return game;
   },
 
