@@ -51,10 +51,12 @@ export const storage: DatabaseStorage = {
   },
 
   getGameByCode: async (code) => {
+    console.log('Getting game by code:', code);
     const [game] = await db
       .select()
       .from(games)
       .where(eq(games.gameCode, code));
+    console.log('Found game:', game);
     return game;
   },
 
@@ -99,11 +101,16 @@ export const storage: DatabaseStorage = {
   },
 
   getPlayersByGameId: async (gameId) => {
-    return db.select().from(players).where(eq(players.gameId, gameId));
+    console.log('Getting players for game:', gameId);
+    const result = await db.select().from(players).where(eq(players.gameId, gameId));
+    console.log('Found players:', result);
+    return result;
   },
 
   createPlayer: async (data) => {
+    console.log('Creating player:', data);
     const [player] = await db.insert(players).values(data).returning();
+    console.log('Created player:', player);
     return player;
   },
 
