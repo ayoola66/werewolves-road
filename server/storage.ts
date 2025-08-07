@@ -102,6 +102,7 @@ export const storage: DatabaseStorage = {
         UPDATE players
         SET
           role = COALESCE(${data.role}, role),
+          team = COALESCE(${data.team}, team),
           is_alive = COALESCE(${data.isAlive}, is_alive),
           is_host = COALESCE(${data.isHost}, is_host),
           is_sheriff = COALESCE(${data.isSheriff}, is_sheriff),

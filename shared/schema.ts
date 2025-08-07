@@ -27,6 +27,7 @@ export const players = pgTable("players", {
   playerId: text("player_id").notNull(),
   name: text("name").notNull(),
   role: text("role"),
+  team: text("team"),
   isAlive: boolean("is_alive").default(true),
   isHost: boolean("is_host").default(false),
   isSheriff: boolean("is_sheriff").default(false),
