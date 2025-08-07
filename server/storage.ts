@@ -56,40 +56,28 @@ export const storage: DatabaseStorage = {
         throw new Error('Game not found');
       }
 
-      // Only update fields that are provided and changed
-      const updates = {};
-      if ('status' in data && data.status !== currentGame.status) {
-        updates.status = data.status;
-      }
-      if ('settings' in data && JSON.stringify(data.settings) !== JSON.stringify(currentGame.settings)) {
-        updates.settings = data.settings;
-      }
-      if ('currentPhase' in data && data.currentPhase !== currentGame.currentPhase) {
-        updates.currentPhase = data.currentPhase;
-      }
-      if ('phaseTimer' in data && data.phaseTimer !== currentGame.phaseTimer) {
-        updates.phaseTimer = data.phaseTimer;
-      }
+      // Create update object with only valid columns
+      const updateData = {};
+      if ('status' in data) updateData.status = data.status;
+      if ('settings' in data) updateData.settings = data.settings;
+      if ('currentPhase' in data) updateData.current_phase = data.currentPhase;
+      if ('phaseTimer' in data) updateData.phase_timer = data.phaseTimer;
 
       // If no changes, return current game
-      if (Object.keys(updates).length === 0) {
+      if (Object.keys(updateData).length === 0) {
         return currentGame;
       }
 
-      // Use SQL template literals for the update
-      const updateQuery = sql`
-        UPDATE games 
-        SET ${sql.join(
-          Object.entries(updates).map(
-            ([key, value]) => sql`${sql.identifier(key)} = ${value}`
+      // Use direct column references
+      const [game] = await db.execute(
+        sql`UPDATE games SET ${sql.join(
+          Object.entries(updateData).map(
+            ([col, val]) => sql`"${sql.raw(col)}" = ${val}`
           ),
-          sql`, `
-        )}
-        WHERE id = ${id}
-        RETURNING *
-      `;
+          ','
+        )} WHERE id = ${id} RETURNING *`
+      );
 
-      const [game] = await db.execute(updateQuery);
       return game;
     } catch (error) {
       console.error('Error updating game:', error);
@@ -118,46 +106,30 @@ export const storage: DatabaseStorage = {
         throw new Error('Player not found');
       }
 
-      // Only update fields that are provided and changed
-      const updates = {};
-      if ('role' in data && data.role !== currentPlayer.role) {
-        updates.role = data.role;
-      }
-      if ('isAlive' in data && data.isAlive !== currentPlayer.isAlive) {
-        updates.isAlive = data.isAlive;
-      }
-      if ('isHost' in data && data.isHost !== currentPlayer.isHost) {
-        updates.isHost = data.isHost;
-      }
-      if ('isSheriff' in data && data.isSheriff !== currentPlayer.isSheriff) {
-        updates.isSheriff = data.isSheriff;
-      }
-      if ('hasShield' in data && data.hasShield !== currentPlayer.hasShield) {
-        updates.hasShield = data.hasShield;
-      }
-      if ('actionUsed' in data && data.actionUsed !== currentPlayer.actionUsed) {
-        updates.actionUsed = data.actionUsed;
-      }
+      // Create update object with only valid columns
+      const updateData = {};
+      if ('role' in data) updateData.role = data.role;
+      if ('isAlive' in data) updateData.is_alive = data.isAlive;
+      if ('isHost' in data) updateData.is_host = data.isHost;
+      if ('isSheriff' in data) updateData.is_sheriff = data.isSheriff;
+      if ('hasShield' in data) updateData.has_shield = data.hasShield;
+      if ('actionUsed' in data) updateData.action_used = data.actionUsed;
 
       // If no changes, return current player
-      if (Object.keys(updates).length === 0) {
+      if (Object.keys(updateData).length === 0) {
         return currentPlayer;
       }
 
-      // Use SQL template literals for the update
-      const updateQuery = sql`
-        UPDATE players 
-        SET ${sql.join(
-          Object.entries(updates).map(
-            ([key, value]) => sql`${sql.identifier(key)} = ${value}`
+      // Use direct column references
+      const [player] = await db.execute(
+        sql`UPDATE players SET ${sql.join(
+          Object.entries(updateData).map(
+            ([col, val]) => sql`"${sql.raw(col)}" = ${val}`
           ),
-          sql`, `
-        )}
-        WHERE game_id = ${gameId} AND player_id = ${playerId}
-        RETURNING *
-      `;
+          ','
+        )} WHERE game_id = ${gameId} AND player_id = ${playerId} RETURNING *`
+      );
 
-      const [player] = await db.execute(updateQuery);
       return player;
     } catch (error) {
       console.error('Error updating player:', error);
