@@ -63,30 +63,36 @@ export const storage: DatabaseStorage = {
   },
 
   updatePlayer: async (gameId, playerId, data) => {
-    // Ensure we only update valid columns
-    const validData = {
-      role: data.role,
-      team: data.team,
-      isAlive: data.isAlive,
-      isHost: data.isHost,
-      isSheriff: data.isSheriff,
-      hasShield: data.hasShield,
-      actionUsed: data.actionUsed
-    };
+    // Get current player data
+    const [currentPlayer] = await db
+      .select()
+      .from(players)
+      .where(and(eq(players.gameId, gameId), eq(players.playerId, playerId)));
 
-    // Remove undefined values
-    Object.keys(validData).forEach(key => {
-      if (validData[key] === undefined) {
-        delete validData[key];
-      }
-    });
+    if (!currentPlayer) {
+      throw new Error('Player not found');
+    }
 
-    const [player] = await db
-      .update(players)
-      .set(validData)
-      .where(and(eq(players.gameId, gameId), eq(players.playerId, playerId)))
-      .returning();
-    return player;
+    // Update only changed fields
+    const updateData = {};
+    if (data.role !== undefined) updateData.role = data.role;
+    if (data.isAlive !== undefined) updateData.isAlive = data.isAlive;
+    if (data.isHost !== undefined) updateData.isHost = data.isHost;
+    if (data.isSheriff !== undefined) updateData.isSheriff = data.isSheriff;
+    if (data.hasShield !== undefined) updateData.hasShield = data.hasShield;
+    if (data.actionUsed !== undefined) updateData.actionUsed = data.actionUsed;
+
+    // Only perform update if there are changes
+    if (Object.keys(updateData).length > 0) {
+      const [player] = await db
+        .update(players)
+        .set(updateData)
+        .where(and(eq(players.gameId, gameId), eq(players.playerId, playerId)))
+        .returning();
+      return player;
+    }
+
+    return currentPlayer;
   },
 
   getPlayer: async (gameId, playerId) => {
