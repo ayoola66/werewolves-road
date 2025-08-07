@@ -38,13 +38,18 @@ export function useWebSocket() {
 
     ws.current.onmessage = (event) => {
       try {
+        console.log('Received WebSocket message:', event.data);
         const message = JSON.parse(event.data) as WSMessage;
+        console.log('Parsed message:', message);
         setLastMessage(message);
         
         // Call registered handler if exists
         const handler = messageHandlers.current.get(message.type);
         if (handler) {
+          console.log('Found handler for message type:', message.type);
           handler(message);
+        } else {
+          console.log('No handler found for message type:', message.type);
         }
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);
@@ -69,9 +74,11 @@ export function useWebSocket() {
   }, []);
 
   const onMessage = useCallback((type: string, handler: (message: any) => void) => {
+    console.log('Registering handler for message type:', type);
     messageHandlers.current.set(type, handler);
     
     return () => {
+      console.log('Removing handler for message type:', type);
       messageHandlers.current.delete(type);
     };
   }, []);
