@@ -1,12 +1,12 @@
-import type { Config } from 'jest';
+import type { Config } from "jest";
 
 const config: Config = {
-  preset: 'ts-jest',
-  testEnvironment: 'node',
+  preset: "ts-jest",
+  testEnvironment: "node",
   verbose: true,
-  roots: ['<rootDir>/tests'],
+  roots: ["<rootDir>/tests"],
   moduleNameMapper: {
-    '^@shared/(.*)$': '<rootDir>/shared/$1',
+    "^@shared/(.*)$": "<rootDir>/shared/$1",
   },
 };
 
