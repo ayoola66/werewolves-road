@@ -60,23 +60,20 @@ export const storage: DatabaseStorage = {
       const updateData: Record<string, any> = {};
       if ('status' in data) updateData.status = data.status;
       if ('settings' in data) updateData.settings = data.settings;
-      if ('currentPhase' in data) updateData.current_phase = data.currentPhase;
-      if ('phaseTimer' in data) updateData.phase_timer = data.phaseTimer;
+      if ('currentPhase' in data) updateData.currentPhase = data.currentPhase;
+      if ('phaseTimer' in data) updateData.phaseTimer = data.phaseTimer;
 
       // If no changes, return current game
       if (Object.keys(updateData).length === 0) {
         return currentGame;
       }
 
-      // Use direct column references
-      const [game] = await db.execute(
-        sql`UPDATE games SET ${sql.join(
-          Object.entries(updateData).map(
-            ([col, val]) => sql`"${sql.raw(col)}" = ${val}`
-          ),
-          ','
-        )} WHERE id = ${id} RETURNING *`
-      );
+      // Use drizzle-orm's update builder
+      const [game] = await db
+        .update(games)
+        .set(updateData)
+        .where(eq(games.id, id))
+        .returning();
 
       return game;
     } catch (error) {
@@ -109,26 +106,23 @@ export const storage: DatabaseStorage = {
       // Create update object with only valid columns
       const updateData: Record<string, any> = {};
       if ('role' in data) updateData.role = data.role;
-      if ('isAlive' in data) updateData.is_alive = data.isAlive;
-      if ('isHost' in data) updateData.is_host = data.isHost;
-      if ('isSheriff' in data) updateData.is_sheriff = data.isSheriff;
-      if ('hasShield' in data) updateData.has_shield = data.hasShield;
-      if ('actionUsed' in data) updateData.action_used = data.actionUsed;
+      if ('isAlive' in data) updateData.isAlive = data.isAlive;
+      if ('isHost' in data) updateData.isHost = data.isHost;
+      if ('isSheriff' in data) updateData.isSheriff = data.isSheriff;
+      if ('hasShield' in data) updateData.hasShield = data.hasShield;
+      if ('actionUsed' in data) updateData.actionUsed = data.actionUsed;
 
       // If no changes, return current player
       if (Object.keys(updateData).length === 0) {
         return currentPlayer;
       }
 
-      // Use direct column references
-      const [player] = await db.execute(
-        sql`UPDATE players SET ${sql.join(
-          Object.entries(updateData).map(
-            ([col, val]) => sql`"${sql.raw(col)}" = ${val}`
-          ),
-          ','
-        )} WHERE game_id = ${gameId} AND player_id = ${playerId} RETURNING *`
-      );
+      // Use drizzle-orm's update builder
+      const [player] = await db
+        .update(players)
+        .set(updateData)
+        .where(and(eq(players.gameId, gameId), eq(players.playerId, playerId)))
+        .returning();
 
       return player;
     } catch (error) {
