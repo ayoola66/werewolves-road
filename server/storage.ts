@@ -63,9 +63,27 @@ export const storage: DatabaseStorage = {
   },
 
   updatePlayer: async (gameId, playerId, data) => {
+    // Ensure we only update valid columns
+    const validData = {
+      role: data.role,
+      team: data.team,
+      isAlive: data.isAlive,
+      isHost: data.isHost,
+      isSheriff: data.isSheriff,
+      hasShield: data.hasShield,
+      actionUsed: data.actionUsed
+    };
+
+    // Remove undefined values
+    Object.keys(validData).forEach(key => {
+      if (validData[key] === undefined) {
+        delete validData[key];
+      }
+    });
+
     const [player] = await db
       .update(players)
-      .set(data)
+      .set(validData)
       .where(and(eq(players.gameId, gameId), eq(players.playerId, playerId)))
       .returning();
     return player;
