@@ -516,19 +516,27 @@ async function broadcastGameState(gameCode: string, gameState: any) {
 }
 
 async function getGameState(gameCode: string) {
+  console.log('Getting game state for:', gameCode);
   const game = await storage.getGameByCode(gameCode);
-  if (!game) return null;
+  if (!game) {
+    console.log('No game found for code:', gameCode);
+    return null;
+  }
 
+  console.log('Found game:', game);
   const players = await storage.getPlayersByGameId(game.gameCode);
+  console.log('Found players:', players);
   const votes = await storage.getVotesByGameId(game.gameCode);
   const nightActions = await storage.getNightActionsByGameId(game.gameCode);
 
-  return {
+  const gameState = {
     game,
     players,
     votes,
     nightActions,
   };
+  console.log('Returning game state:', gameState);
+  return gameState;
 }
 
 function assignRoles(game: Game, players: Player[]) {
