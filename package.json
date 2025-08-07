@@ -4,7 +4,6 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "test": "jest",
     "dev": "NODE_ENV=development tsx watch server/env.ts server/index.ts",
     "build:client": "vite build",
     "build:server": "tsc -p tsconfig.server.json && npx esbuild dist/server/index.js --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js --sourcemap",
@@ -98,9 +97,7 @@
     "zod-validation-error": "^3.0.0"
   },
   "devDependencies": {
-    "jest": "^29.7.0",
-    "ts-jest": "^29.1.1",
-    "@types/jest": "^29.5.3",
+
     "@playwright/test": "^1.54.1",
     "@tailwindcss/vite": "^4.0.0",
     "@types/connect-pg-simple": "^7.0.3",

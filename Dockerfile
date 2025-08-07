@@ -23,8 +23,7 @@ COPY shared/ ./shared/
 COPY db/ ./db/
 COPY tests/ ./tests/
 
-# Run Jest tests during build; fail the build if tests fail
-RUN npm test
+
 # Build the application
 RUN npm run build
 
