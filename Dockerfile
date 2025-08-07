@@ -21,7 +21,6 @@ COPY client/ ./client/
 COPY server/ ./server/
 COPY shared/ ./shared/
 COPY db/ ./db/
-COPY tests/ ./tests/
 
 
 # Build the application
