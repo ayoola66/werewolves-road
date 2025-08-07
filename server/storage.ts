@@ -90,7 +90,7 @@ export const storage: DatabaseStorage = {
       `;
 
       const result = await db.execute(query);
-      const [game] = result.rows as Game[];
+      const [game] = result as unknown as Game[];
       return game;
     } catch (error) {
       console.error('Error updating game:', error);
@@ -142,7 +142,7 @@ export const storage: DatabaseStorage = {
       `;
 
       const result = await db.execute(query);
-      const [player] = result.rows as Player[];
+      const [player] = result as unknown as Player[];
       return player;
     } catch (error) {
       console.error('Error updating player:', error);

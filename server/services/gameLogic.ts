@@ -211,7 +211,7 @@ async function handleStartGame(
     const game = await storage.getGameByCode(message.gameCode);
     if (!game) return;
 
-    const players = await storage.getPlayersByGameId(game.id);
+    const players = await storage.getPlayersByGameId(game.gameCode);
     if (game.hostId !== ws.playerId || players.length < 4) {
       ws.send(
         JSON.stringify({
@@ -222,7 +222,8 @@ async function handleStartGame(
       return;
     }
 
-    await storage.updateGame(game.id, { 
+    const gameId = parseInt(game.gameCode, 10);
+    await storage.updateGame(gameId, { 
       status: "role_reveal",
       currentPhase: "role_reveal",
       phaseTimer: PHASE_TIMERS.roleReveal
@@ -255,7 +256,8 @@ async function handleStartGame(
     
     // Start role reveal timer
     setTimeout(async () => {
-      await storage.updateGame(game.id, { 
+      const gameId = parseInt(game.gameCode, 10);
+      await storage.updateGame(gameId, { 
         status: "night",
         currentPhase: "night",
         phaseTimer: PHASE_TIMERS.night
@@ -296,7 +298,7 @@ async function handleChatMessage(
     const game = await storage.getGameByCode(message.gameCode);
     if (!game) return;
 
-    const player = await storage.getPlayer(game.id, ws.playerId);
+    const player = await storage.getPlayer(game.gameCode, ws.playerId);
     if (!player || !player.isAlive) {
       ws.send(
         JSON.stringify({
@@ -344,8 +346,8 @@ async function handleVote(
     const game = await storage.getGameByCode(message.gameCode);
     if (!game) return;
 
-    const player = await storage.getPlayer(game.id, ws.playerId);
-    const target = await storage.getPlayer(game.id, message.targetId);
+    const player = await storage.getPlayer(game.gameCode, ws.playerId);
+    const target = await storage.getPlayer(game.gameCode, message.targetId);
 
     if (!player || !player.isAlive || !target || !target.isAlive) {
       ws.send(
@@ -393,7 +395,7 @@ async function handleNightAction(
     const game = await storage.getGameByCode(message.gameCode);
     if (!game) return;
 
-    const player = await storage.getPlayer(game.id, ws.playerId);
+    const player = await storage.getPlayer(game.gameCode, ws.playerId);
     if (!player || !player.isAlive) {
       ws.send(
         JSON.stringify({
@@ -437,7 +439,7 @@ async function handleLeaveGame(
     const game = await storage.getGameByCode(message.gameCode);
     if (!game) return;
 
-    await storage.updatePlayer(game.id, ws.playerId, { isAlive: false });
+    await storage.updatePlayer(game.gameCode, ws.playerId, { isAlive: false });
 
     const connections = gameConnections.get(message.gameCode);
     if (connections) {
@@ -480,7 +482,7 @@ function broadcastToGame(
 }
 
 async function broadcastGameState(gameCode: string, gameState: any) {
-  const chatMessages = await storage.getChatMessagesByGame(gameState.game.id);
+  const chatMessages = await storage.getChatMessagesByGame(gameState.game.gameCode);
   broadcastToGame(gameCode, {
     type: "game_state_update",
     gameState: {
@@ -494,9 +496,9 @@ async function getGameState(gameCode: string) {
   const game = await storage.getGameByCode(gameCode);
   if (!game) return null;
 
-  const players = await storage.getPlayersByGameId(game.id);
-  const votes = await storage.getVotesByGameId(game.id);
-  const nightActions = await storage.getNightActionsByGameId(game.id);
+  const players = await storage.getPlayersByGameId(game.gameCode);
+  const votes = await storage.getVotesByGameId(game.gameCode);
+  const nightActions = await storage.getNightActionsByGameId(game.gameCode);
 
   return {
     game,
@@ -544,7 +546,7 @@ function assignRoles(game: Game, players: Player[]) {
   
   // Update database with roles
   roles.forEach(async ({ playerId, role, team }) => {
-    await storage.updatePlayer(game.id, playerId, {
+    await storage.updatePlayer(game.gameCode, playerId, {
       role,
       team,
       hasShield: settings.shield,
