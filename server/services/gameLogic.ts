@@ -109,9 +109,12 @@ async function handleCreateGame(
     if (!gameConnections.has(gameCode)) {
       gameConnections.set(gameCode, new Set());
     }
-    gameConnections.get(gameCode)!.add(ws);
+    const connections = gameConnections.get(gameCode)!;
+    connections.add(ws);
+    console.log('Added connection (create):', { gameCode, playerId: ws.playerId, playerName: ws.playerName, totalConnections: connections.size });
 
     const gameState = await getGameState(gameCode);
+    console.log('Initial game state:', gameState);
     ws.send(
       JSON.stringify({
         type: "game_created",
@@ -165,9 +168,12 @@ async function handleJoinGame(
     if (!gameConnections.has(gameCode)) {
       gameConnections.set(gameCode, new Set());
     }
-    gameConnections.get(gameCode)!.add(ws);
+    const connections = gameConnections.get(gameCode)!;
+    connections.add(ws);
+    console.log('Added connection (join):', { gameCode, playerId: ws.playerId, playerName: ws.playerName, totalConnections: connections.size });
 
     const gameState = await getGameState(gameCode);
+    console.log('Game state on join:', gameState);
     ws.send(
       JSON.stringify({
         type: "game_joined",
