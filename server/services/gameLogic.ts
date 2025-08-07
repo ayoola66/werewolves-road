@@ -475,24 +475,32 @@ function broadcastToGame(
   exclude?: ExtendedWebSocket
 ) {
   const connections = gameConnections.get(gameCode);
-  if (!connections) return;
+  if (!connections) {
+    console.log('No connections found for game:', gameCode);
+    return;
+  }
 
+  console.log('Broadcasting to game:', { gameCode, message, connections: connections.size });
   const messageStr = JSON.stringify(message);
   connections.forEach((ws) => {
     if (ws !== exclude && ws.readyState === WebSocket.OPEN) {
+      console.log('Sending message to client:', { playerId: ws.playerId, playerName: ws.playerName });
       ws.send(messageStr);
     }
   });
 }
 
 async function broadcastGameState(gameCode: string, gameState: any) {
+  console.log('Broadcasting game state:', { gameCode, gameState });
   const chatMessages = await storage.getChatMessagesByGame(gameState.game.gameCode);
+  const updatedGameState = {
+    ...gameState,
+    chatMessages,
+  };
+  console.log('Updated game state:', updatedGameState);
   broadcastToGame(gameCode, {
     type: "game_state_update",
-    gameState: {
-      ...gameState,
-      chatMessages,
-    },
+    gameState: updatedGameState,
   });
 }
 

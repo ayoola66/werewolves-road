@@ -49,12 +49,13 @@ export function useGameState() {
   });
 
   onMessage('game_state_update', (message) => {
+    console.log('Received game state update:', message);
     setGameState(message.gameState);
     
     // Handle phase transitions
     if (message.gameState.phase === 'night') {
       setHasPerformedNightAction(false); // Reset night action state
-      const currentPlayer = message.gameState.alivePlayers.find((p: Player) => p.playerId === playerId);
+      const currentPlayer = message.gameState.alivePlayers?.find((p: Player) => p.playerId === playerId);
       if (currentPlayer && hasNightAction(currentPlayer.role)) {
         setTimeout(() => {
           if (!showRoleReveal) { // Only show night action if role reveal is done
