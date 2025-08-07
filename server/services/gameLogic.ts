@@ -4,6 +4,9 @@ import {
   wsMessageSchema,
   type WSMessage,
   gameSettingsSchema,
+  type Game,
+  type Player,
+  type GameSettings,
 } from "../../shared/schema";
 
 type ExtendedWebSocket = WebSocket & {
@@ -92,7 +95,7 @@ async function handleCreateGame(
     });
 
     await storage.createPlayer({
-      gameId: game.id,
+      gameId: game.gameCode,
       playerId,
       name: message.playerName,
       isHost: true,
@@ -147,7 +150,7 @@ async function handleJoinGame(
     }
 
     await storage.createPlayer({
-      gameId: game.id,
+      gameId: game.gameCode,
       playerId,
       name: message.playerName,
       isHost: false,
@@ -315,7 +318,7 @@ async function handleChatMessage(
     }
 
     const chatMessage = await storage.createChatMessage({
-      gameId: game.id,
+      gameId: game.gameCode,
       playerId: ws.playerId,
       playerName: ws.playerName,
       message: message.message,
@@ -355,9 +358,10 @@ async function handleVote(
     }
 
     await storage.createVote({
-      gameId: game.id,
+      gameId: game.gameCode,
       voterId: ws.playerId,
       targetId: message.targetId,
+      phase: game.currentPhase,
     });
 
     ws.send(
@@ -401,10 +405,12 @@ async function handleNightAction(
     }
 
     await storage.createNightAction({
-      gameId: game.id,
+      gameId: game.gameCode,
       playerId: ws.playerId,
       targetId: message.targetId,
-      actionData: message.actionData,
+      actionType: player.role || "unknown",
+      data: message.actionData,
+      phase: game.currentPhase,
     });
 
     ws.send(
@@ -500,8 +506,8 @@ async function getGameState(gameCode: string) {
   };
 }
 
-function assignRoles(game: any, players: any[]) {
-  const settings = game.settings;
+function assignRoles(game: Game, players: Player[]) {
+  const settings = game.settings as GameSettings;
   const roles: { playerId: string; role: string; team: string }[] = [];
   const playerIds = [...players.map(p => p.playerId)];
   

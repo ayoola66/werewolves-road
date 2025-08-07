@@ -5,23 +5,37 @@ import {
   votes,
   nightActions,
 } from "../shared/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, type SQL } from "drizzle-orm";
 import { db } from "./db";
 
+import type { InferModel } from "drizzle-orm";
+
+type Game = InferModel<typeof games>;
+type Player = InferModel<typeof players>;
+type ChatMessage = InferModel<typeof chatMessages>;
+type Vote = InferModel<typeof votes>;
+type NightAction = InferModel<typeof nightActions>;
+
+type GameInsert = InferModel<typeof games, "insert">;
+type PlayerInsert = InferModel<typeof players, "insert">;
+type ChatMessageInsert = InferModel<typeof chatMessages, "insert">;
+type VoteInsert = InferModel<typeof votes, "insert">;
+type NightActionInsert = InferModel<typeof nightActions, "insert">;
+
 export interface DatabaseStorage {
-  createGame: (data: any) => Promise<any>;
-  getGameByCode: (code: string) => Promise<any>;
-  updateGame: (id: number, data: any) => Promise<any>;
-  getPlayersByGameId: (gameId: string) => Promise<any[]>;
-  createPlayer: (data: any) => Promise<any>;
-  updatePlayer: (gameId: string, playerId: string, data: any) => Promise<any>;
-  getPlayer: (gameId: string, playerId: string) => Promise<any>;
-  createChatMessage: (data: any) => Promise<any>;
-  getChatMessagesByGame: (gameId: string) => Promise<any[]>;
-  createVote: (data: any) => Promise<any>;
-  getVotesByGameId: (gameId: string) => Promise<any[]>;
-  createNightAction: (data: any) => Promise<any>;
-  getNightActionsByGameId: (gameId: string) => Promise<any[]>;
+  createGame: (data: GameInsert) => Promise<Game>;
+  getGameByCode: (code: string) => Promise<Game | undefined>;
+  updateGame: (id: number, data: Partial<GameInsert>) => Promise<Game>;
+  getPlayersByGameId: (gameId: string) => Promise<Player[]>;
+  createPlayer: (data: PlayerInsert) => Promise<Player>;
+  updatePlayer: (gameId: string, playerId: string, data: Partial<PlayerInsert>) => Promise<Player>;
+  getPlayer: (gameId: string, playerId: string) => Promise<Player | undefined>;
+  createChatMessage: (data: ChatMessageInsert) => Promise<ChatMessage>;
+  getChatMessagesByGame: (gameId: string) => Promise<ChatMessage[]>;
+  createVote: (data: VoteInsert) => Promise<Vote>;
+  getVotesByGameId: (gameId: string) => Promise<Vote[]>;
+  createNightAction: (data: NightActionInsert) => Promise<NightAction>;
+  getNightActionsByGameId: (gameId: string) => Promise<NightAction[]>;
 }
 
 export const storage: DatabaseStorage = {
@@ -57,12 +71,16 @@ export const storage: DatabaseStorage = {
       }
 
       // Build update query
-      const updateFields = [];
+      const updateFields: SQL[] = [];
       
       if ('status' in data) updateFields.push(sql`status = ${data.status}`);
       if ('settings' in data) updateFields.push(sql`settings = ${data.settings}`);
       if ('currentPhase' in data) updateFields.push(sql`current_phase = ${data.currentPhase}`);
       if ('phaseTimer' in data) updateFields.push(sql`phase_timer = ${data.phaseTimer}`);
+
+      if (updateFields.length === 0) {
+        return currentGame;
+      }
 
       const query = sql`
         UPDATE games
@@ -72,7 +90,7 @@ export const storage: DatabaseStorage = {
       `;
 
       const result = await db.execute(query);
-      const [game] = result as unknown[];
+      const [game] = result.rows as Game[];
       return game;
     } catch (error) {
       console.error('Error updating game:', error);
@@ -102,7 +120,7 @@ export const storage: DatabaseStorage = {
       }
 
       // Build update query
-      const updateFields = [];
+      const updateFields: SQL[] = [];
       
       if ('role' in data) updateFields.push(sql`role = ${data.role}`);
       if ('team' in data) updateFields.push(sql`team = ${data.team}`);
@@ -112,6 +130,10 @@ export const storage: DatabaseStorage = {
       if ('hasShield' in data) updateFields.push(sql`has_shield = ${data.hasShield}`);
       if ('actionUsed' in data) updateFields.push(sql`action_used = ${data.actionUsed}`);
 
+      if (updateFields.length === 0) {
+        return currentPlayer;
+      }
+
       const query = sql`
         UPDATE players
         SET ${sql.join(updateFields, sql`, `)}
@@ -120,7 +142,7 @@ export const storage: DatabaseStorage = {
       `;
 
       const result = await db.execute(query);
-      const [player] = result as unknown[];
+      const [player] = result.rows as Player[];
       return player;
     } catch (error) {
       console.error('Error updating player:', error);
