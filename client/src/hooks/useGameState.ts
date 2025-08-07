@@ -73,6 +73,9 @@ export function useGameState() {
   });
 
   onMessage('player_joined', (message) => {
+    if (message.gameState) {
+      setGameState(message.gameState);
+    }
     toast({
       title: "Player Joined",
       description: `${message.playerName} joined the game`,

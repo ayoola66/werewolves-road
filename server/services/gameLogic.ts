@@ -177,12 +177,14 @@ async function handleJoinGame(
       })
     );
 
+    const gameState = await getGameState(gameCode);
     broadcastToGame(
       gameCode,
       {
         type: "player_joined",
         playerId,
         playerName: message.playerName,
+        gameState,
       },
       ws
     );
