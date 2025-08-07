@@ -5,7 +5,7 @@ import {
   votes,
   nightActions,
 } from "../shared/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { db } from "./db";
 
 export interface DatabaseStorage {
@@ -46,20 +46,47 @@ export const storage: DatabaseStorage = {
 
   updateGame: async (id, data) => {
     try {
-      // Create a properly typed update object
-      const updateData: Partial<typeof games.$inferInsert> = {};
-      
-      // Only include fields that exist in the schema
-      if ('status' in data) updateData.status = data.status;
-      if ('settings' in data) updateData.settings = data.settings;
-      if ('currentPhase' in data) updateData.currentPhase = data.currentPhase;
-      if ('phaseTimer' in data) updateData.phaseTimer = data.phaseTimer;
-      
-      const [game] = await db
-        .update(games)
-        .set(updateData)
-        .where(eq(games.id, id))
-        .returning();
+      // Build update SQL dynamically
+      const setClauses = [];
+      const values = [];
+      let paramIndex = 1;
+
+      if ('status' in data && data.status !== undefined) {
+        setClauses.push(`status = $${paramIndex}`);
+        values.push(data.status);
+        paramIndex++;
+      }
+      if ('settings' in data && data.settings !== undefined) {
+        setClauses.push(`settings = $${paramIndex}`);
+        values.push(JSON.stringify(data.settings));
+        paramIndex++;
+      }
+      if ('currentPhase' in data && data.currentPhase !== undefined) {
+        setClauses.push(`current_phase = $${paramIndex}`);
+        values.push(data.currentPhase);
+        paramIndex++;
+      }
+      if ('phaseTimer' in data && data.phaseTimer !== undefined) {
+        setClauses.push(`phase_timer = $${paramIndex}`);
+        values.push(data.phaseTimer);
+        paramIndex++;
+      }
+
+      if (setClauses.length === 0) {
+        const [game] = await db.select().from(games).where(eq(games.id, id));
+        return game;
+      }
+
+      const query = sql.raw(`
+        UPDATE games 
+        SET ${setClauses.join(', ')}
+        WHERE id = $${paramIndex}
+        RETURNING *
+      `);
+
+      values.push(id);
+
+      const [game] = await db.execute(query, values);
       return game;
     } catch (error) {
       console.error('Error updating game:', error);
@@ -88,28 +115,57 @@ export const storage: DatabaseStorage = {
         throw new Error('Player not found');
       }
 
-      // Create a properly typed update object
-      const updateData: Partial<typeof players.$inferInsert> = {};
+      // Build update SQL dynamically
+      const setClauses = [];
+      const values = [];
+      let paramIndex = 1;
 
-      // Only include fields that exist in the schema
-      if ('role' in data) updateData.role = data.role;
-      if ('isAlive' in data) updateData.isAlive = data.isAlive;
-      if ('isHost' in data) updateData.isHost = data.isHost;
-      if ('isSheriff' in data) updateData.isSheriff = data.isSheriff;
-      if ('hasShield' in data) updateData.hasShield = data.hasShield;
-      if ('actionUsed' in data) updateData.actionUsed = data.actionUsed;
-
-      // Only perform update if there are changes
-      if (Object.keys(updateData).length > 0) {
-        const [player] = await db
-          .update(players)
-          .set(updateData)
-          .where(and(eq(players.gameId, gameId), eq(players.playerId, playerId)))
-          .returning();
-        return player;
+      if ('role' in data && data.role !== undefined) {
+        setClauses.push(`role = $${paramIndex}`);
+        values.push(data.role);
+        paramIndex++;
+      }
+      if ('isAlive' in data && data.isAlive !== undefined) {
+        setClauses.push(`is_alive = $${paramIndex}`);
+        values.push(data.isAlive);
+        paramIndex++;
+      }
+      if ('isHost' in data && data.isHost !== undefined) {
+        setClauses.push(`is_host = $${paramIndex}`);
+        values.push(data.isHost);
+        paramIndex++;
+      }
+      if ('isSheriff' in data && data.isSheriff !== undefined) {
+        setClauses.push(`is_sheriff = $${paramIndex}`);
+        values.push(data.isSheriff);
+        paramIndex++;
+      }
+      if ('hasShield' in data && data.hasShield !== undefined) {
+        setClauses.push(`has_shield = $${paramIndex}`);
+        values.push(data.hasShield);
+        paramIndex++;
+      }
+      if ('actionUsed' in data && data.actionUsed !== undefined) {
+        setClauses.push(`action_used = $${paramIndex}`);
+        values.push(data.actionUsed);
+        paramIndex++;
       }
 
-      return currentPlayer;
+      if (setClauses.length === 0) {
+        return currentPlayer;
+      }
+
+      const query = sql.raw(`
+        UPDATE players 
+        SET ${setClauses.join(', ')}
+        WHERE game_id = $${paramIndex} AND player_id = $${paramIndex + 1}
+        RETURNING *
+      `);
+
+      values.push(gameId, playerId);
+
+      const [player] = await db.execute(query, values);
+      return player;
     } catch (error) {
       console.error('Error updating player:', error);
       throw error;
