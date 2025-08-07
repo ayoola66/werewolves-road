@@ -184,10 +184,10 @@ async function handleJoinGame(
         type: "player_joined",
         playerId,
         playerName: message.playerName,
-        gameState,
       },
       ws
     );
+    broadcastGameState(gameCode, gameState);
   } catch (error) {
     console.error("Error joining game:", error);
     ws.send(
