@@ -10,9 +10,9 @@ if (!connectionString) {
 }
 
 const queryClient = postgres(connectionString, {
-  ssl: {
+  ssl: process.env.NODE_ENV === 'production' ? {
     rejectUnauthorized: false,
-  },
+  } : false,
   max: 20,
 });
 
