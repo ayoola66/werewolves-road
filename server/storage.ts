@@ -56,19 +56,43 @@ export const storage: DatabaseStorage = {
         throw new Error('Game not found');
       }
 
-      // Build update query
-      const query = sql`
-        UPDATE games
-        SET
-          status = COALESCE(${data.status}, status),
-          settings = COALESCE(${data.settings}, settings),
-          current_phase = COALESCE(${data.currentPhase}, current_phase),
-          phase_timer = COALESCE(${data.phaseTimer}, phase_timer)
-        WHERE id = ${id}
-        RETURNING *
-      `;
+      // Build update query parts
+      const setClauses = [];
+      const values = [];
+      let paramIndex = 1;
 
-      const [game] = await db.execute(query);
+      if ('status' in data) {
+        setClauses.push(`status = $${paramIndex}`);
+        values.push(data.status);
+        paramIndex++;
+      }
+      if ('settings' in data) {
+        setClauses.push(`settings = $${paramIndex}`);
+        values.push(data.settings);
+        paramIndex++;
+      }
+      if ('currentPhase' in data) {
+        setClauses.push(`current_phase = $${paramIndex}`);
+        values.push(data.currentPhase);
+        paramIndex++;
+      }
+      if ('phaseTimer' in data) {
+        setClauses.push(`phase_timer = $${paramIndex}`);
+        values.push(data.phaseTimer);
+        paramIndex++;
+      }
+
+      // Add id to values
+      values.push(id);
+
+      const query = sql.raw(`
+        UPDATE games
+        SET ${setClauses.join(', ')}
+        WHERE id = $${paramIndex}
+        RETURNING *
+      `);
+
+      const [game] = await db.execute(query, values);
       return game;
     } catch (error) {
       console.error('Error updating game:', error);
@@ -97,22 +121,58 @@ export const storage: DatabaseStorage = {
         throw new Error('Player not found');
       }
 
-      // Build update query
-      const query = sql`
-        UPDATE players
-        SET
-          role = COALESCE(${data.role}, role),
-          team = COALESCE(${data.team}, team),
-          is_alive = COALESCE(${data.isAlive}, is_alive),
-          is_host = COALESCE(${data.isHost}, is_host),
-          is_sheriff = COALESCE(${data.isSheriff}, is_sheriff),
-          has_shield = COALESCE(${data.hasShield}, has_shield),
-          action_used = COALESCE(${data.actionUsed}, action_used)
-        WHERE game_id = ${gameId} AND player_id = ${playerId}
-        RETURNING *
-      `;
+      // Build update query parts
+      const setClauses = [];
+      const values = [];
+      let paramIndex = 1;
 
-      const [player] = await db.execute(query);
+      if ('role' in data) {
+        setClauses.push(`role = $${paramIndex}`);
+        values.push(data.role);
+        paramIndex++;
+      }
+      if ('team' in data) {
+        setClauses.push(`team = $${paramIndex}`);
+        values.push(data.team);
+        paramIndex++;
+      }
+      if ('isAlive' in data) {
+        setClauses.push(`is_alive = $${paramIndex}`);
+        values.push(data.isAlive);
+        paramIndex++;
+      }
+      if ('isHost' in data) {
+        setClauses.push(`is_host = $${paramIndex}`);
+        values.push(data.isHost);
+        paramIndex++;
+      }
+      if ('isSheriff' in data) {
+        setClauses.push(`is_sheriff = $${paramIndex}`);
+        values.push(data.isSheriff);
+        paramIndex++;
+      }
+      if ('hasShield' in data) {
+        setClauses.push(`has_shield = $${paramIndex}`);
+        values.push(data.hasShield);
+        paramIndex++;
+      }
+      if ('actionUsed' in data) {
+        setClauses.push(`action_used = $${paramIndex}`);
+        values.push(data.actionUsed);
+        paramIndex++;
+      }
+
+      // Add game_id and player_id to values
+      values.push(gameId, playerId);
+
+      const query = sql.raw(`
+        UPDATE players
+        SET ${setClauses.join(', ')}
+        WHERE game_id = $${paramIndex} AND player_id = $${paramIndex + 1}
+        RETURNING *
+      `);
+
+      const [player] = await db.execute(query, values);
       return player;
     } catch (error) {
       console.error('Error updating player:', error);
