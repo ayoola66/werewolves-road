@@ -38,7 +38,7 @@ export function handleWebSocket(ws: WebSocket) {
   });
 
   extendedWs.on("close", () => {
-    console.log("WebSocket client disconnected");
+    console.log("WebSocket client disconnected:", { playerId: extendedWs.playerId, playerName: extendedWs.playerName, gameCode: extendedWs.gameCode });
     handlePlayerDisconnect(extendedWs);
   });
 }
@@ -74,6 +74,11 @@ async function handleWebSocketMessage(
 
 async function handlePlayerDisconnect(ws: ExtendedWebSocket) {
   if (ws.gameCode && ws.playerId) {
+    console.log('Handling player disconnect:', { playerId: ws.playerId, playerName: ws.playerName, gameCode: ws.gameCode });
+    const connections = gameConnections.get(ws.gameCode);
+    if (connections) {
+      console.log('Current connections:', { gameCode: ws.gameCode, totalConnections: connections.size });
+    }
     await handleLeaveGame(ws, { type: "leave_game", gameCode: ws.gameCode });
   }
 }
