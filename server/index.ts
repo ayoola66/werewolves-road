@@ -83,7 +83,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     serveStatic(app);
   }
 
-  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 10000;
   console.log(`Starting server on port ${port}...`);
 
   server.listen(
