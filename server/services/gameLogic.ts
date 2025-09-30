@@ -242,7 +242,7 @@ async function handleStartGame(
       phaseTimer: PHASE_TIMERS.roleReveal
     });
     
-    const roles = assignRoles(game, players);
+    const roles = await assignRoles(game, players);
     
     // Send role information to each player
     const connections = gameConnections.get(message.gameCode);
@@ -536,7 +536,7 @@ async function getGameState(gameCode: string) {
   return gameState;
 }
 
-function assignRoles(game: Game, players: Player[]) {
+async function assignRoles(game: Game, players: Player[]) {
   const settings = game.settings as GameSettings;
   const roles: { playerId: string; role: string; team: string }[] = [];
   const playerIds = [...players.map(p => p.playerId)];
@@ -572,14 +572,14 @@ function assignRoles(game: Game, players: Player[]) {
     roles.push({ playerId, role: "villager", team: "village" });
   });
   
-  // Update database with roles
-  roles.forEach(async ({ playerId, role, team }) => {
-    await storage.updatePlayer(game.gameCode, playerId, {
+  // Update database with roles - AWAIT ALL updates before returning
+  await Promise.all(roles.map(({ playerId, role, team }) => 
+    storage.updatePlayer(game.gameCode, playerId, {
       role,
       team,
       hasShield: settings.shield,
-    });
-  });
+    })
+  ));
   
   return roles;
 }
