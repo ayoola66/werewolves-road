@@ -210,8 +210,9 @@ async function handleJoinGame(
 }
 
 const PHASE_TIMERS = {
-  day: 180, // 3 minutes
-  night: 60, // 1 minute
+  day: 120, // 2 minutes
+  night: 120, // 2 minutes
+  voting: 120, // 2 minutes
   roleReveal: 15 // 15 seconds
 };
 
