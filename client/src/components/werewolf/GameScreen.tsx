@@ -114,7 +114,7 @@ export default function GameScreen({ gameState }: GameScreenProps) {
             </AlertDialogTitle>
             <AlertDialogDescription className="text-gray-300 text-base">
               Are you sure you want to leave the game? This action cannot be
-              undone and will remove you from the current match.
+              undone and will remove you from the current game.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
