@@ -120,7 +120,7 @@ export default function Chat({ gameState }: ChatProps) {
             onKeyPress={handleKeyPress}
             placeholder={canChat ? "Type your message..." : "You cannot speak now..."}
             disabled={!canChat}
-            className="flex-1 bg-white dark:bg-gray-700 border-amber-900/20 focus:border-amber-600 disabled:opacity-50"
+            className="flex-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 border-amber-900/20 focus:border-amber-600 disabled:opacity-50"
             maxLength={200}
           />
           <Button 
