@@ -188,7 +188,6 @@ async function handleJoinGame(
       })
     );
 
-    const gameState = await getGameState(gameCode);
     broadcastToGame(
       gameCode,
       {
