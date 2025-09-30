@@ -302,7 +302,7 @@ async function handleStartGame(
 
 async function handleChatMessage(
   ws: ExtendedWebSocket,
-  message: { type: "chat_message"; gameCode: string; message: string }
+  message: { type: "chat_message"; gameCode: string; message: string; channel?: string }
 ) {
   try {
     if (!ws.playerId || !ws.playerName) return;
@@ -321,14 +321,27 @@ async function handleChatMessage(
       return;
     }
 
-    if (game.status === "night") {
-      ws.send(
-        JSON.stringify({
-          type: "error",
-          message: "You cannot speak during the night",
-        })
-      );
-      return;
+    // Allow chat during day, voting, and lobby phases
+    // Only block during night phase (unless werewolf chat)
+    const canChat = game.currentPhase === 'day' || 
+                    game.currentPhase === 'voting' || 
+                    game.status === 'lobby' ||
+                    game.status === 'role_reveal';
+    
+    if (!canChat && game.currentPhase === 'night') {
+      // Check if this is werewolf chat
+      const isWerewolfChat = message.channel === 'werewolf' && 
+                             (player.role === 'werewolf' || player.role === 'minion');
+      
+      if (!isWerewolfChat) {
+        ws.send(
+          JSON.stringify({
+            type: "error",
+            message: "You cannot speak during the night",
+          })
+        );
+        return;
+      }
     }
 
     const chatMessage = await storage.createChatMessage({
@@ -336,13 +349,31 @@ async function handleChatMessage(
       playerId: ws.playerId,
       playerName: ws.playerName,
       message: message.message,
-      type: "player",
+      type: message.channel || "player",
     });
 
-    broadcastToGame(message.gameCode, {
-      type: "chat_message",
-      message: chatMessage,
-    });
+    // Broadcast to appropriate players
+    if (message.channel === 'werewolf') {
+      // Only send to werewolves and minions
+      const connections = gameConnections.get(message.gameCode);
+      if (connections) {
+        for (const playerWs of connections) {
+          const recipientPlayer = await storage.getPlayer(game.gameCode, playerWs.playerId || '');
+          if (recipientPlayer && (recipientPlayer.role === 'werewolf' || recipientPlayer.role === 'minion')) {
+            playerWs.send(JSON.stringify({
+              type: "chat_message",
+              message: chatMessage,
+            }));
+          }
+        }
+      }
+    } else {
+      // Broadcast to all players
+      broadcastToGame(message.gameCode, {
+        type: "chat_message",
+        message: chatMessage,
+      });
+    }
   } catch (error) {
     console.error("Error handling chat message:", error);
   }
