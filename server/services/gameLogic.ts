@@ -322,34 +322,30 @@ async function handleChatMessage(
       return;
     }
 
-    // Allow chat during day, voting, and lobby phases
-    // Only block during night phase (unless werewolf chat)
-    const canChat = game.currentPhase === 'day' || 
-                    game.currentPhase === 'voting' || 
-                    game.status === 'lobby' ||
-                    game.status === 'role_reveal';
+    // Determine if message should be scrambled
+    const isNightPhase = game.currentPhase === 'night';
+    const isWerewolf = player.role === 'werewolf' || player.role === 'minion';
+    const isWerewolfChat = message.channel === 'werewolf';
     
-    if (!canChat && game.currentPhase === 'night') {
-      // Check if this is werewolf chat
-      const isWerewolfChat = message.channel === 'werewolf' && 
-                             (player.role === 'werewolf' || player.role === 'minion');
-      
-      if (!isWerewolfChat) {
-        ws.send(
-          JSON.stringify({
-            type: "error",
-            message: "You cannot speak during the night",
-          })
-        );
-        return;
-      }
-    }
+    // Scramble message if:
+    // 1. It's night phase AND
+    // 2. Player is not a werewolf AND
+    // 3. It's not werewolf-only chat
+    const shouldScramble = isNightPhase && !isWerewolf && !isWerewolfChat;
+    
+    // Scramble the message if needed
+    const scrambledMessage = shouldScramble 
+      ? message.message.split('').map(char => {
+          if (char === ' ') return ' ';
+          return Math.random() > 0.3 ? '█' : char;
+        }).join('')
+      : message.message;
 
     const chatMessage = await storage.createChatMessage({
       gameId: game.gameCode,
       playerId: ws.playerId,
       playerName: ws.playerName,
-      message: message.message,
+      message: scrambledMessage,
       type: message.channel || "player",
     });
 
