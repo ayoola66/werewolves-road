@@ -236,8 +236,7 @@ async function handleStartGame(
       return;
     }
 
-    const gameId = parseInt(game.gameCode, 10);
-    await storage.updateGame(gameId, { 
+    await storage.updateGame(game.id, { 
       status: "role_reveal",
       currentPhase: "role_reveal",
       phaseTimer: PHASE_TIMERS.roleReveal
@@ -270,8 +269,7 @@ async function handleStartGame(
     
     // Start role reveal timer
     setTimeout(async () => {
-      const gameId = parseInt(game.gameCode, 10);
-      await storage.updateGame(gameId, { 
+      await storage.updateGame(game.id, { 
         status: "night",
         currentPhase: "night",
         phaseTimer: PHASE_TIMERS.night
