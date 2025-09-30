@@ -7,8 +7,18 @@ import NightActionOverlay from './overlays/NightActionOverlay';
 import GameOverOverlay from './overlays/GameOverOverlay';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useTheme } from 'next-themes';
-import { Shield } from 'lucide-react';
+import { Shield, LogOut } from 'lucide-react';
 
 interface GameScreenProps {
   gameState: any;
@@ -16,6 +26,7 @@ interface GameScreenProps {
 
 export default function GameScreen({ gameState }: GameScreenProps) {
   const [timer, setTimer] = useState<string>('0:00');
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const { setTheme } = useTheme();
   const game = gameState.gameState;
 
@@ -77,6 +88,11 @@ export default function GameScreen({ gameState }: GameScreenProps) {
     gameState.performNightAction(gameState.playerId, 'shield');
   };
 
+  const handleLeaveGame = () => {
+    gameState.leaveGame();
+    setShowLeaveConfirm(false);
+  };
+
   return (
     <>
       {/* Overlays */}
@@ -85,7 +101,41 @@ export default function GameScreen({ gameState }: GameScreenProps) {
       {gameState.showNightActionOverlay && <NightActionOverlay gameState={gameState} />}
       {gameState.showGameOverOverlay && <GameOverOverlay gameState={gameState} />}
 
-      <div className={`min-h-screen transition-colors duration-500 ${phaseInfo.bgColor}`}>
+      {/* Leave Game Confirmation Dialog */}
+      <AlertDialog open={showLeaveConfirm} onOpenChange={setShowLeaveConfirm}>
+        <AlertDialogContent className="bg-gray-900 border-2 border-red-600">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-2xl text-red-400 font-cinzel">
+              Leave Game?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-300 text-base">
+              Are you sure you want to leave the game? This action cannot be undone and will remove you from the current match.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-gray-700 hover:bg-gray-600 text-white border-gray-600">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleLeaveGame}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Leave Game
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <div className={`min-h-screen transition-colors duration-500 ${phaseInfo.bgColor} relative`}>
+        {/* Leave Game Button - Bottom Left */}
+        <Button
+          onClick={() => setShowLeaveConfirm(true)}
+          variant="outline"
+          className="fixed bottom-6 left-6 bg-red-600/90 hover:bg-red-700 text-white border-red-700 font-semibold shadow-lg z-10 flex items-center gap-2"
+        >
+          <LogOut className="w-4 h-4" />
+          Leave Game
+        </Button>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
           {/* Players Panel */}
           <div className="lg:col-span-1">
