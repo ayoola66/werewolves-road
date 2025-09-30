@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
-import PlayerList from './PlayerList';
-import Chat from './Chat';
-import RoleReveal from './overlays/RoleReveal';
-import VoteOverlay from './overlays/VoteOverlay';
-import NightActionOverlay from './overlays/NightActionOverlay';
-import GameOverOverlay from './overlays/GameOverOverlay';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { useState, useEffect } from "react";
+import PlayerList from "./PlayerList";
+import Chat from "./Chat";
+import RoleReveal from "./overlays/RoleReveal";
+import VoteOverlay from "./overlays/VoteOverlay";
+import NightActionOverlay from "./overlays/NightActionOverlay";
+import GameOverOverlay from "./overlays/GameOverOverlay";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,15 +17,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useTheme } from 'next-themes';
-import { Shield, LogOut } from 'lucide-react';
+import { useTheme } from "next-themes";
+import { Shield, LogOut } from "lucide-react";
 
 interface GameScreenProps {
   gameState: any;
 }
 
 export default function GameScreen({ gameState }: GameScreenProps) {
-  const [timer, setTimer] = useState<string>('0:00');
+  const [timer, setTimer] = useState<string>("0:00");
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const { setTheme } = useTheme();
   const game = gameState.gameState;
@@ -34,16 +34,16 @@ export default function GameScreen({ gameState }: GameScreenProps) {
     if (!game) return;
 
     // Set theme based on phase
-    if (game.phase === 'night') {
-      setTheme('dark');
+    if (game.phase === "night") {
+      setTheme("dark");
     } else {
-      setTheme('light');
+      setTheme("light");
     }
 
     const interval = setInterval(() => {
       const minutes = Math.floor(game.phaseTimer / 60);
       const seconds = game.phaseTimer % 60;
-      setTimer(`${minutes}:${seconds.toString().padStart(2, '0')}`);
+      setTimer(`${minutes}:${seconds.toString().padStart(2, "0")}`);
     }, 1000);
 
     return () => clearInterval(interval);
@@ -51,33 +51,33 @@ export default function GameScreen({ gameState }: GameScreenProps) {
 
   const getPhaseInfo = () => {
     switch (game?.phase) {
-      case 'night':
+      case "night":
         return {
           title: `Night ${game.nightCount || 1}`,
-          subtitle: 'The village sleeps while evil stirs...',
-          color: 'text-blue-400',
-          bgColor: 'bg-gray-900'
+          subtitle: "The village sleeps while evil stirs...",
+          color: "text-blue-400",
+          bgColor: "bg-gray-900",
         };
-      case 'day':
+      case "day":
         return {
           title: `Day ${game.dayCount || 1}`,
-          subtitle: 'Discuss and find the werewolves',
-          color: 'text-yellow-400',
-          bgColor: 'bg-gray-100'
+          subtitle: "Discuss and find the werewolves",
+          color: "text-yellow-400",
+          bgColor: "bg-gray-100",
         };
-      case 'voting':
+      case "voting":
         return {
-          title: 'Voting Phase',
-          subtitle: 'Vote to eliminate a player',
-          color: 'text-red-400',
-          bgColor: 'bg-gray-100'
+          title: "Voting Phase",
+          subtitle: "Vote to eliminate a player",
+          color: "text-red-400",
+          bgColor: "bg-gray-100",
         };
       default:
         return {
-          title: 'Game Phase',
-          subtitle: '',
-          color: 'text-gray-400',
-          bgColor: 'bg-gray-100'
+          title: "Game Phase",
+          subtitle: "",
+          color: "text-gray-400",
+          bgColor: "bg-gray-100",
         };
     }
   };
@@ -85,7 +85,7 @@ export default function GameScreen({ gameState }: GameScreenProps) {
   const phaseInfo = getPhaseInfo();
 
   const handleShieldAction = () => {
-    gameState.performNightAction(gameState.playerId, 'shield');
+    gameState.performNightAction(gameState.playerId, "shield");
   };
 
   const handleLeaveGame = () => {
@@ -98,8 +98,12 @@ export default function GameScreen({ gameState }: GameScreenProps) {
       {/* Overlays */}
       {gameState.showRoleReveal && <RoleReveal gameState={gameState} />}
       {gameState.showVoteOverlay && <VoteOverlay gameState={gameState} />}
-      {gameState.showNightActionOverlay && <NightActionOverlay gameState={gameState} />}
-      {gameState.showGameOverOverlay && <GameOverOverlay gameState={gameState} />}
+      {gameState.showNightActionOverlay && (
+        <NightActionOverlay gameState={gameState} />
+      )}
+      {gameState.showGameOverOverlay && (
+        <GameOverOverlay gameState={gameState} />
+      )}
 
       {/* Leave Game Confirmation Dialog */}
       <AlertDialog open={showLeaveConfirm} onOpenChange={setShowLeaveConfirm}>
@@ -109,14 +113,15 @@ export default function GameScreen({ gameState }: GameScreenProps) {
               Leave Game?
             </AlertDialogTitle>
             <AlertDialogDescription className="text-gray-300 text-base">
-              Are you sure you want to leave the game? This action cannot be undone and will remove you from the current match.
+              Are you sure you want to leave the game? This action cannot be
+              undone and will remove you from the current match.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="bg-gray-700 hover:bg-gray-600 text-white border-gray-600">
               Cancel
             </AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleLeaveGame}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
@@ -126,7 +131,9 @@ export default function GameScreen({ gameState }: GameScreenProps) {
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className={`min-h-screen transition-colors duration-500 ${phaseInfo.bgColor} relative`}>
+      <div
+        className={`min-h-screen transition-colors duration-500 ${phaseInfo.bgColor} relative`}
+      >
         {/* Leave Game Button - Bottom Left */}
         <Button
           onClick={() => setShowLeaveConfirm(true)}
@@ -144,19 +151,29 @@ export default function GameScreen({ gameState }: GameScreenProps) {
 
           {/* Main Game Panel */}
           <div className="lg:col-span-2">
-            <Card className={`panel rounded-lg shadow-2xl ${game?.phase === 'night' ? 'bg-gray-900/90' : 'bg-white/90'}`}>
+            <Card
+              className={`panel rounded-lg shadow-2xl ${
+                game?.phase === "night" ? "bg-gray-900/90" : "bg-white/90"
+              }`}
+            >
               <CardContent className="p-6 flex flex-col h-full">
                 {/* Phase Display */}
                 <div className="flex justify-between items-center mb-4">
                   <div>
-                    <h2 className={`font-cinzel text-4xl font-bold ${phaseInfo.color}`}>
+                    <h2
+                      className={`font-cinzel text-4xl font-bold ${phaseInfo.color}`}
+                    >
                       {phaseInfo.title}
                     </h2>
                     <p className="text-gray-400">{phaseInfo.subtitle}</p>
                   </div>
-                  <div className={`text-2xl font-bold text-gray-300 bg-gray-900/50 px-4 py-2 rounded-lg ${
-                    game?.phaseTimer <= 10 ? 'timer-warning text-red-400 animate-pulse' : ''
-                  }`}>
+                  <div
+                    className={`text-2xl font-bold text-gray-300 bg-gray-900/50 px-4 py-2 rounded-lg ${
+                      game?.phaseTimer <= 10
+                        ? "timer-warning text-red-400 animate-pulse"
+                        : ""
+                    }`}
+                  >
                     {timer}
                   </div>
                 </div>
@@ -169,7 +186,7 @@ export default function GameScreen({ gameState }: GameScreenProps) {
                 {/* Action Buttons */}
                 <div className="mt-4 space-y-4">
                   <div className="flex flex-wrap gap-2 justify-center">
-                    {game?.phase === 'voting' && gameState.canVote() && (
+                    {game?.phase === "voting" && gameState.canVote() && (
                       <Button
                         onClick={() => gameState.setShowVoteOverlay(true)}
                         className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg"
@@ -177,17 +194,20 @@ export default function GameScreen({ gameState }: GameScreenProps) {
                         Vote
                       </Button>
                     )}
-                    
-                    {game?.phase === 'night' && (
+
+                    {game?.phase === "night" && (
                       <>
-                        {gameState.hasNightAction() && !gameState.hasPerformedNightAction && (
-                          <Button
-                            onClick={() => gameState.setShowNightActionOverlay(true)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg"
-                          >
-                            Night Action
-                          </Button>
-                        )}
+                        {gameState.hasNightAction() &&
+                          !gameState.hasPerformedNightAction && (
+                            <Button
+                              onClick={() =>
+                                gameState.setShowNightActionOverlay(true)
+                              }
+                              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg"
+                            >
+                              Night Action
+                            </Button>
+                          )}
                         {!gameState.hasUsedShield && (
                           <Button
                             onClick={handleShieldAction}
