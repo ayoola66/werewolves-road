@@ -1,6 +1,6 @@
 import express, { type Request, Response } from "express";
 import { WebSocketServer } from "ws";
-import { Server } from "http";
+import { Server, createServer } from "http";
 import { handleWebSocket } from "./services/gameLogic";
 import { db } from "./db";
 import { games } from "../shared/schema";
@@ -34,13 +34,10 @@ export async function registerRoutes(app: express.Express): Promise<Server> {
     }
   });
 
-  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
-  const host = process.env.HOST || "0.0.0.0";
+  // Create HTTP server without starting it (index.ts will start it)
+  const server = createServer(app);
 
-  const server = app.listen(port, host, () => {
-    console.log(`Server listening on ${host}:${port}`);
-  });
-
+  // Setup WebSocket server
   const wss = new WebSocketServer({ server });
   wss.on("connection", handleWebSocket);
 
