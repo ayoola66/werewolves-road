@@ -27,9 +27,36 @@ interface GameScreenProps {
 export default function GameScreen({ gameState }: GameScreenProps) {
   const [timer, setTimer] = useState<string>("0:00");
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [showPhaseTransition, setShowPhaseTransition] = useState(false);
+  const [transitionPhase, setTransitionPhase] = useState("");
+  const [prevPhase, setPrevPhase] = useState("");
   const { setTheme } = useTheme();
   const game = gameState.gameState;
 
+  // Phase change detection and transition animation
+  useEffect(() => {
+    if (!game) return;
+
+    const currentPhase =
+      game.game?.currentPhase || game.game?.phase || game.phase;
+
+    // Detect phase change and trigger transition
+    if (prevPhase && prevPhase !== currentPhase && currentPhase !== "role_reveal") {
+      setTransitionPhase(currentPhase);
+      setShowPhaseTransition(true);
+      
+      // Hide transition after 3 seconds
+      const timeout = setTimeout(() => {
+        setShowPhaseTransition(false);
+      }, 3000);
+      
+      return () => clearTimeout(timeout);
+    }
+    
+    setPrevPhase(currentPhase);
+  }, [game?.game?.currentPhase, game?.game?.phase, game?.phase, prevPhase]);
+
+  // Theme and timer updates
   useEffect(() => {
     if (!game) return;
 
@@ -126,8 +153,65 @@ export default function GameScreen({ gameState }: GameScreenProps) {
     setShowLeaveConfirm(false);
   };
 
+  const getTransitionContent = () => {
+    const nightCount = game?.game?.nightCount || game?.nightCount || 1;
+    const dayCount = game?.game?.dayCount || game?.dayCount || 1;
+    
+    switch (transitionPhase) {
+      case "night":
+        return {
+          emoji: "🌙",
+          title: `Night ${nightCount} Falls`,
+          subtitle: "The village sleeps... darkness descends",
+          bgGradient: "from-indigo-950 via-blue-950 to-black",
+          textColor: "text-blue-200"
+        };
+      case "day":
+        return {
+          emoji: "☀️",
+          title: `Day ${dayCount} Breaks`,
+          subtitle: "Dawn arrives... the village awakens",
+          bgGradient: "from-amber-300 via-orange-200 to-yellow-100",
+          textColor: "text-amber-900"
+        };
+      case "voting":
+        return {
+          emoji: "⚖️",
+          title: "Voting Time",
+          subtitle: "Make your choice... who shall be eliminated?",
+          bgGradient: "from-red-900 via-red-700 to-orange-600",
+          textColor: "text-red-100"
+        };
+      default:
+        return {
+          emoji: "🎮",
+          title: "Phase Change",
+          subtitle: "",
+          bgGradient: "from-gray-900 to-gray-700",
+          textColor: "text-gray-100"
+        };
+    }
+  };
+
+  const transitionContent = getTransitionContent();
+
   return (
     <>
+      {/* Phase Transition Overlay */}
+      {showPhaseTransition && (
+        <div className={`fixed inset-0 z-[100] flex items-center justify-center bg-gradient-to-br ${transitionContent.bgGradient} animate-in fade-in duration-500`}>
+          <div className="text-center animate-in zoom-in duration-700">
+            <div className="text-9xl mb-6 animate-bounce">{transitionContent.emoji}</div>
+            <h1 className={`font-cinzel text-6xl font-bold mb-4 ${transitionContent.textColor} drop-shadow-2xl`}>
+              {transitionContent.title}
+            </h1>
+            <p className={`text-2xl ${transitionContent.textColor} opacity-90 italic`}>
+              {transitionContent.subtitle}
+            </p>
+          </div>
+        </div>
+      )}
+      
       {/* Overlays */}
       {gameState.showRoleReveal && <RoleReveal gameState={gameState} />}
       {gameState.showVoteOverlay && <VoteOverlay gameState={gameState} />}
