@@ -14,10 +14,19 @@ export default function PlayerList({ gameState }: PlayerListProps) {
 
   const allPlayers = [...(game.alivePlayers || []), ...(game.deadPlayers || [])];
 
+  const aliveCount = game.alivePlayers?.length || 0;
+  const deadCount = game.deadPlayers?.length || 0;
+
   return (
     <Card className="panel rounded-lg shadow-2xl">
       <CardHeader>
-        <CardTitle className="font-cinzel text-xl font-bold">Players</CardTitle>
+        <CardTitle className="font-cinzel text-xl font-bold flex items-center justify-between">
+          <span>Players</span>
+          <span className="text-sm font-normal">
+            <span className="text-green-400">{aliveCount} Alive</span>
+            {deadCount > 0 && <span className="text-red-400 ml-2">{deadCount} Dead</span>}
+          </span>
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">

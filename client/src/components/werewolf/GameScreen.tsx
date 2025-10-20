@@ -43,15 +43,32 @@ export default function GameScreen({ gameState }: GameScreenProps) {
       setTheme("light");
     }
 
-    const phaseTimer = game.game?.phaseTimer || game.phaseTimer || 0;
+    // Calculate timer from phaseEndTime for real countdown
     const interval = setInterval(() => {
-      const minutes = Math.floor(phaseTimer / 60);
-      const seconds = phaseTimer % 60;
+      const phaseEndTime = game.game?.phaseEndTime || game.phaseEndTime;
+      
+      if (!phaseEndTime) {
+        // Fallback to static timer if no end time
+        const phaseTimer = game.game?.phaseTimer || game.phaseTimer || 0;
+        const minutes = Math.floor(phaseTimer / 60);
+        const seconds = phaseTimer % 60;
+        setTimer(`${minutes}:${seconds.toString().padStart(2, "0")}`);
+        return;
+      }
+      
+      const endTime = new Date(phaseEndTime).getTime();
+      const now = Date.now();
+      const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
+      
+      const minutes = Math.floor(remaining / 60);
+      const seconds = remaining % 60;
       setTimer(`${minutes}:${seconds.toString().padStart(2, "0")}`);
     }, 1000);
 
     return () => clearInterval(interval);
   }, [
+    game?.game?.phaseEndTime,
+    game?.phaseEndTime,
     game?.game?.phaseTimer,
     game?.phaseTimer,
     game?.game?.currentPhase,
