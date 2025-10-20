@@ -38,7 +38,11 @@ export function handleWebSocket(ws: WebSocket) {
   });
 
   extendedWs.on("close", () => {
-    console.log("WebSocket client disconnected:", { playerId: extendedWs.playerId, playerName: extendedWs.playerName, gameCode: extendedWs.gameCode });
+    console.log("WebSocket client disconnected:", {
+      playerId: extendedWs.playerId,
+      playerName: extendedWs.playerName,
+      gameCode: extendedWs.gameCode,
+    });
     handlePlayerDisconnect(extendedWs);
   });
 }
@@ -74,10 +78,17 @@ async function handleWebSocketMessage(
 
 async function handlePlayerDisconnect(ws: ExtendedWebSocket) {
   if (ws.gameCode && ws.playerId) {
-    console.log('Handling player disconnect:', { playerId: ws.playerId, playerName: ws.playerName, gameCode: ws.gameCode });
+    console.log("Handling player disconnect:", {
+      playerId: ws.playerId,
+      playerName: ws.playerName,
+      gameCode: ws.gameCode,
+    });
     const connections = gameConnections.get(ws.gameCode);
     if (connections) {
-      console.log('Current connections:', { gameCode: ws.gameCode, totalConnections: connections.size });
+      console.log("Current connections:", {
+        gameCode: ws.gameCode,
+        totalConnections: connections.size,
+      });
     }
     await handleLeaveGame(ws, { type: "leave_game", gameCode: ws.gameCode });
   }
@@ -116,10 +127,15 @@ async function handleCreateGame(
     }
     const connections = gameConnections.get(gameCode)!;
     connections.add(ws);
-    console.log('Added connection (create):', { gameCode, playerId: ws.playerId, playerName: ws.playerName, totalConnections: connections.size });
+    console.log("Added connection (create):", {
+      gameCode,
+      playerId: ws.playerId,
+      playerName: ws.playerName,
+      totalConnections: connections.size,
+    });
 
     const gameState = await getGameState(gameCode);
-    console.log('Initial game state:', gameState);
+    console.log("Initial game state:", gameState);
     ws.send(
       JSON.stringify({
         type: "game_created",
@@ -175,10 +191,15 @@ async function handleJoinGame(
     }
     const connections = gameConnections.get(gameCode)!;
     connections.add(ws);
-    console.log('Added connection (join):', { gameCode, playerId: ws.playerId, playerName: ws.playerName, totalConnections: connections.size });
+    console.log("Added connection (join):", {
+      gameCode,
+      playerId: ws.playerId,
+      playerName: ws.playerName,
+      totalConnections: connections.size,
+    });
 
     const gameState = await getGameState(gameCode);
-    console.log('Game state on join:', gameState);
+    console.log("Game state on join:", gameState);
     ws.send(
       JSON.stringify({
         type: "game_joined",
@@ -213,7 +234,7 @@ const PHASE_TIMERS = {
   day: 120, // 2 minutes
   night: 120, // 2 minutes
   voting: 120, // 2 minutes
-  roleReveal: 15 // 15 seconds
+  roleReveal: 15, // 15 seconds
 };
 
 async function handleStartGame(
@@ -237,50 +258,55 @@ async function handleStartGame(
       return;
     }
 
-    await storage.updateGame(game.id, { 
+    await storage.updateGame(game.id, {
       status: "role_reveal",
       currentPhase: "role_reveal",
-      phaseTimer: PHASE_TIMERS.roleReveal
+      phaseTimer: PHASE_TIMERS.roleReveal,
     });
-    
+
     const roles = await assignRoles(game, players);
-    
+
     // Send role information to each player
     const connections = gameConnections.get(message.gameCode);
     if (connections) {
       for (const playerWs of connections) {
-        const playerRole = roles.find(r => r.playerId === playerWs.playerId);
+        const playerRole = roles.find((r) => r.playerId === playerWs.playerId);
         if (playerRole) {
           const teamInfo = {
-            werewolves: playerRole.role === 'werewolf' || playerRole.role === 'minion' 
-              ? roles.filter(r => r.role === 'werewolf').map(r => r.playerId)
-              : undefined,
-            minion: playerRole.role === 'minion'
+            werewolves:
+              playerRole.role === "werewolf" || playerRole.role === "minion"
+                ? roles
+                    .filter((r) => r.role === "werewolf")
+                    .map((r) => r.playerId)
+                : undefined,
+            minion: playerRole.role === "minion",
           };
-          
-          playerWs.send(JSON.stringify({
-            type: "role_assigned",
-            role: playerRole.role,
-            teamInfo,
-            timer: PHASE_TIMERS.roleReveal
-          }));
+
+          playerWs.send(
+            JSON.stringify({
+              type: "role_assigned",
+              role: playerRole.role,
+              teamInfo,
+              timer: PHASE_TIMERS.roleReveal,
+            })
+          );
         }
       }
     }
-    
+
     // Start role reveal timer
     setTimeout(async () => {
-      await storage.updateGame(game.id, { 
+      await storage.updateGame(game.id, {
         status: "night",
         currentPhase: "night",
-        phaseTimer: PHASE_TIMERS.night
+        phaseTimer: PHASE_TIMERS.night,
       });
-      
+
       broadcastToGame(message.gameCode, {
         type: "phase_change",
         phase: "night",
         timer: PHASE_TIMERS.night,
-        events: []
+        events: [],
       });
     }, PHASE_TIMERS.roleReveal * 1000);
 
@@ -303,7 +329,12 @@ async function handleStartGame(
 
 async function handleChatMessage(
   ws: ExtendedWebSocket,
-  message: { type: "chat_message"; gameCode: string; message: string; channel?: string }
+  message: {
+    type: "chat_message";
+    gameCode: string;
+    message: string;
+    channel?: string;
+  }
 ) {
   try {
     if (!ws.playerId || !ws.playerName) return;
@@ -323,22 +354,25 @@ async function handleChatMessage(
     }
 
     // Determine if message should be scrambled
-    const isNightPhase = game.currentPhase === 'night';
-    const isWerewolf = player.role === 'werewolf' || player.role === 'minion';
-    const isWerewolfChat = message.channel === 'werewolf';
-    
+    const isNightPhase = game.currentPhase === "night";
+    const isWerewolf = player.role === "werewolf" || player.role === "minion";
+    const isWerewolfChat = message.channel === "werewolf";
+
     // Scramble message if:
     // 1. It's night phase AND
     // 2. Player is not a werewolf AND
     // 3. It's not werewolf-only chat
     const shouldScramble = isNightPhase && !isWerewolf && !isWerewolfChat;
-    
+
     // Scramble the message if needed
-    const scrambledMessage = shouldScramble 
-      ? message.message.split('').map(char => {
-          if (char === ' ') return ' ';
-          return Math.random() > 0.3 ? '█' : char;
-        }).join('')
+    const scrambledMessage = shouldScramble
+      ? message.message
+          .split("")
+          .map((char) => {
+            if (char === " ") return " ";
+            return Math.random() > 0.3 ? "█" : char;
+          })
+          .join("")
       : message.message;
 
     const chatMessage = await storage.createChatMessage({
@@ -350,17 +384,26 @@ async function handleChatMessage(
     });
 
     // Broadcast to appropriate players
-    if (message.channel === 'werewolf') {
+    if (message.channel === "werewolf") {
       // Only send to werewolves and minions
       const connections = gameConnections.get(message.gameCode);
       if (connections) {
         for (const playerWs of connections) {
-          const recipientPlayer = await storage.getPlayer(game.gameCode, playerWs.playerId || '');
-          if (recipientPlayer && (recipientPlayer.role === 'werewolf' || recipientPlayer.role === 'minion')) {
-            playerWs.send(JSON.stringify({
-              type: "chat_message",
-              message: chatMessage,
-            }));
+          const recipientPlayer = await storage.getPlayer(
+            game.gameCode,
+            playerWs.playerId || ""
+          );
+          if (
+            recipientPlayer &&
+            (recipientPlayer.role === "werewolf" ||
+              recipientPlayer.role === "minion")
+          ) {
+            playerWs.send(
+              JSON.stringify({
+                type: "chat_message",
+                message: chatMessage,
+              })
+            );
           }
         }
       }
@@ -512,28 +555,37 @@ function broadcastToGame(
 ) {
   const connections = gameConnections.get(gameCode);
   if (!connections) {
-    console.log('No connections found for game:', gameCode);
+    console.log("No connections found for game:", gameCode);
     return;
   }
 
-  console.log('Broadcasting to game:', { gameCode, message, connections: connections.size });
+  console.log("Broadcasting to game:", {
+    gameCode,
+    message,
+    connections: connections.size,
+  });
   const messageStr = JSON.stringify(message);
   connections.forEach((ws) => {
     if (ws !== exclude && ws.readyState === WebSocket.OPEN) {
-      console.log('Sending message to client:', { playerId: ws.playerId, playerName: ws.playerName });
+      console.log("Sending message to client:", {
+        playerId: ws.playerId,
+        playerName: ws.playerName,
+      });
       ws.send(messageStr);
     }
   });
 }
 
 async function broadcastGameState(gameCode: string, gameState: any) {
-  console.log('Broadcasting game state:', { gameCode, gameState });
-  const chatMessages = await storage.getChatMessagesByGame(gameState.game.gameCode);
+  console.log("Broadcasting game state:", { gameCode, gameState });
+  const chatMessages = await storage.getChatMessagesByGame(
+    gameState.game.gameCode
+  );
   const updatedGameState = {
     ...gameState,
     chatMessages,
   };
-  console.log('Updated game state:', updatedGameState);
+  console.log("Updated game state:", updatedGameState);
   broadcastToGame(gameCode, {
     type: "game_state_update",
     gameState: updatedGameState,
@@ -541,16 +593,16 @@ async function broadcastGameState(gameCode: string, gameState: any) {
 }
 
 async function getGameState(gameCode: string) {
-  console.log('Getting game state for:', gameCode);
+  console.log("Getting game state for:", gameCode);
   const game = await storage.getGameByCode(gameCode);
   if (!game) {
-    console.log('No game found for code:', gameCode);
+    console.log("No game found for code:", gameCode);
     return null;
   }
 
-  console.log('Found game:', game);
+  console.log("Found game:", game);
   const players = await storage.getPlayersByGameId(game.gameCode);
-  console.log('Found players:', players);
+  console.log("Found players:", players);
   const votes = await storage.getVotesByGameId(game.gameCode);
   const nightActions = await storage.getNightActionsByGameId(game.gameCode);
 
@@ -560,55 +612,57 @@ async function getGameState(gameCode: string) {
     votes,
     nightActions,
   };
-  console.log('Returning game state:', gameState);
+  console.log("Returning game state:", gameState);
   return gameState;
 }
 
 async function assignRoles(game: Game, players: Player[]) {
   const settings = game.settings as GameSettings;
   const roles: { playerId: string; role: string; team: string }[] = [];
-  const playerIds = [...players.map(p => p.playerId)];
-  
+  const playerIds = [...players.map((p) => p.playerId)];
+
   // Assign werewolves
   for (let i = 0; i < settings.werewolves; i++) {
     const idx = Math.floor(Math.random() * playerIds.length);
     const playerId = playerIds.splice(idx, 1)[0];
     roles.push({ playerId, role: "werewolf", team: "werewolf" });
   }
-  
+
   // Assign special roles
   if (settings.seer && playerIds.length > 0) {
     const idx = Math.floor(Math.random() * playerIds.length);
     const playerId = playerIds.splice(idx, 1)[0];
     roles.push({ playerId, role: "seer", team: "village" });
   }
-  
+
   if (settings.doctor && playerIds.length > 0) {
     const idx = Math.floor(Math.random() * playerIds.length);
     const playerId = playerIds.splice(idx, 1)[0];
     roles.push({ playerId, role: "doctor", team: "village" });
   }
-  
+
   if (settings.minion && playerIds.length > 0) {
     const idx = Math.floor(Math.random() * playerIds.length);
     const playerId = playerIds.splice(idx, 1)[0];
     roles.push({ playerId, role: "minion", team: "werewolf" });
   }
-  
+
   // Assign remaining players as villagers
-  playerIds.forEach(playerId => {
+  playerIds.forEach((playerId) => {
     roles.push({ playerId, role: "villager", team: "village" });
   });
-  
+
   // Update database with roles - AWAIT ALL updates before returning
-  await Promise.all(roles.map(({ playerId, role, team }) => 
-    storage.updatePlayer(game.gameCode, playerId, {
-      role,
-      team,
-      hasShield: settings.shield,
-    })
-  ));
-  
+  await Promise.all(
+    roles.map(({ playerId, role, team }) =>
+      storage.updatePlayer(game.gameCode, playerId, {
+        role,
+        team,
+        hasShield: settings.shield,
+      })
+    )
+  );
+
   return roles;
 }
 

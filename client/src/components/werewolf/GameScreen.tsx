@@ -164,27 +164,33 @@ export default function GameScreen({ gameState }: GameScreenProps) {
                       <div className="flex items-center gap-3">
                         <div className="flex items-center gap-2 text-amber-900 dark:text-amber-100">
                           <User className="w-5 h-5" />
-                          <span className="font-bold text-lg">{gameState.playerName}</span>
+                          <span className="font-bold text-lg">
+                            {gameState.playerName}
+                          </span>
                         </div>
                         <div className="h-6 w-px bg-amber-600/30"></div>
                         <div className="flex items-center gap-2">
                           <Award className="w-5 h-5 text-amber-600" />
                           <span className="font-cinzel font-semibold text-base text-amber-800 dark:text-amber-200 capitalize">
-                            {gameState.getPlayerRole() || 'Unknown'}
+                            {gameState.getPlayerRole() || "Unknown"}
                           </span>
                         </div>
                       </div>
-                      <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                        gameState.getCurrentPlayer()?.isAlive 
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
-                          : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                      }`}>
-                        {gameState.getCurrentPlayer()?.isAlive ? '✓ Alive' : '✗ Dead'}
+                      <div
+                        className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                          gameState.getCurrentPlayer()?.isAlive
+                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                            : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                        }`}
+                      >
+                        {gameState.getCurrentPlayer()?.isAlive
+                          ? "✓ Alive"
+                          : "✗ Dead"}
                       </div>
                     </div>
                   </div>
                 )}
-                
+
                 {/* Phase Display */}
                 <div className="flex justify-between items-center mb-4">
                   <div>
