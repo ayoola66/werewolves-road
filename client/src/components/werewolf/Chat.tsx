@@ -49,16 +49,43 @@ export default function Chat({ gameState }: ChatProps) {
   const game = gameState.gameState;
   const currentPhase =
     game?.game?.currentPhase || game?.game?.phase || game?.phase;
+  
+  const playerRole = gameState.getPlayerRole();
+  const isWerewolf = playerRole === 'werewolf' || playerRole === 'minion';
+  const isNightPhase = currentPhase === 'night';
+  
+  // Determine chat label
+  let chatLabel = "Village Chat";
+  let chatSubtitle = "";
+  
+  if (isNightPhase) {
+    if (isWerewolf) {
+      chatLabel = "🐺 Werewolf Chat";
+      chatSubtitle = "Private communication";
+    } else {
+      chatLabel = "🌙 Village Chat";
+      chatSubtitle = "Messages scrambled for disguise";
+    }
+  } else if (currentPhase === 'day' || currentPhase === 'voting') {
+    chatLabel = "☀️ Village Chat";
+  }
 
   return (
     <Card className="h-full flex flex-col bg-gradient-to-br from-amber-50 to-amber-100 dark:from-gray-900 dark:to-gray-800 border-2 border-amber-900/20">
       <CardHeader className="pb-3 border-b border-amber-900/20">
         <CardTitle className="flex items-center gap-2 text-amber-900 dark:text-amber-100 font-cinzel">
           <MessageCircle className="w-5 h-5" />
-          Village Chat
+          <div className="flex flex-col flex-1">
+            <span>{chatLabel}</span>
+            {chatSubtitle && (
+              <span className="text-xs font-normal text-gray-600 dark:text-gray-400">
+                {chatSubtitle}
+              </span>
+            )}
+          </div>
           {!canChat && (
             <span className="ml-auto text-sm font-normal text-red-600 dark:text-red-400">
-              {currentPhase === "night" ? "🌙 Silent Night" : "💀 Deceased"}
+              💀 Deceased
             </span>
           )}
         </CardTitle>

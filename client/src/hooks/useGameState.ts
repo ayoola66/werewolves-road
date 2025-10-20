@@ -311,11 +311,9 @@ export function useGameState() {
   };
 
   const canChat = (): boolean => {
-    const phase =
-      gameState?.game?.currentPhase ||
-      gameState?.game?.phase ||
-      gameState?.phase;
-    return phase !== "night" && isAlive();
+    // Chat is always enabled for alive players
+    // Server will scramble messages for non-werewolves during night
+    return isAlive();
   };
 
   return {
