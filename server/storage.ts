@@ -28,7 +28,11 @@ export interface DatabaseStorage {
   updateGame: (id: number, data: Partial<GameInsert>) => Promise<Game>;
   getPlayersByGameId: (gameId: string) => Promise<Player[]>;
   createPlayer: (data: PlayerInsert) => Promise<Player>;
-  updatePlayer: (gameId: string, playerId: string, data: Partial<PlayerInsert>) => Promise<Player>;
+  updatePlayer: (
+    gameId: string,
+    playerId: string,
+    data: Partial<PlayerInsert>
+  ) => Promise<Player>;
   getPlayer: (gameId: string, playerId: string) => Promise<Player | undefined>;
   createChatMessage: (data: ChatMessageInsert) => Promise<ChatMessage>;
   getChatMessagesByGame: (gameId: string) => Promise<ChatMessage[]>;
@@ -51,12 +55,12 @@ export const storage: DatabaseStorage = {
   },
 
   getGameByCode: async (code) => {
-    console.log('Getting game by code:', code);
+    console.log("Getting game by code:", code);
     const [game] = await db
       .select()
       .from(games)
       .where(eq(games.gameCode, code));
-    console.log('Found game:', game);
+    console.log("Found game:", game);
     return game;
   },
 
@@ -69,20 +73,27 @@ export const storage: DatabaseStorage = {
         .where(eq(games.id, id));
 
       if (!currentGame) {
-        throw new Error('Game not found');
+        throw new Error("Game not found");
       }
 
       // Build update query
       const updateFields: SQL[] = [];
-      
-      if ('status' in data) updateFields.push(sql`status = ${data.status}`);
-      if ('settings' in data) updateFields.push(sql`settings = ${data.settings}`);
-      if ('currentPhase' in data) updateFields.push(sql`current_phase = ${data.currentPhase}`);
-      if ('phaseTimer' in data) updateFields.push(sql`phase_timer = ${data.phaseTimer}`);
-      if ('nightCount' in data) updateFields.push(sql`night_count = ${data.nightCount}`);
-      if ('dayCount' in data) updateFields.push(sql`day_count = ${data.dayCount}`);
-      if ('lastPhaseChange' in data) updateFields.push(sql`last_phase_change = ${data.lastPhaseChange}`);
-      if ('phaseEndTime' in data) updateFields.push(sql`phase_end_time = ${data.phaseEndTime}`);
+
+      if ("status" in data) updateFields.push(sql`status = ${data.status}`);
+      if ("settings" in data)
+        updateFields.push(sql`settings = ${data.settings}`);
+      if ("currentPhase" in data)
+        updateFields.push(sql`current_phase = ${data.currentPhase}`);
+      if ("phaseTimer" in data)
+        updateFields.push(sql`phase_timer = ${data.phaseTimer}`);
+      if ("nightCount" in data)
+        updateFields.push(sql`night_count = ${data.nightCount}`);
+      if ("dayCount" in data)
+        updateFields.push(sql`day_count = ${data.dayCount}`);
+      if ("lastPhaseChange" in data)
+        updateFields.push(sql`last_phase_change = ${data.lastPhaseChange}`);
+      if ("phaseEndTime" in data)
+        updateFields.push(sql`phase_end_time = ${data.phaseEndTime}`);
 
       if (updateFields.length === 0) {
         return currentGame;
@@ -99,22 +110,25 @@ export const storage: DatabaseStorage = {
       const [game] = result as unknown as Game[];
       return game;
     } catch (error) {
-      console.error('Error updating game:', error);
+      console.error("Error updating game:", error);
       throw error;
     }
   },
 
   getPlayersByGameId: async (gameId) => {
-    console.log('Getting players for game:', gameId);
-    const result = await db.select().from(players).where(eq(players.gameId, gameId));
-    console.log('Found players:', result);
+    console.log("Getting players for game:", gameId);
+    const result = await db
+      .select()
+      .from(players)
+      .where(eq(players.gameId, gameId));
+    console.log("Found players:", result);
     return result;
   },
 
   createPlayer: async (data) => {
-    console.log('Creating player:', data);
+    console.log("Creating player:", data);
     const [player] = await db.insert(players).values(data).returning();
-    console.log('Created player:', player);
+    console.log("Created player:", player);
     return player;
   },
 
@@ -127,19 +141,22 @@ export const storage: DatabaseStorage = {
         .where(and(eq(players.gameId, gameId), eq(players.playerId, playerId)));
 
       if (!currentPlayer) {
-        throw new Error('Player not found');
+        throw new Error("Player not found");
       }
 
       // Build update query
       const updateFields: SQL[] = [];
-      
-      if ('role' in data) updateFields.push(sql`role = ${data.role}`);
-      if ('team' in data) updateFields.push(sql`team = ${data.team}`);
-      if ('isAlive' in data) updateFields.push(sql`is_alive = ${data.isAlive}`);
-      if ('isHost' in data) updateFields.push(sql`is_host = ${data.isHost}`);
-      if ('isSheriff' in data) updateFields.push(sql`is_sheriff = ${data.isSheriff}`);
-      if ('hasShield' in data) updateFields.push(sql`has_shield = ${data.hasShield}`);
-      if ('actionUsed' in data) updateFields.push(sql`action_used = ${data.actionUsed}`);
+
+      if ("role" in data) updateFields.push(sql`role = ${data.role}`);
+      if ("team" in data) updateFields.push(sql`team = ${data.team}`);
+      if ("isAlive" in data) updateFields.push(sql`is_alive = ${data.isAlive}`);
+      if ("isHost" in data) updateFields.push(sql`is_host = ${data.isHost}`);
+      if ("isSheriff" in data)
+        updateFields.push(sql`is_sheriff = ${data.isSheriff}`);
+      if ("hasShield" in data)
+        updateFields.push(sql`has_shield = ${data.hasShield}`);
+      if ("actionUsed" in data)
+        updateFields.push(sql`action_used = ${data.actionUsed}`);
 
       if (updateFields.length === 0) {
         return currentPlayer;
@@ -156,7 +173,7 @@ export const storage: DatabaseStorage = {
       const [player] = result as unknown as Player[];
       return player;
     } catch (error) {
-      console.error('Error updating player:', error);
+      console.error("Error updating player:", error);
       throw error;
     }
   },

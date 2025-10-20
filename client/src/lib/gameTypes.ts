@@ -1,7 +1,29 @@
-export type Role = 'werewolf' | 'villager' | 'seer' | 'doctor' | 'hunter' | 'witch' | 'bodyguard' | 'minion' | 'jester';
-export type Phase = 'waiting' | 'role_reveal' | 'night' | 'day' | 'voting' | 'game_over';
-export type GameStatus = 'waiting' | 'playing' | 'finished';
-export type ActionType = 'kill' | 'save' | 'protect' | 'investigate' | 'poison' | 'shield' | 'vote';
+export type Role =
+  | "werewolf"
+  | "villager"
+  | "seer"
+  | "doctor"
+  | "hunter"
+  | "witch"
+  | "bodyguard"
+  | "minion"
+  | "jester";
+export type Phase =
+  | "waiting"
+  | "role_reveal"
+  | "night"
+  | "day"
+  | "voting"
+  | "game_over";
+export type GameStatus = "waiting" | "playing" | "finished";
+export type ActionType =
+  | "kill"
+  | "save"
+  | "protect"
+  | "investigate"
+  | "poison"
+  | "shield"
+  | "vote";
 
 export interface RequiredAction {
   role: Role;
@@ -23,8 +45,8 @@ export interface GameSettings {
   sheriff: boolean;
   seerInvestigations?: number;
   nightDuration?: number; // Duration of night phase in seconds
-  dayDuration?: number;   // Duration of day phase in seconds
-  voteDuration?: number;  // Duration of voting phase in seconds
+  dayDuration?: number; // Duration of day phase in seconds
+  voteDuration?: number; // Duration of voting phase in seconds
 }
 
 export interface Player {
@@ -63,7 +85,13 @@ export interface ChatMessage {
   playerId: string | null;
   playerName: string;
   message: string;
-  type: 'player' | 'system' | 'death' | 'elimination' | 'werewolf' | 'scrambled';
+  type:
+    | "player"
+    | "system"
+    | "death"
+    | "elimination"
+    | "werewolf"
+    | "scrambled";
   createdAt: Date;
 }
 
@@ -87,50 +115,62 @@ export interface WSMessage {
   [key: string]: any;
 }
 
-export const ROLE_INFO: Record<Role, { name: string; description: string; color: string }> = {
+export const ROLE_INFO: Record<
+  Role,
+  { name: string; description: string; color: string }
+> = {
   werewolf: {
-    name: 'WEREWOLF',
-    description: 'You are a werewolf. Each night, work with your pack to eliminate a villager. Win by outnumbering the villagers.',
-    color: 'text-red-500'
+    name: "WEREWOLF",
+    description:
+      "You are a werewolf. Each night, work with your pack to eliminate a villager. Win by outnumbering the villagers.",
+    color: "text-red-500",
   },
   villager: {
-    name: 'VILLAGER', 
-    description: 'You are a villager. During the day, discuss and vote to eliminate the werewolves. Win by eliminating all werewolves.',
-    color: 'text-green-500'
+    name: "VILLAGER",
+    description:
+      "You are a villager. During the day, discuss and vote to eliminate the werewolves. Win by eliminating all werewolves.",
+    color: "text-green-500",
   },
   seer: {
-    name: 'SEER',
-    description: 'You are the seer. You have limited investigations to divine the true role of other players. Use them wisely to guide the village.',
-    color: 'text-blue-500'
+    name: "SEER",
+    description:
+      "You are the seer. You have limited investigations to divine the true role of other players. Use them wisely to guide the village.",
+    color: "text-blue-500",
   },
   doctor: {
-    name: 'DOCTOR',
-    description: 'You are the doctor. Each night, you can protect one player from werewolf attacks. You can save yourself or others.',
-    color: 'text-emerald-500'
+    name: "DOCTOR",
+    description:
+      "You are the doctor. Each night, you can protect one player from werewolf attacks. You can save yourself or others.",
+    color: "text-emerald-500",
   },
   hunter: {
-    name: 'HUNTER',
-    description: 'You are the hunter. When you die, you can choose another player to eliminate with you.',
-    color: 'text-amber-500'
+    name: "HUNTER",
+    description:
+      "You are the hunter. When you die, you can choose another player to eliminate with you.",
+    color: "text-amber-500",
   },
   witch: {
-    name: 'WITCH',
-    description: 'You are the witch. You have one healing potion and one poison potion to use during the game.',
-    color: 'text-purple-500'
+    name: "WITCH",
+    description:
+      "You are the witch. You have one healing potion and one poison potion to use during the game.",
+    color: "text-purple-500",
   },
   bodyguard: {
-    name: 'BODYGUARD',
-    description: 'You are the bodyguard. Each night, you can protect a player. If they are attacked, you die instead of them.',
-    color: 'text-cyan-500'
+    name: "BODYGUARD",
+    description:
+      "You are the bodyguard. Each night, you can protect a player. If they are attacked, you die instead of them.",
+    color: "text-cyan-500",
   },
   minion: {
-    name: 'MINION',
-    description: 'You are the minion. You appear as a villager but win with the werewolves. You know who the werewolves are.',
-    color: 'text-red-500'
+    name: "MINION",
+    description:
+      "You are the minion. You appear as a villager but win with the werewolves. You know who the werewolves are.",
+    color: "text-red-500",
   },
   jester: {
-    name: 'JESTER',
-    description: 'You are the jester. Your goal is to be voted out by the villagers. If you succeed, you win the game!',
-    color: 'text-orange-500'
-  }
+    name: "JESTER",
+    description:
+      "You are the jester. Your goal is to be voted out by the villagers. If you succeed, you win the game!",
+    color: "text-orange-500",
+  },
 };

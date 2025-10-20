@@ -33,7 +33,8 @@ export default function GameScreen({ gameState }: GameScreenProps) {
   useEffect(() => {
     if (!game) return;
 
-    const currentPhase = game.game?.currentPhase || game.game?.phase || game.phase;
+    const currentPhase =
+      game.game?.currentPhase || game.game?.phase || game.phase;
 
     // Set theme based on phase
     if (currentPhase === "night") {
@@ -50,13 +51,21 @@ export default function GameScreen({ gameState }: GameScreenProps) {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [game?.game?.phaseTimer, game?.phaseTimer, game?.game?.currentPhase, game?.game?.phase, game?.phase, setTheme]);
+  }, [
+    game?.game?.phaseTimer,
+    game?.phaseTimer,
+    game?.game?.currentPhase,
+    game?.game?.phase,
+    game?.phase,
+    setTheme,
+  ]);
 
   const getPhaseInfo = () => {
-    const currentPhase = game?.game?.currentPhase || game?.game?.phase || game?.phase;
+    const currentPhase =
+      game?.game?.currentPhase || game?.game?.phase || game?.phase;
     const nightCount = game?.game?.nightCount || game?.nightCount || 1;
     const dayCount = game?.game?.dayCount || game?.dayCount || 1;
-    
+
     switch (currentPhase) {
       case "night":
         return {
@@ -227,16 +236,21 @@ export default function GameScreen({ gameState }: GameScreenProps) {
                 {/* Action Buttons */}
                 <div className="mt-4 space-y-4">
                   <div className="flex flex-wrap gap-2 justify-center">
-                    {(game?.game?.currentPhase === "voting" || game?.game?.phase === "voting" || game?.phase === "voting") && gameState.canVote() && (
-                      <Button
-                        onClick={() => gameState.setShowVoteOverlay(true)}
-                        className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg"
-                      >
-                        Vote
-                      </Button>
-                    )}
+                    {(game?.game?.currentPhase === "voting" ||
+                      game?.game?.phase === "voting" ||
+                      game?.phase === "voting") &&
+                      gameState.canVote() && (
+                        <Button
+                          onClick={() => gameState.setShowVoteOverlay(true)}
+                          className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg"
+                        >
+                          Vote
+                        </Button>
+                      )}
 
-                    {(game?.game?.currentPhase === "night" || game?.game?.phase === "night" || game?.phase === "night") && (
+                    {(game?.game?.currentPhase === "night" ||
+                      game?.game?.phase === "night" ||
+                      game?.phase === "night") && (
                       <>
                         {gameState.hasNightAction() &&
                           !gameState.hasPerformedNightAction && (

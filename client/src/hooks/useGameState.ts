@@ -1,13 +1,15 @@
-import { useState, useCallback } from 'react';
-import { GameState, GameSettings, Player, ChatMessage } from '@/lib/gameTypes';
-import { useWebSocket } from './useWebSocket';
-import { useToast } from './use-toast';
+import { useState, useCallback } from "react";
+import { GameState, GameSettings, Player, ChatMessage } from "@/lib/gameTypes";
+import { useWebSocket } from "./useWebSocket";
+import { useToast } from "./use-toast";
 
 export function useGameState() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
-  const [playerName, setPlayerName] = useState<string>('');
-  const [currentScreen, setCurrentScreen] = useState<'initial' | 'settings' | 'lobby' | 'game'>('initial');
+  const [playerName, setPlayerName] = useState<string>("");
+  const [currentScreen, setCurrentScreen] = useState<
+    "initial" | "settings" | "lobby" | "game"
+  >("initial");
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [showRoleReveal, setShowRoleReveal] = useState(false);
   const [showVoteOverlay, setShowVoteOverlay] = useState(false);
@@ -19,28 +21,28 @@ export function useGameState() {
   const { toast } = useToast();
 
   // WebSocket message handlers
-  onMessage('game_created', (message) => {
+  onMessage("game_created", (message) => {
     setGameState(message.gameState);
     setPlayerId(message.playerId);
-    setCurrentScreen('lobby');
+    setCurrentScreen("lobby");
     toast({
       title: "Game Created",
       description: `Game code: ${message.gameCode}`,
     });
   });
 
-  onMessage('game_joined', (message) => {
+  onMessage("game_joined", (message) => {
     setGameState(message.gameState);
     setPlayerId(message.playerId);
-    setCurrentScreen('lobby');
+    setCurrentScreen("lobby");
     toast({
       title: "Joined Game",
       description: `Welcome to the game!`,
     });
   });
 
-  onMessage('game_started', () => {
-    setCurrentScreen('game');
+  onMessage("game_started", () => {
+    setCurrentScreen("game");
     setShowRoleReveal(true);
     toast({
       title: "Game Started",
@@ -48,10 +50,10 @@ export function useGameState() {
     });
   });
 
-  onMessage('game_state_update', (message) => {
-    console.log('Received game state update:', message);
+  onMessage("game_state_update", (message) => {
+    console.log("Received game state update:", message);
     if (!message.gameState) {
-      console.error('Invalid game state update:', message);
+      console.error("Invalid game state update:", message);
       return;
     }
 
@@ -64,51 +66,57 @@ export function useGameState() {
       chatMessages: message.gameState.chatMessages || [],
     };
 
-    console.log('Setting new game state:', newGameState);
+    console.log("Setting new game state:", newGameState);
     setGameState(newGameState);
-    
+
     // Handle phase transitions
-    const currentPhase = message.gameState.game?.currentPhase || message.gameState.game?.phase || message.gameState.phase;
-    if (currentPhase === 'night') {
+    const currentPhase =
+      message.gameState.game?.currentPhase ||
+      message.gameState.game?.phase ||
+      message.gameState.phase;
+    if (currentPhase === "night") {
       setHasPerformedNightAction(false); // Reset night action state
-      const currentPlayer = message.gameState.alivePlayers?.find((p: Player) => p.playerId === playerId);
+      const currentPlayer = message.gameState.alivePlayers?.find(
+        (p: Player) => p.playerId === playerId
+      );
       if (currentPlayer && hasNightAction(currentPlayer.role)) {
         setTimeout(() => {
-          if (!showRoleReveal) { // Only show night action if role reveal is done
+          if (!showRoleReveal) {
+            // Only show night action if role reveal is done
             setShowNightActionOverlay(true);
           }
         }, 2000);
       }
-    } else if (currentPhase === 'day') {
+    } else if (currentPhase === "day") {
       setShowNightActionOverlay(false);
       setHasPerformedNightAction(false);
-    } else if (currentPhase === 'game_over') {
+    } else if (currentPhase === "game_over") {
       setShowGameOverOverlay(true);
       setShowNightActionOverlay(false);
       setShowVoteOverlay(false);
     }
   });
 
-  onMessage('player_joined', (message) => {
-    console.log('Player joined:', message);
+  onMessage("player_joined", (message) => {
+    console.log("Player joined:", message);
     toast({
       title: "Player Joined",
       description: `${message.playerName} joined the game`,
     });
   });
 
-  onMessage('player_left', (message) => {
+  onMessage("player_left", (message) => {
     toast({
       title: "Player Left",
       description: `${message.playerName} left the game`,
     });
   });
 
-  onMessage('chat_message', (message) => {
+  onMessage("chat_message", (message) => {
     // Chat messages are handled in the GameState update
   });
 
-  onMessage('vote_recorded', () => {
+  onMessage("vote_recorded", () => {
     setShowVoteOverlay(false);
     setSelectedPlayer(null);
     toast({
@@ -117,7 +125,7 @@ export function useGameState() {
     });
   });
 
-  onMessage('night_action_recorded', () => {
+  onMessage("night_action_recorded", () => {
     setShowNightActionOverlay(false);
     setSelectedPlayer(null);
     setHasPerformedNightAction(true);
@@ -127,33 +135,38 @@ export function useGameState() {
     });
   });
 
-  onMessage('phase_change', (message) => {
-    console.log('Phase changed:', message);
-    
+  onMessage("phase_change", (message) => {
+    console.log("Phase changed:", message);
+
     // Show events (deaths, eliminations, etc.)
     if (message.events && message.events.length > 0) {
       message.events.forEach((event: any) => {
         toast({
-          title: event.type === 'death' ? '💀 Death' : event.type === 'elimination' ? '⚖️ Elimination' : 'Event',
+          title:
+            event.type === "death"
+              ? "💀 Death"
+              : event.type === "elimination"
+              ? "⚖️ Elimination"
+              : "Event",
           description: event.message,
         });
       });
     }
 
     // Reset overlays on phase change
-    if (message.phase === 'day') {
+    if (message.phase === "day") {
       setShowNightActionOverlay(false);
       setShowVoteOverlay(false);
-    } else if (message.phase === 'voting') {
+    } else if (message.phase === "voting") {
       setShowNightActionOverlay(false);
-    } else if (message.phase === 'night') {
+    } else if (message.phase === "night") {
       setShowVoteOverlay(false);
       setHasPerformedNightAction(false);
     }
   });
 
-  onMessage('game_over', (message) => {
-    console.log('Game over:', message);
+  onMessage("game_over", (message) => {
+    console.log("Game over:", message);
     setShowGameOverOverlay(true);
     toast({
       title: "Game Over!",
@@ -161,7 +174,7 @@ export function useGameState() {
     });
   });
 
-  onMessage('error', (message) => {
+  onMessage("error", (message) => {
     toast({
       title: "Error",
       description: message.message,
@@ -169,77 +182,92 @@ export function useGameState() {
     });
   });
 
-  const createGame = useCallback((name: string, settings: GameSettings) => {
-    setPlayerName(name);
-    sendMessage({
-      type: 'create_game',
-      playerName: name,
-      settings
-    });
-  }, [sendMessage]);
+  const createGame = useCallback(
+    (name: string, settings: GameSettings) => {
+      setPlayerName(name);
+      sendMessage({
+        type: "create_game",
+        playerName: name,
+        settings,
+      });
+    },
+    [sendMessage]
+  );
 
-  const joinGame = useCallback((gameCode: string, name: string) => {
-    setPlayerName(name);
-    sendMessage({
-      type: 'join_game',
-      gameCode: gameCode.toUpperCase(),
-      playerName: name
-    });
-  }, [sendMessage]);
+  const joinGame = useCallback(
+    (gameCode: string, name: string) => {
+      setPlayerName(name);
+      sendMessage({
+        type: "join_game",
+        gameCode: gameCode.toUpperCase(),
+        playerName: name,
+      });
+    },
+    [sendMessage]
+  );
 
   const startGame = useCallback(() => {
     if (gameState) {
       sendMessage({
-        type: 'start_game',
-        gameCode: gameState.game.gameCode
+        type: "start_game",
+        gameCode: gameState.game.gameCode,
       });
     }
   }, [sendMessage, gameState]);
 
-  const sendChatMessage = useCallback((message: string) => {
-    if (gameState) {
-      sendMessage({
-        type: 'chat_message',
-        gameCode: gameState.game.gameCode,
-        message
-      });
-    }
-  }, [sendMessage, gameState]);
+  const sendChatMessage = useCallback(
+    (message: string) => {
+      if (gameState) {
+        sendMessage({
+          type: "chat_message",
+          gameCode: gameState.game.gameCode,
+          message,
+        });
+      }
+    },
+    [sendMessage, gameState]
+  );
 
-  const vote = useCallback((targetId: string) => {
-    if (gameState) {
-      sendMessage({
-        type: 'vote',
-        gameCode: gameState.game.gameCode,
-        targetId
-      });
-    }
-  }, [sendMessage, gameState]);
+  const vote = useCallback(
+    (targetId: string) => {
+      if (gameState) {
+        sendMessage({
+          type: "vote",
+          gameCode: gameState.game.gameCode,
+          targetId,
+        });
+      }
+    },
+    [sendMessage, gameState]
+  );
 
-  const performNightAction = useCallback((targetId?: string, actionData?: any) => {
-    if (gameState) {
-      sendMessage({
-        type: 'night_action',
-        gameCode: gameState.game.gameCode,
-        targetId,
-        actionData
-      });
-    }
-  }, [sendMessage, gameState]);
+  const performNightAction = useCallback(
+    (targetId?: string, actionData?: any) => {
+      if (gameState) {
+        sendMessage({
+          type: "night_action",
+          gameCode: gameState.game.gameCode,
+          targetId,
+          actionData,
+        });
+      }
+    },
+    [sendMessage, gameState]
+  );
 
   const leaveGame = useCallback(() => {
     if (gameState) {
       sendMessage({
-        type: 'leave_game',
-        gameCode: gameState.game.gameCode
+        type: "leave_game",
+        gameCode: gameState.game.gameCode,
       });
     }
-    
+
     // Reset local state
     setGameState(null);
     setPlayerId(null);
-    setPlayerName('');
-    setCurrentScreen('initial');
+    setPlayerName("");
+    setCurrentScreen("initial");
     setSelectedPlayer(null);
     setShowRoleReveal(false);
     setShowVoteOverlay(false);
@@ -249,12 +277,14 @@ export function useGameState() {
   }, [sendMessage, gameState]);
 
   const hasNightAction = (role: string | null): boolean => {
-    return role ? ['werewolf', 'seer', 'doctor', 'witch', 'bodyguard'].includes(role) : false;
+    return role
+      ? ["werewolf", "seer", "doctor", "witch", "bodyguard"].includes(role)
+      : false;
   };
 
   const getCurrentPlayer = (): Player | undefined => {
     if (!gameState || !playerId) return undefined;
-    return gameState.players.find(p => p.playerId === playerId);
+    return gameState.players.find((p) => p.playerId === playerId);
   };
 
   const getPlayerRole = (): string | null => {
@@ -273,13 +303,19 @@ export function useGameState() {
   };
 
   const canVote = (): boolean => {
-    const phase = gameState?.game?.currentPhase || gameState?.game?.phase || gameState?.phase;
-    return phase === 'voting' && isAlive();
+    const phase =
+      gameState?.game?.currentPhase ||
+      gameState?.game?.phase ||
+      gameState?.phase;
+    return phase === "voting" && isAlive();
   };
 
   const canChat = (): boolean => {
-    const phase = gameState?.game?.currentPhase || gameState?.game?.phase || gameState?.phase;
-    return phase !== 'night' && isAlive();
+    const phase =
+      gameState?.game?.currentPhase ||
+      gameState?.game?.phase ||
+      gameState?.phase;
+    return phase !== "night" && isAlive();
   };
 
   return {
@@ -294,7 +330,7 @@ export function useGameState() {
     showGameOverOverlay,
     hasPerformedNightAction,
     isConnected,
-    
+
     // Actions
     createGame,
     joinGame,
@@ -303,7 +339,7 @@ export function useGameState() {
     vote,
     performNightAction,
     leaveGame,
-    
+
     // UI Actions
     setCurrentScreen,
     setSelectedPlayer,
@@ -312,7 +348,7 @@ export function useGameState() {
     setShowNightActionOverlay,
     setShowGameOverOverlay,
     setHasPerformedNightAction,
-    
+
     // Computed properties
     getCurrentPlayer,
     getPlayerRole,
@@ -320,6 +356,6 @@ export function useGameState() {
     isAlive,
     canVote,
     canChat,
-    hasNightAction: () => hasNightAction(getPlayerRole())
+    hasNightAction: () => hasNightAction(getPlayerRole()),
   };
 }

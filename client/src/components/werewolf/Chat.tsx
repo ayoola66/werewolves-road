@@ -1,16 +1,16 @@
-import { useState, useEffect, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageCircle, Send } from 'lucide-react';
+import { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { MessageCircle, Send } from "lucide-react";
 
 interface ChatProps {
   gameState: any;
 }
 
 export default function Chat({ gameState }: ChatProps) {
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -27,18 +27,18 @@ export default function Chat({ gameState }: ChatProps) {
 
   const handleSendMessage = () => {
     if (!message.trim()) return;
-    
+
     // Check if player can chat
     if (!gameState.canChat()) {
       return;
     }
 
     gameState.sendChatMessage(message);
-    setMessage('');
+    setMessage("");
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
@@ -47,7 +47,8 @@ export default function Chat({ gameState }: ChatProps) {
   const currentPlayer = gameState.getCurrentPlayer();
   const canChat = gameState.canChat();
   const game = gameState.gameState;
-  const currentPhase = game?.game?.currentPhase || game?.game?.phase || game?.phase;
+  const currentPhase =
+    game?.game?.currentPhase || game?.game?.phase || game?.phase;
 
   return (
     <Card className="h-full flex flex-col bg-gradient-to-br from-amber-50 to-amber-100 dark:from-gray-900 dark:to-gray-800 border-2 border-amber-900/20">
@@ -57,7 +58,7 @@ export default function Chat({ gameState }: ChatProps) {
           Village Chat
           {!canChat && (
             <span className="ml-auto text-sm font-normal text-red-600 dark:text-red-400">
-              {currentPhase === 'night' ? '🌙 Silent Night' : '💀 Deceased'}
+              {currentPhase === "night" ? "🌙 Silent Night" : "💀 Deceased"}
             </span>
           )}
         </CardTitle>
@@ -68,7 +69,9 @@ export default function Chat({ gameState }: ChatProps) {
             {messages.length === 0 ? (
               <div className="text-center text-gray-500 dark:text-gray-400 py-8">
                 <MessageCircle className="w-12 h-12 mx-auto mb-2 opacity-30" />
-                <p className="text-sm">No messages yet. Start the conversation!</p>
+                <p className="text-sm">
+                  No messages yet. Start the conversation!
+                </p>
               </div>
             ) : (
               messages.map((msg, i) => {
@@ -76,33 +79,49 @@ export default function Chat({ gameState }: ChatProps) {
                 return (
                   <div
                     key={`${msg.id || i}-${msg.createdAt}`}
-                    className={`flex ${isCurrentPlayer ? 'justify-end' : 'justify-start'}`}
+                    className={`flex ${
+                      isCurrentPlayer ? "justify-end" : "justify-start"
+                    }`}
                   >
                     <div
                       className={`max-w-[80%] rounded-lg px-4 py-2 ${
                         isCurrentPlayer
-                          ? 'bg-amber-600 text-white'
-                          : 'bg-white dark:bg-gray-700 border border-amber-900/20'
+                          ? "bg-amber-600 text-white"
+                          : "bg-white dark:bg-gray-700 border border-amber-900/20"
                       }`}
                     >
                       <div className="flex items-baseline gap-2 mb-1">
-                        <span className={`font-bold text-sm ${
-                          isCurrentPlayer ? 'text-amber-100' : 'text-amber-900 dark:text-amber-100'
-                        }`}>
+                        <span
+                          className={`font-bold text-sm ${
+                            isCurrentPlayer
+                              ? "text-amber-100"
+                              : "text-amber-900 dark:text-amber-100"
+                          }`}
+                        >
                           {msg.playerName}
                         </span>
-                        <span className={`text-xs opacity-70 ${
-                          isCurrentPlayer ? 'text-amber-200' : 'text-gray-500 dark:text-gray-400'
-                        }`}>
-                          {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          }) : ''}
+                        <span
+                          className={`text-xs opacity-70 ${
+                            isCurrentPlayer
+                              ? "text-amber-200"
+                              : "text-gray-500 dark:text-gray-400"
+                          }`}
+                        >
+                          {msg.createdAt
+                            ? new Date(msg.createdAt).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : ""}
                         </span>
                       </div>
-                      <p className={`text-sm break-words ${
-                        isCurrentPlayer ? 'text-white' : 'text-gray-800 dark:text-gray-200'
-                      }`}>
+                      <p
+                        className={`text-sm break-words ${
+                          isCurrentPlayer
+                            ? "text-white"
+                            : "text-gray-800 dark:text-gray-200"
+                        }`}
+                      >
                         {msg.message}
                       </p>
                     </div>
@@ -113,18 +132,20 @@ export default function Chat({ gameState }: ChatProps) {
             <div ref={messagesEndRef} />
           </div>
         </ScrollArea>
-        
+
         <div className="flex gap-2">
           <Input
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder={canChat ? "Type your message..." : "You cannot speak now..."}
+            placeholder={
+              canChat ? "Type your message..." : "You cannot speak now..."
+            }
             disabled={!canChat}
             className="flex-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 border-amber-900/20 focus:border-amber-600 disabled:opacity-50"
             maxLength={200}
           />
-          <Button 
+          <Button
             onClick={handleSendMessage}
             disabled={!canChat || !message.trim()}
             className="bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50"
@@ -132,7 +153,7 @@ export default function Chat({ gameState }: ChatProps) {
             <Send className="w-4 h-4" />
           </Button>
         </div>
-        
+
         {!canChat && currentPlayer && !currentPlayer.isAlive && (
           <p className="text-xs text-center text-gray-600 dark:text-gray-400">
             The dead tell no tales...
