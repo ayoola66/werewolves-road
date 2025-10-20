@@ -14,6 +14,17 @@ export default function NightActionOverlay({ gameState }: NightActionOverlayProp
   const game = gameState.gameState;
   const playerRole = gameState.getPlayerRole();
   
+  // Calculate night action progress
+  const nightActions = game?.nightActions || [];
+  const rolesWithActions = ['werewolf', 'seer', 'doctor', 'witch', 'bodyguard'];
+  const playersWithRoles = game?.players?.filter((p: any) => 
+    p.isAlive && rolesWithActions.includes(p.role)
+  ) || [];
+  const actorsWhoActed = nightActions.map((a: any) => a.actorId);
+  const totalActors = playersWithRoles.length;
+  const actedCount = actorsWhoActed.length;
+  const actorsNeeded = Math.ceil(totalActors * 0.7); // 70% threshold
+  
   const getActionConfig = () => {
     switch (playerRole) {
       case 'werewolf':
@@ -117,12 +128,34 @@ export default function NightActionOverlay({ gameState }: NightActionOverlayProp
 
   return (
     <div className="fixed inset-0 bg-black/80 flex flex-col items-center justify-center z-[60] p-4">
-      <Card className="panel max-w-2xl w-full">
+      <Card className="panel max-w-2xl w-full bg-blue-950/95 border-2 border-blue-500">
         <CardHeader>
-          <CardTitle className="font-cinzel text-3xl text-center">{actionConfig.title}</CardTitle>
-          <p className="text-lg text-center">{actionConfig.description}</p>
+          <CardTitle className="font-cinzel text-3xl text-center text-blue-300">🌙 {actionConfig.title}</CardTitle>
+          <p className="text-lg text-center text-gray-300">{actionConfig.description}</p>
+          
+          {/* Night Action Progress */}
+          <div className="mt-4 text-center">
+            <div className="text-sm text-gray-400 mb-2">
+              Actions: {actedCount}/{totalActors} • Need {actorsNeeded} to end early
+            </div>
+            <div className="w-full bg-gray-700 rounded-full h-2">
+              <div 
+                className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${(actedCount / totalActors) * 100}%` }}
+              ></div>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
+          {/* Selected Player Indicator */}
+          {gameState.selectedPlayer && (
+            <div className="mb-4 p-3 bg-blue-900/30 border-2 border-blue-500 rounded-lg text-center">
+              <p className="text-white">
+                Target: <strong className="text-blue-300">{gameState.selectedPlayer.name}</strong>
+              </p>
+            </div>
+          )}
+          
           {actionConfig.actionTypes.length > 1 && (
             <div className="flex justify-center gap-4 mb-6">
               {actionConfig.actionTypes.map((type) => (
@@ -130,8 +163,17 @@ export default function NightActionOverlay({ gameState }: NightActionOverlayProp
                   key={type}
                   onClick={() => setActionType(type as any)}
                   variant={actionType === type ? "default" : "secondary"}
-                  className="capitalize"
+                  className={`capitalize ${
+                    actionType === type 
+                      ? 'bg-blue-600 hover:bg-blue-700 ring-2 ring-blue-400' 
+                      : 'bg-gray-700 hover:bg-gray-600'
+                  }`}
                 >
+                  {type === 'save' && '💊 '}
+                  {type === 'poison' && '☠️ '}
+                  {type === 'kill' && '🗡️ '}
+                  {type === 'protect' && '🛡️ '}
+                  {type === 'investigate' && '🔍 '}
                   {type}
                 </Button>
               ))}
@@ -139,30 +181,46 @@ export default function NightActionOverlay({ gameState }: NightActionOverlayProp
           )}
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-            {actionConfig.targets.map((player: any) => (
-              <Button
-                key={player.playerId}
-                onClick={() => handleSelectPlayer(player)}
-                variant={gameState.selectedPlayer?.playerId === player.playerId ? "default" : "secondary"}
-                className="p-4 h-auto flex flex-col items-center"
-                disabled={!actionType && actionConfig.actionTypes.length > 1}
-              >
-                <span className="font-bold">{player.name}</span>
-                {player.isSheriff && <span className="text-xs">⭐ Sheriff</span>}
-                {player.hasShield && <span className="text-xs">🛡️ Shielded</span>}
-              </Button>
-            ))}
+            {actionConfig.targets.map((player: any) => {
+              const isSelected = gameState.selectedPlayer?.playerId === player.playerId;
+              return (
+                <Button
+                  key={player.playerId}
+                  onClick={() => handleSelectPlayer(player)}
+                  variant={isSelected ? "default" : "secondary"}
+                  disabled={!actionType && actionConfig.actionTypes.length > 1}
+                  className={`p-4 h-auto flex flex-col items-center transition-all ${
+                    isSelected 
+                      ? 'ring-4 ring-blue-400 scale-105 bg-blue-600 hover:bg-blue-700' 
+                      : 'hover:bg-gray-700'
+                  }`}
+                >
+                  <span className="font-bold text-lg">{player.name}</span>
+                  {player.isSheriff && <span className="text-xs">⭐ Sheriff</span>}
+                  {player.hasShield && <span className="text-xs">🛡️ Shielded</span>}
+                  {isSelected && <span className="text-xs mt-1">✓ SELECTED</span>}
+                </Button>
+              );
+            })}
           </div>
 
           {playerRole === 'werewolf' && gameState.selectedPlayer && (
             <div className="mb-6">
+              <p className="text-sm text-red-300 mb-2 text-center">
+                Type "{gameState.selectedPlayer.name}" to confirm kill
+              </p>
               <Input
                 type="text"
-                placeholder="Type player name to confirm kill"
+                placeholder={`Type: ${gameState.selectedPlayer.name}`}
                 value={killConfirmation}
                 onChange={(e) => setKillConfirmation(e.target.value)}
-                className="text-center"
+                className="text-center text-lg bg-red-950/30 border-red-500 focus:border-red-400"
               />
+              {killConfirmation && killConfirmation !== gameState.selectedPlayer.name && (
+                <p className="text-xs text-red-400 mt-1 text-center">
+                  Name doesn't match. Type exactly: {gameState.selectedPlayer.name}
+                </p>
+              )}
             </div>
           )}
 
@@ -172,16 +230,18 @@ export default function NightActionOverlay({ gameState }: NightActionOverlayProp
             <Button
               onClick={() => handleAction(gameState.selectedPlayer?.playerId)}
               disabled={!isActionValid() || (!actionType && actionConfig.actionTypes.length > 1)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg"
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-8 rounded-lg text-lg"
             >
-              Confirm Action
+              {gameState.selectedPlayer 
+                ? `Confirm ${actionType || 'Action'}` 
+                : 'Select a Target'}
             </Button>
             <Button
               onClick={() => handleAction()}
               variant="secondary"
-              className="text-white font-bold py-3 px-6 rounded-lg"
+              className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg"
             >
-              Skip Action
+              Skip
             </Button>
           </div>
         </CardContent>
