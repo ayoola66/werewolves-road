@@ -79,6 +79,10 @@ export const storage: DatabaseStorage = {
       if ('settings' in data) updateFields.push(sql`settings = ${data.settings}`);
       if ('currentPhase' in data) updateFields.push(sql`current_phase = ${data.currentPhase}`);
       if ('phaseTimer' in data) updateFields.push(sql`phase_timer = ${data.phaseTimer}`);
+      if ('nightCount' in data) updateFields.push(sql`night_count = ${data.nightCount}`);
+      if ('dayCount' in data) updateFields.push(sql`day_count = ${data.dayCount}`);
+      if ('lastPhaseChange' in data) updateFields.push(sql`last_phase_change = ${data.lastPhaseChange}`);
+      if ('phaseEndTime' in data) updateFields.push(sql`phase_end_time = ${data.phaseEndTime}`);
 
       if (updateFields.length === 0) {
         return currentGame;

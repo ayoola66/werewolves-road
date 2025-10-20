@@ -18,6 +18,10 @@ export const games = pgTable("games", {
   settings: json("settings").notNull(),
   currentPhase: text("current_phase").default("waiting").notNull(),
   phaseTimer: integer("phase_timer").default(0),
+  nightCount: integer("night_count").default(0),
+  dayCount: integer("day_count").default(0),
+  lastPhaseChange: timestamp("last_phase_change").defaultNow(),
+  phaseEndTime: timestamp("phase_end_time"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

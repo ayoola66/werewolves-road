@@ -49,13 +49,12 @@ export interface Game {
   settings: GameSettings;
   currentPhase: Phase;
   phaseTimer: number;
-  createdAt: Date;
   nightCount: number;
   dayCount: number;
-  lastPhaseChange: Date;
-  requiredActions: RequiredAction[];
-  completedActions: RequiredAction[];
-  phaseEndTime: Date | null;
+  lastPhaseChange: Date | string;
+  phaseEndTime: Date | string | null;
+  createdAt: Date | string;
+  phase?: Phase; // Alias for currentPhase for backwards compatibility
 }
 
 export interface ChatMessage {

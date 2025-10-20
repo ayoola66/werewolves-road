@@ -33,34 +33,41 @@ export default function GameScreen({ gameState }: GameScreenProps) {
   useEffect(() => {
     if (!game) return;
 
+    const currentPhase = game.game?.currentPhase || game.game?.phase || game.phase;
+
     // Set theme based on phase
-    if (game.phase === "night") {
+    if (currentPhase === "night") {
       setTheme("dark");
     } else {
       setTheme("light");
     }
 
+    const phaseTimer = game.game?.phaseTimer || game.phaseTimer || 0;
     const interval = setInterval(() => {
-      const minutes = Math.floor(game.phaseTimer / 60);
-      const seconds = game.phaseTimer % 60;
+      const minutes = Math.floor(phaseTimer / 60);
+      const seconds = phaseTimer % 60;
       setTimer(`${minutes}:${seconds.toString().padStart(2, "0")}`);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [game?.phaseTimer, game?.phase, setTheme]);
+  }, [game?.game?.phaseTimer, game?.phaseTimer, game?.game?.currentPhase, game?.game?.phase, game?.phase, setTheme]);
 
   const getPhaseInfo = () => {
-    switch (game?.phase) {
+    const currentPhase = game?.game?.currentPhase || game?.game?.phase || game?.phase;
+    const nightCount = game?.game?.nightCount || game?.nightCount || 1;
+    const dayCount = game?.game?.dayCount || game?.dayCount || 1;
+    
+    switch (currentPhase) {
       case "night":
         return {
-          title: `Night ${game.nightCount || 1}`,
+          title: `Night ${nightCount}`,
           subtitle: "The village sleeps while evil stirs...",
           color: "text-blue-400",
           bgColor: "bg-gray-900",
         };
       case "day":
         return {
-          title: `Day ${game.dayCount || 1}`,
+          title: `Day ${dayCount}`,
           subtitle: "Discuss and find the werewolves",
           color: "text-yellow-400",
           bgColor: "bg-gray-100",
@@ -220,7 +227,7 @@ export default function GameScreen({ gameState }: GameScreenProps) {
                 {/* Action Buttons */}
                 <div className="mt-4 space-y-4">
                   <div className="flex flex-wrap gap-2 justify-center">
-                    {game?.phase === "voting" && gameState.canVote() && (
+                    {(game?.game?.currentPhase === "voting" || game?.game?.phase === "voting" || game?.phase === "voting") && gameState.canVote() && (
                       <Button
                         onClick={() => gameState.setShowVoteOverlay(true)}
                         className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg"
@@ -229,7 +236,7 @@ export default function GameScreen({ gameState }: GameScreenProps) {
                       </Button>
                     )}
 
-                    {game?.phase === "night" && (
+                    {(game?.game?.currentPhase === "night" || game?.game?.phase === "night" || game?.phase === "night") && (
                       <>
                         {gameState.hasNightAction() &&
                           !gameState.hasPerformedNightAction && (
@@ -242,7 +249,7 @@ export default function GameScreen({ gameState }: GameScreenProps) {
                               Night Action
                             </Button>
                           )}
-                        {!gameState.hasUsedShield && (
+                        {gameState.getCurrentPlayer()?.hasShield && (
                           <Button
                             onClick={handleShieldAction}
                             className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg flex items-center gap-2"

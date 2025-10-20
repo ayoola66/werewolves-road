@@ -231,11 +231,543 @@ async function handleJoinGame(
 }
 
 const PHASE_TIMERS = {
-  day: 120, // 2 minutes
+  day: 180, // 3 minutes
   night: 120, // 2 minutes
   voting: 120, // 2 minutes
   roleReveal: 15, // 15 seconds
 };
+
+// Track active phase timers
+const activePhaseTimers = new Map<string, NodeJS.Timeout>();
+
+// Event types for game announcements
+interface GameEvent {
+  type: "death" | "protection" | "elimination" | "investigation" | "game_over";
+  message: string;
+  playerId?: string;
+  playerName?: string;
+  role?: string;
+}
+
+// ============================================================================
+// GAME ENGINE: Action Resolution and Phase Management
+// ============================================================================
+
+/**
+ * Check win conditions and return winner if game is over
+ */
+async function checkWinCondition(
+  gameCode: string
+): Promise<{ gameOver: boolean; winner?: string; message?: string }> {
+  const players = await storage.getPlayersByGameId(gameCode);
+  const alivePlayers = players.filter((p) => p.isAlive);
+
+  const aliveWerewolves = alivePlayers.filter((p) => p.role === "werewolf");
+  const aliveVillagers = alivePlayers.filter((p) => p.team === "village");
+
+  // Werewolves win if they equal or outnumber villagers
+  if (aliveWerewolves.length >= aliveVillagers.length && aliveWerewolves.length > 0) {
+    return {
+      gameOver: true,
+      winner: "werewolves",
+      message: "🐺 The werewolves have overtaken the village! Werewolves win!",
+    };
+  }
+
+  // Village wins if all werewolves are eliminated
+  if (aliveWerewolves.length === 0) {
+    return {
+      gameOver: true,
+      winner: "village",
+      message: "🏘️ All werewolves have been eliminated! Village wins!",
+    };
+  }
+
+  return { gameOver: false };
+}
+
+/**
+ * Resolve night actions and determine who dies
+ */
+async function resolveNightActions(
+  gameCode: string
+): Promise<GameEvent[]> {
+  const events: GameEvent[] = [];
+  const game = await storage.getGameByCode(gameCode);
+  if (!game) return events;
+
+  const players = await storage.getPlayersByGameId(gameCode);
+  const nightActions = await storage.getNightActionsByGameId(gameCode);
+  
+  // Filter only actions from current phase
+  const currentPhaseActions = nightActions.filter(
+    (action) => action.phase === game.currentPhase
+  );
+
+  // Get werewolf kill votes
+  const werewolfVotes = currentPhaseActions.filter(
+    (action) => action.actionType === "werewolf"
+  );
+  
+  let werewolfTarget: string | undefined;
+  if (werewolfVotes.length > 0) {
+    // Count votes for each target
+    const voteCount = new Map<string, number>();
+    werewolfVotes.forEach((vote) => {
+      if (vote.targetId) {
+        voteCount.set(vote.targetId, (voteCount.get(vote.targetId) || 0) + 1);
+      }
+    });
+    
+    // Get target with most votes
+    let maxVotes = 0;
+    voteCount.forEach((count, targetId) => {
+      if (count > maxVotes) {
+        maxVotes = count;
+        werewolfTarget = targetId;
+      }
+    });
+  }
+
+  // Get doctor heals
+  const doctorHeals = currentPhaseActions.filter(
+    (action) => action.actionType === "doctor"
+  );
+  const healedPlayers = new Set(
+    doctorHeals.map((action) => action.targetId).filter(Boolean) as string[]
+  );
+
+  // Get bodyguard protections
+  const bodyguardProtections = currentPhaseActions.filter(
+    (action) => action.actionType === "bodyguard"
+  );
+  const bodyguardMap = new Map<string, string>(); // targetId -> bodyguardId
+  bodyguardProtections.forEach((action) => {
+    if (action.targetId) {
+      bodyguardMap.set(action.targetId, action.playerId);
+    }
+  });
+
+  // Get players who used shields
+  const shieldActions = currentPhaseActions.filter(
+    (action) => action.actionType === "shield"
+  );
+  const shieldedPlayers = new Set(
+    shieldActions.map((action) => action.playerId)
+  );
+
+  // Apply actions in order: Shield → Doctor → Bodyguard → Werewolf Kill
+  if (werewolfTarget) {
+    const target = players.find((p) => p.playerId === werewolfTarget);
+    if (target) {
+      let targetSurvived = false;
+      let protectionType: string | undefined;
+
+      // Check shield (highest priority)
+      if (shieldedPlayers.has(werewolfTarget)) {
+        targetSurvived = true;
+        protectionType = "shield";
+        // Mark shield as used
+        await storage.updatePlayer(gameCode, werewolfTarget, {
+          hasShield: false,
+        });
+      }
+      // Check doctor heal
+      else if (healedPlayers.has(werewolfTarget)) {
+        targetSurvived = true;
+        protectionType = "heal";
+      }
+      // Check bodyguard protection
+      else if (bodyguardMap.has(werewolfTarget)) {
+        const bodyguardId = bodyguardMap.get(werewolfTarget)!;
+        const bodyguard = players.find((p) => p.playerId === bodyguardId);
+        
+        // Bodyguard dies protecting the target
+        if (bodyguard) {
+          await storage.updatePlayer(gameCode, bodyguardId, { isAlive: false });
+          events.push({
+            type: "death",
+            message: `💀 ${bodyguard.name} died protecting someone during the night! They were a Bodyguard.`,
+            playerId: bodyguardId,
+            playerName: bodyguard.name,
+            role: "bodyguard",
+          });
+        }
+        
+        targetSurvived = true;
+        protectionType = "bodyguard";
+      }
+
+      if (targetSurvived) {
+        events.push({
+          type: "protection",
+          message: `🛡️ Someone was attacked but survived the night!`,
+        });
+      } else {
+        // Target dies
+        await storage.updatePlayer(gameCode, werewolfTarget, { isAlive: false });
+        events.push({
+          type: "death",
+          message: `💀 ${target.name} was killed during the night! They were a ${getRoleDisplayName(target.role)}.`,
+          playerId: werewolfTarget,
+          playerName: target.name,
+          role: target.role || "unknown",
+        });
+      }
+    }
+  } else if (nightActions.length > 0) {
+    // No one was killed
+    events.push({
+      type: "protection",
+      message: "✨ Everyone survived the night!",
+    });
+  }
+
+  // Check if bodyguard was killed (special case)
+  const killedBodyguards = events.filter(
+    (e) => e.type === "death" && e.role === "bodyguard"
+  );
+  
+  for (const bgEvent of killedBodyguards) {
+    if (bgEvent.playerId) {
+      // Check if this bodyguard was protecting someone
+      const protection = bodyguardProtections.find(
+        (action) => action.playerId === bgEvent.playerId
+      );
+      
+      if (protection && protection.targetId) {
+        const protectedPlayer = players.find(
+          (p) => p.playerId === protection.targetId
+        );
+        
+        if (protectedPlayer && protectedPlayer.isAlive) {
+          // Check if protected player has shield or was healed
+          const wasShielded = shieldedPlayers.has(protection.targetId);
+          const wasHealed = healedPlayers.has(protection.targetId);
+          
+          if (!wasShielded && !wasHealed) {
+            // Protected player also dies
+            await storage.updatePlayer(gameCode, protection.targetId, {
+              isAlive: false,
+            });
+            events.push({
+              type: "death",
+              message: `💀 ${protectedPlayer.name} also perished with their bodyguard! They were a ${getRoleDisplayName(protectedPlayer.role)}.`,
+              playerId: protection.targetId,
+              playerName: protectedPlayer.name,
+              role: protectedPlayer.role || "unknown",
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return events;
+}
+
+/**
+ * Resolve voting and eliminate player with most votes
+ */
+async function resolveVoting(gameCode: string): Promise<GameEvent[]> {
+  const events: GameEvent[] = [];
+  const game = await storage.getGameByCode(gameCode);
+  if (!game) return events;
+
+  const players = await storage.getPlayersByGameId(gameCode);
+  const votes = await storage.getVotesByGameId(gameCode);
+  
+  // Filter only votes from current phase
+  const currentPhaseVotes = votes.filter(
+    (vote) => vote.phase === game.currentPhase
+  );
+
+  if (currentPhaseVotes.length === 0) {
+    events.push({
+      type: "elimination",
+      message: "⚖️ No one was voted out today.",
+    });
+    return events;
+  }
+
+  // Count votes for each target (Sheriff counts as 2)
+  const voteCount = new Map<string, number>();
+  currentPhaseVotes.forEach((vote) => {
+    const voter = players.find((p) => p.playerId === vote.voterId);
+    const voteWeight = voter?.isSheriff ? 2 : 1;
+    voteCount.set(
+      vote.targetId,
+      (voteCount.get(vote.targetId) || 0) + voteWeight
+    );
+  });
+
+  // Find player with most votes
+  let maxVotes = 0;
+  let eliminatedPlayerId: string | undefined;
+  let tieCount = 0;
+
+  voteCount.forEach((count, targetId) => {
+    if (count > maxVotes) {
+      maxVotes = count;
+      eliminatedPlayerId = targetId;
+      tieCount = 1;
+    } else if (count === maxVotes) {
+      tieCount++;
+    }
+  });
+
+  // Handle tie - no elimination
+  if (tieCount > 1) {
+    events.push({
+      type: "elimination",
+      message: "⚖️ The vote was tied! No one was eliminated.",
+    });
+    return events;
+  }
+
+  // Eliminate player
+  if (eliminatedPlayerId) {
+    const eliminated = players.find((p) => p.playerId === eliminatedPlayerId);
+    if (eliminated) {
+      await storage.updatePlayer(gameCode, eliminatedPlayerId, {
+        isAlive: false,
+      });
+      events.push({
+        type: "elimination",
+        message: `⚖️ ${eliminated.name} was voted out by the village! They were a ${getRoleDisplayName(eliminated.role)}.`,
+        playerId: eliminatedPlayerId,
+        playerName: eliminated.name,
+        role: eliminated.role || "unknown",
+      });
+    }
+  }
+
+  return events;
+}
+
+/**
+ * Check if all required actions for current phase are complete
+ */
+async function checkPhaseActionsComplete(
+  gameCode: string
+): Promise<boolean> {
+  const game = await storage.getGameByCode(gameCode);
+  if (!game) return false;
+
+  const players = await storage.getPlayersByGameId(gameCode);
+  const alivePlayers = players.filter((p) => p.isAlive);
+
+  if (game.currentPhase === "night") {
+    const nightActions = await storage.getNightActionsByGameId(gameCode);
+    const currentPhaseActions = nightActions.filter(
+      (action) => action.phase === game.currentPhase
+    );
+
+    // Get players who need to act
+    const werewolves = alivePlayers.filter((p) => p.role === "werewolf");
+    const seer = alivePlayers.find((p) => p.role === "seer");
+    const doctor = alivePlayers.find((p) => p.role === "doctor");
+    const bodyguard = alivePlayers.find((p) => p.role === "bodyguard");
+
+    let requiredActions = 0;
+    let completedActions = 0;
+
+    // Werewolves need to act (at least half)
+    if (werewolves.length > 0) {
+      requiredActions++;
+      const werewolfActions = currentPhaseActions.filter(
+        (action) =>
+          action.actionType === "werewolf" &&
+          werewolves.some((w) => w.playerId === action.playerId)
+      );
+      if (werewolfActions.length >= Math.ceil(werewolves.length / 2)) {
+        completedActions++;
+      }
+    }
+
+    // Seer can act (optional)
+    if (seer) {
+      const seerAction = currentPhaseActions.find(
+        (action) => action.playerId === seer.playerId
+      );
+      // Seer action is optional, so we don't require it
+    }
+
+    // Doctor can act (optional)
+    if (doctor) {
+      const doctorAction = currentPhaseActions.find(
+        (action) => action.playerId === doctor.playerId
+      );
+      // Doctor action is optional
+    }
+
+    // Bodyguard can act (optional)
+    if (bodyguard) {
+      const bodyguardAction = currentPhaseActions.find(
+        (action) => action.playerId === bodyguard.playerId
+      );
+      // Bodyguard action is optional
+    }
+
+    // All required actions complete if at least 50% of roles acted
+    return completedActions >= requiredActions;
+  }
+
+  if (game.currentPhase === "voting") {
+    const votes = await storage.getVotesByGameId(gameCode);
+    const currentPhaseVotes = votes.filter(
+      (vote) => vote.phase === game.currentPhase
+    );
+
+    // Voting complete if >50% of alive players voted
+    return currentPhaseVotes.length >= Math.ceil(alivePlayers.length / 2);
+  }
+
+  return false;
+}
+
+/**
+ * Advance to next phase
+ */
+async function advancePhase(gameCode: string) {
+  const game = await storage.getGameByCode(gameCode);
+  if (!game) return;
+
+  console.log(`Advancing phase for game ${gameCode} from ${game.currentPhase}`);
+
+  let events: GameEvent[] = [];
+  let nextPhase: string = game.currentPhase;
+  let nightCount = game.nightCount || 0;
+  let dayCount = game.dayCount || 0;
+
+  switch (game.currentPhase) {
+    case "role_reveal":
+      nextPhase = "night";
+      nightCount = 1;
+      break;
+
+    case "night":
+      // Resolve night actions
+      events = await resolveNightActions(gameCode);
+      nextPhase = "day";
+      dayCount++;
+      break;
+
+    case "day":
+      nextPhase = "voting";
+      break;
+
+    case "voting":
+      // Resolve votes
+      events = await resolveVoting(gameCode);
+      
+      // Check win condition
+      const winCheck = await checkWinCondition(gameCode);
+      if (winCheck.gameOver) {
+        await storage.updateGame(game.id, {
+          status: "finished",
+          currentPhase: "game_over",
+        });
+
+        broadcastToGame(gameCode, {
+          type: "game_over",
+          winner: winCheck.winner,
+          message: winCheck.message,
+          events,
+        });
+        return;
+      }
+      
+      nextPhase = "night";
+      nightCount++;
+      break;
+  }
+
+  // Update game phase
+  const phaseTimer = PHASE_TIMERS[nextPhase as keyof typeof PHASE_TIMERS] || 120;
+  const phaseEndTime = new Date(Date.now() + phaseTimer * 1000);
+
+  await storage.updateGame(game.id, {
+    currentPhase: nextPhase,
+    phaseTimer,
+    nightCount,
+    dayCount,
+    lastPhaseChange: new Date(),
+    phaseEndTime,
+  });
+
+  // Broadcast phase change
+  broadcastToGame(gameCode, {
+    type: "phase_change",
+    phase: nextPhase,
+    timer: phaseTimer,
+    nightCount,
+    dayCount,
+    events,
+  });
+
+  // Broadcast updated game state
+  const gameState = await getGameState(gameCode);
+  broadcastGameState(gameCode, gameState);
+
+  // Start next phase timer
+  startPhaseTimer(gameCode);
+}
+
+/**
+ * Start phase timer with early completion checking
+ */
+function startPhaseTimer(gameCode: string) {
+  // Clear existing timer
+  const existingTimer = activePhaseTimers.get(gameCode);
+  if (existingTimer) {
+    clearTimeout(existingTimer);
+    clearInterval(existingTimer);
+  }
+
+  // Check for early completion every 5 seconds
+  const checkInterval = setInterval(async () => {
+    const game = await storage.getGameByCode(gameCode);
+    if (!game || game.currentPhase === "game_over") {
+      clearInterval(checkInterval);
+      activePhaseTimers.delete(gameCode);
+      return;
+    }
+
+    // Check if phase actions are complete
+    if (game.currentPhase === "night" || game.currentPhase === "voting") {
+      const actionsComplete = await checkPhaseActionsComplete(gameCode);
+      if (actionsComplete) {
+        console.log(`Phase ${game.currentPhase} completed early for game ${gameCode}`);
+        clearInterval(checkInterval);
+        activePhaseTimers.delete(gameCode);
+        await advancePhase(gameCode);
+      }
+    }
+  }, 5000);
+
+  // Set main timer
+  const game = storage.getGameByCode(gameCode);
+  game.then((g) => {
+    if (g && g.phaseTimer) {
+      const timer = setTimeout(async () => {
+        clearInterval(checkInterval);
+        activePhaseTimers.delete(gameCode);
+        await advancePhase(gameCode);
+      }, g.phaseTimer * 1000);
+
+      activePhaseTimers.set(gameCode, timer as any);
+    }
+  });
+}
+
+/**
+ * Get display name for role
+ */
+function getRoleDisplayName(role: string | null): string {
+  if (!role) return "Unknown";
+  return role.charAt(0).toUpperCase() + role.slice(1);
+}
 
 async function handleStartGame(
   ws: ExtendedWebSocket,
@@ -296,18 +828,7 @@ async function handleStartGame(
 
     // Start role reveal timer
     setTimeout(async () => {
-      await storage.updateGame(game.id, {
-        status: "night",
-        currentPhase: "night",
-        phaseTimer: PHASE_TIMERS.night,
-      });
-
-      broadcastToGame(message.gameCode, {
-        type: "phase_change",
-        phase: "night",
-        timer: PHASE_TIMERS.night,
-        events: [],
-      });
+      await advancePhase(message.gameCode);
     }, PHASE_TIMERS.roleReveal * 1000);
 
     broadcastToGame(message.gameCode, {
@@ -606,11 +1127,30 @@ async function getGameState(gameCode: string) {
   const votes = await storage.getVotesByGameId(game.gameCode);
   const nightActions = await storage.getNightActionsByGameId(game.gameCode);
 
+  // Compute alive and dead players
+  const alivePlayers = players.filter((p) => p.isAlive);
+  const deadPlayers = players.filter((p) => !p.isAlive);
+
+  // Count werewolves and villagers
+  const werewolfCount = alivePlayers.filter((p) => p.role === "werewolf").length;
+  const villagerCount = alivePlayers.filter((p) => p.team === "village").length;
+
   const gameState = {
-    game,
+    game: {
+      ...game,
+      phase: game.currentPhase, // Add phase alias for backwards compatibility
+    },
     players,
+    alivePlayers,
+    deadPlayers,
     votes,
     nightActions,
+    phase: game.currentPhase,
+    phaseTimer: game.phaseTimer,
+    nightCount: game.nightCount || 0,
+    dayCount: game.dayCount || 0,
+    werewolfCount,
+    villagerCount,
   };
   console.log("Returning game state:", gameState);
   return gameState;

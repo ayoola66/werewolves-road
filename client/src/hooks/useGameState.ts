@@ -68,7 +68,8 @@ export function useGameState() {
     setGameState(newGameState);
     
     // Handle phase transitions
-    if (message.gameState.phase === 'night') {
+    const currentPhase = message.gameState.game?.currentPhase || message.gameState.game?.phase || message.gameState.phase;
+    if (currentPhase === 'night') {
       setHasPerformedNightAction(false); // Reset night action state
       const currentPlayer = message.gameState.alivePlayers?.find((p: Player) => p.playerId === playerId);
       if (currentPlayer && hasNightAction(currentPlayer.role)) {
@@ -78,10 +79,10 @@ export function useGameState() {
           }
         }, 2000);
       }
-    } else if (message.gameState.phase === 'day') {
+    } else if (currentPhase === 'day') {
       setShowNightActionOverlay(false);
       setHasPerformedNightAction(false);
-    } else if (message.gameState.phase === 'game_over') {
+    } else if (currentPhase === 'game_over') {
       setShowGameOverOverlay(true);
       setShowNightActionOverlay(false);
       setShowVoteOverlay(false);
@@ -123,6 +124,40 @@ export function useGameState() {
     toast({
       title: "Action Recorded",
       description: "Your night action has been recorded",
+    });
+  });
+
+  onMessage('phase_change', (message) => {
+    console.log('Phase changed:', message);
+    
+    // Show events (deaths, eliminations, etc.)
+    if (message.events && message.events.length > 0) {
+      message.events.forEach((event: any) => {
+        toast({
+          title: event.type === 'death' ? '💀 Death' : event.type === 'elimination' ? '⚖️ Elimination' : 'Event',
+          description: event.message,
+        });
+      });
+    }
+
+    // Reset overlays on phase change
+    if (message.phase === 'day') {
+      setShowNightActionOverlay(false);
+      setShowVoteOverlay(false);
+    } else if (message.phase === 'voting') {
+      setShowNightActionOverlay(false);
+    } else if (message.phase === 'night') {
+      setShowVoteOverlay(false);
+      setHasPerformedNightAction(false);
+    }
+  });
+
+  onMessage('game_over', (message) => {
+    console.log('Game over:', message);
+    setShowGameOverOverlay(true);
+    toast({
+      title: "Game Over!",
+      description: message.message,
     });
   });
 
@@ -238,11 +273,13 @@ export function useGameState() {
   };
 
   const canVote = (): boolean => {
-    return gameState?.phase === 'voting' && isAlive();
+    const phase = gameState?.game?.currentPhase || gameState?.game?.phase || gameState?.phase;
+    return phase === 'voting' && isAlive();
   };
 
   const canChat = (): boolean => {
-    return gameState?.phase !== 'night' && isAlive();
+    const phase = gameState?.game?.currentPhase || gameState?.game?.phase || gameState?.phase;
+    return phase !== 'night' && isAlive();
   };
 
   return {

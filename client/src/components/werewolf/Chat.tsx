@@ -47,6 +47,7 @@ export default function Chat({ gameState }: ChatProps) {
   const currentPlayer = gameState.getCurrentPlayer();
   const canChat = gameState.canChat();
   const game = gameState.gameState;
+  const currentPhase = game?.game?.currentPhase || game?.game?.phase || game?.phase;
 
   return (
     <Card className="h-full flex flex-col bg-gradient-to-br from-amber-50 to-amber-100 dark:from-gray-900 dark:to-gray-800 border-2 border-amber-900/20">
@@ -56,7 +57,7 @@ export default function Chat({ gameState }: ChatProps) {
           Village Chat
           {!canChat && (
             <span className="ml-auto text-sm font-normal text-red-600 dark:text-red-400">
-              {game?.phase === 'night' ? '🌙 Silent Night' : '💀 Deceased'}
+              {currentPhase === 'night' ? '🌙 Silent Night' : '💀 Deceased'}
             </span>
           )}
         </CardTitle>
