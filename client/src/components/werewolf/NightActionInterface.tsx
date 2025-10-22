@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Chat from "./Chat";
 
@@ -67,42 +65,62 @@ export default function NightActionInterface({
           title: "🐺 Choose Your Victim",
           subtitle:
             "Select a player to eliminate tonight. Coordinate with other werewolves in the chat.",
-          color: "text-red-400",
-          bgColor: "bg-red-900/20",
+          color: "text-red-600 dark:text-red-400",
+          bgColor: "bg-red-600",
+          selectedBg: "bg-red-600",
           borderColor: "border-red-600",
+          hoverBorder: "hover:border-red-400",
+          buttonClass: "bg-red-600 hover:bg-red-700",
+          action: "Kill",
         };
       case "doctor":
         return {
           title: "💊 Protect a Player",
           subtitle: "Choose a player to protect from werewolf attacks tonight.",
-          color: "text-green-400",
-          bgColor: "bg-green-900/20",
+          color: "text-green-600 dark:text-green-400",
+          bgColor: "bg-green-600",
+          selectedBg: "bg-green-600",
           borderColor: "border-green-600",
+          hoverBorder: "hover:border-green-400",
+          buttonClass: "bg-green-600 hover:bg-green-700",
+          action: "Protect",
         };
       case "seer":
         return {
           title: "🔮 Divine a Player",
           subtitle: "Choose a player to learn their true role.",
-          color: "text-purple-400",
-          bgColor: "bg-purple-900/20",
+          color: "text-purple-600 dark:text-purple-400",
+          bgColor: "bg-purple-600",
+          selectedBg: "bg-purple-600",
           borderColor: "border-purple-600",
+          hoverBorder: "hover:border-purple-400",
+          buttonClass: "bg-purple-600 hover:bg-purple-700",
+          action: "Investigate",
         };
       case "bodyguard":
         return {
           title: "🛡️ Guard a Player",
           subtitle:
             "Choose a player to protect. You will die if they are attacked.",
-          color: "text-blue-400",
-          bgColor: "bg-blue-900/20",
+          color: "text-blue-600 dark:text-blue-400",
+          bgColor: "bg-blue-600",
+          selectedBg: "bg-blue-600",
           borderColor: "border-blue-600",
+          hoverBorder: "hover:border-blue-400",
+          buttonClass: "bg-blue-600 hover:bg-blue-700",
+          action: "Guard",
         };
       default:
         return {
           title: "Night Time",
           subtitle: "Wait for other players to complete their actions.",
-          color: "text-gray-400",
-          bgColor: "bg-gray-900/20",
+          color: "text-gray-600 dark:text-gray-400",
+          bgColor: "bg-gray-600",
+          selectedBg: "bg-gray-600",
           borderColor: "border-gray-600",
+          hoverBorder: "hover:border-gray-400",
+          buttonClass: "bg-gray-600 hover:bg-gray-700",
+          action: "Act",
         };
     }
   };
@@ -178,7 +196,7 @@ export default function NightActionInterface({
             >
               Action Complete
             </h3>
-            <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base md:text-lg mb-4">
+            <p className="text-gray-700 dark:text-gray-300 text-sm sm:text-base md:text-lg mb-4">
               You have completed your night action. Wait for others to finish.
             </p>
             <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-300 dark:border-amber-700">
@@ -233,7 +251,7 @@ export default function NightActionInterface({
             >
               {roleConfig.title}
             </CardTitle>
-            <p className="text-xs sm:text-sm md:text-base lg:text-lg text-center text-gray-600 dark:text-gray-300 mt-1 sm:mt-2">
+            <p className="text-xs sm:text-sm md:text-base lg:text-lg text-center text-gray-700 dark:text-gray-300 mt-1 sm:mt-2">
               {roleConfig.subtitle}
             </p>
 
@@ -247,15 +265,7 @@ export default function NightActionInterface({
               </div>
               <div className="w-full bg-gray-300 dark:bg-gray-700 rounded-full h-2 sm:h-3">
                 <div
-                  className={`h-2 sm:h-3 rounded-full transition-all duration-300 ${
-                    playerRole === "werewolf"
-                      ? "bg-red-600"
-                      : playerRole === "doctor"
-                      ? "bg-green-600"
-                      : playerRole === "seer"
-                      ? "bg-purple-600"
-                      : "bg-blue-600"
-                  }`}
+                  className={`h-2 sm:h-3 rounded-full transition-all duration-300 ${roleConfig.bgColor}`}
                   style={{
                     width: `${(actedCount / totalActors) * 100}%`,
                   }}
@@ -264,78 +274,37 @@ export default function NightActionInterface({
             </div>
           </CardHeader>
           <CardContent className="p-2 sm:p-3 md:p-4 lg:p-6 flex-grow overflow-hidden flex flex-col">
-            <RadioGroup
-              value={selectedPlayerId}
-              onValueChange={setSelectedPlayerId}
-              className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mb-4 sm:mb-6 overflow-y-auto pr-2"
-            >
+            {/* Simple 2-column tap-to-select grid */}
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4 sm:mb-6 overflow-y-auto pr-1">
               {availableTargets.map((player: any) => (
-                <div
+                <button
                   key={player.playerId}
-                  className={`flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 md:p-4 rounded-lg border-2 transition-all cursor-pointer ${
-                    selectedPlayerId === player.playerId
-                      ? `${roleConfig.borderColor} ${roleConfig.bgColor} ring-2 ${
-                          playerRole === "werewolf"
-                            ? "ring-red-500"
-                            : playerRole === "doctor"
-                            ? "ring-green-500"
-                            : playerRole === "seer"
-                            ? "ring-purple-500"
-                            : "ring-blue-500"
-                        }`
-                      : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
-                  }`}
                   onClick={() => setSelectedPlayerId(player.playerId)}
+                  className={`p-3 sm:p-4 rounded-lg border-2 transition-all text-left ${
+                    selectedPlayerId === player.playerId
+                      ? `${roleConfig.selectedBg} border-${roleConfig.borderColor} text-white ring-2 ring-offset-1`
+                      : `bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-600 ${roleConfig.hoverBorder} text-gray-900 dark:text-white`
+                  }`}
                 >
-                  <RadioGroupItem
-                    value={player.playerId}
-                    id={player.playerId}
-                    className={`flex-shrink-0 ${
-                      playerRole === "werewolf"
-                        ? "text-red-600"
-                        : playerRole === "doctor"
-                        ? "text-green-600"
-                        : playerRole === "seer"
-                        ? "text-purple-600"
-                        : "text-blue-600"
-                    }`}
-                  />
-                  <Label
-                    htmlFor={player.playerId}
-                    className="flex-grow cursor-pointer text-xs sm:text-sm md:text-base lg:text-lg font-semibold truncate"
-                  >
+                  <div className="font-bold text-sm sm:text-base md:text-lg truncate">
                     {player.name}
-                    {player.isHost && " 👑"}
-                    {player.isSheriff && " ⭐"}
-                  </Label>
-                </div>
+                  </div>
+                  <div className="text-xs sm:text-sm mt-1 opacity-90">
+                    {player.isHost && "👑 "}
+                    {player.isSheriff && "⭐ Sheriff"}
+                  </div>
+                </button>
               ))}
-            </RadioGroup>
+            </div>
 
             <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4 flex-shrink-0">
               <Button
                 onClick={handleAction}
                 disabled={!selectedPlayerId}
-                className={`${
-                  playerRole === "werewolf"
-                    ? "bg-red-600 hover:bg-red-700"
-                    : playerRole === "doctor"
-                    ? "bg-green-600 hover:bg-green-700"
-                    : playerRole === "seer"
-                    ? "bg-purple-600 hover:bg-purple-700"
-                    : "bg-blue-600 hover:bg-blue-700"
-                } disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-2 sm:py-3 px-4 sm:px-6 md:px-8 text-xs sm:text-sm md:text-base lg:text-lg`}
+                className={`${roleConfig.buttonClass} disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-2 sm:py-3 px-4 sm:px-6 md:px-8 text-xs sm:text-sm md:text-base lg:text-lg`}
               >
                 {selectedPlayerId
-                  ? `Confirm ${
-                      playerRole === "werewolf"
-                        ? "Kill"
-                        : playerRole === "doctor"
-                        ? "Protect"
-                        : playerRole === "seer"
-                        ? "Investigate"
-                        : "Guard"
-                    }`
+                  ? `Confirm ${roleConfig.action}`
                   : "Select Player"}
               </Button>
               <Button

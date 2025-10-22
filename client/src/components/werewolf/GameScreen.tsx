@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import PlayerList from "./PlayerList";
+import PlayerSidebar from "./PlayerSidebar";
 import Chat from "./Chat";
 import RoleReveal from "./overlays/RoleReveal";
 import GameOverOverlay from "./overlays/GameOverOverlay";
@@ -268,31 +268,35 @@ export default function GameScreen({ gameState }: GameScreenProps) {
       </AlertDialog>
 
       <div
-        className={`min-h-screen transition-colors duration-500 ${phaseInfo.bgColor} relative`}
+        className={`min-h-screen transition-colors duration-500 ${phaseInfo.bgColor} relative flex`}
       >
-        {/* Leave Game Button - Bottom Left */}
-        <Button
-          onClick={() => setShowLeaveConfirm(true)}
-          variant="outline"
-          className="fixed bottom-6 left-6 bg-red-600/90 hover:bg-red-700 text-white border-red-700 font-semibold shadow-lg z-10 flex items-center gap-2"
-        >
-          <LogOut className="w-4 h-4" />
-          Leave Game
-        </Button>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
-          {/* Players Panel */}
-          <div className="lg:col-span-1">
-            <PlayerList gameState={gameState} />
-          </div>
+        {/* Player Sidebar - Collapsible on mobile */}
+        <PlayerSidebar
+          alivePlayers={game?.alivePlayers || []}
+          deadPlayers={game?.deadPlayers || []}
+          currentPlayerId={gameState.playerId}
+        />
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Leave Game Button - Top Right */}
+          <Button
+            onClick={() => setShowLeaveConfirm(true)}
+            variant="outline"
+            className="absolute top-4 right-4 bg-red-600/90 hover:bg-red-700 text-white border-red-700 font-semibold shadow-lg z-10 flex items-center gap-2"
+          >
+            <LogOut className="w-4 h-4" />
+            Leave Game
+          </Button>
 
           {/* Main Game Panel */}
-          <div className="lg:col-span-2">
+          <div className="flex-1 p-4 sm:p-6 pt-16 overflow-hidden">
             <Card
-              className={`panel rounded-lg shadow-2xl ${
+              className={`h-full rounded-lg shadow-2xl ${
                 game?.phase === "night" ? "bg-gray-900/90" : "bg-white/90"
               }`}
             >
-              <CardContent className="p-6 flex flex-col h-full">
+              <CardContent className="p-4 sm:p-6 flex flex-col h-full">
                 {/* Player Info Banner */}
                 {gameState.getCurrentPlayer() && (
                   <div className="mb-4 bg-gradient-to-r from-amber-100 to-amber-50 dark:from-gray-800 dark:to-gray-700 border-2 border-amber-600/30 rounded-lg p-3">

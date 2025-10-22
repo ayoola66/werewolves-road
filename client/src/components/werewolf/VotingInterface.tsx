@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -16,19 +14,21 @@ export default function VotingInterface({ gameState }: VotingInterfaceProps) {
 
   const game = gameState.gameState;
   const currentPlayer = gameState.getCurrentPlayer();
-  
+
   // Get alive players excluding current player
-  const alivePlayers = game?.alivePlayers?.filter(
-    (p: any) => p.playerId !== gameState.playerId
-  ) || [];
+  const alivePlayers =
+    game?.alivePlayers?.filter((p: any) => p.playerId !== gameState.playerId) ||
+    [];
 
   // Get votes data
   const votes = game?.votes || [];
   const allPlayers = game?.players || [];
-  
+
   // Check if current player has voted
-  const currentPlayerVote = votes.find((v: any) => v.voterId === gameState.playerId);
-  
+  const currentPlayerVote = votes.find(
+    (v: any) => v.voterId === gameState.playerId
+  );
+
   useEffect(() => {
     if (currentPlayerVote) {
       setHasVoted(true);
@@ -36,9 +36,10 @@ export default function VotingInterface({ gameState }: VotingInterfaceProps) {
   }, [currentPlayerVote]);
 
   // Check phase
-  const currentPhase = game?.game?.currentPhase || game?.game?.phase || game?.phase;
+  const currentPhase =
+    game?.game?.currentPhase || game?.game?.phase || game?.phase;
   const isVotingResults = currentPhase === "voting_results";
-  
+
   // Get total alive players and votes
   const totalAlivePlayers = game?.alivePlayers?.length || 0;
   const totalVotes = votes.length;
@@ -50,8 +51,13 @@ export default function VotingInterface({ gameState }: VotingInterfaceProps) {
   // Countdown timer for voting results phase
   useEffect(() => {
     if (isVotingResults) {
-      console.log("Voting results phase - phaseTimer:", phaseTimer, "phaseEndTime:", phaseEndTime);
-      
+      console.log(
+        "Voting results phase - phaseTimer:",
+        phaseTimer,
+        "phaseEndTime:",
+        phaseEndTime
+      );
+
       if (phaseEndTime) {
         // Calculate from phaseEndTime
         const interval = setInterval(() => {
@@ -84,7 +90,7 @@ export default function VotingInterface({ gameState }: VotingInterfaceProps) {
   const voteResults = votes.reduce((acc: any, vote: any) => {
     const voter = allPlayers.find((p: any) => p.playerId === vote.voterId);
     const target = allPlayers.find((p: any) => p.playerId === vote.targetId);
-    
+
     if (voter && target) {
       if (!acc[target.playerId]) {
         acc[target.playerId] = {
@@ -139,7 +145,8 @@ export default function VotingInterface({ gameState }: VotingInterfaceProps) {
                           : "bg-gray-600 hover:bg-gray-700"
                       }`}
                     >
-                      {result.totalVotes} vote{result.totalVotes !== 1 ? "s" : ""}
+                      {result.totalVotes} vote
+                      {result.totalVotes !== 1 ? "s" : ""}
                     </Badge>
                   </div>
                   <div className="text-xs sm:text-sm text-gray-300 truncate">
@@ -158,7 +165,9 @@ export default function VotingInterface({ gameState }: VotingInterfaceProps) {
             {/* Countdown timer */}
             <div className="text-center">
               <div className="inline-block bg-gray-900/80 px-4 sm:px-6 py-2 sm:py-3 rounded-lg border-2 border-amber-500">
-                <p className="text-gray-300 text-xs sm:text-sm mb-1">Night begins in</p>
+                <p className="text-gray-300 text-xs sm:text-sm mb-1">
+                  Night begins in
+                </p>
                 <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-amber-400 font-mono">
                   {countdown}s
                 </p>
@@ -176,10 +185,10 @@ export default function VotingInterface({ gameState }: VotingInterfaceProps) {
       <div className="flex-grow flex flex-col p-2 sm:p-4 md:p-6 overflow-hidden">
         <Card className="w-full max-w-4xl mx-auto bg-white dark:bg-gray-900/90 border-2 border-red-600 flex flex-col max-h-full">
           <CardHeader className="p-3 sm:p-4 md:p-6 flex-shrink-0">
-            <CardTitle className="text-center font-cinzel text-lg sm:text-xl md:text-2xl lg:text-3xl text-red-600">
+            <CardTitle className="text-center font-cinzel text-lg sm:text-xl md:text-2xl lg:text-3xl text-red-600 dark:text-red-400">
               ⚖️ Cast Your Vote
             </CardTitle>
-            <p className="text-center text-gray-600 dark:text-gray-300 text-xs sm:text-sm md:text-base lg:text-lg mt-1 sm:mt-2">
+            <p className="text-center text-gray-700 dark:text-gray-300 text-xs sm:text-sm md:text-base lg:text-lg mt-1 sm:mt-2">
               Select a player to vote for elimination
             </p>
             {/* Vote Progress */}
@@ -201,36 +210,29 @@ export default function VotingInterface({ gameState }: VotingInterfaceProps) {
             </div>
           </CardHeader>
           <CardContent className="p-3 sm:p-4 md:p-6 flex-grow overflow-hidden flex flex-col">
-            <RadioGroup
-              value={selectedPlayerId}
-              onValueChange={setSelectedPlayerId}
-              className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mb-4 sm:mb-6 overflow-y-auto pr-2"
-            >
+            {/* Simple 2-column tap-to-select grid */}
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4 sm:mb-6 overflow-y-auto pr-1">
               {alivePlayers.map((player: any) => (
-                <div
+                <button
                   key={player.playerId}
-                  className={`flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 md:p-4 rounded-lg border-2 transition-all cursor-pointer ${
-                    selectedPlayerId === player.playerId
-                      ? "border-red-600 bg-red-50 dark:bg-red-900/20 ring-2 ring-red-500"
-                      : "border-gray-300 dark:border-gray-600 hover:border-red-400 dark:hover:border-red-500"
-                  }`}
                   onClick={() => setSelectedPlayerId(player.playerId)}
+                  className={`p-3 sm:p-4 rounded-lg border-2 transition-all text-left ${
+                    selectedPlayerId === player.playerId
+                      ? "bg-red-600 border-red-700 text-white ring-2 ring-red-500"
+                      : "bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-red-400 dark:hover:border-red-500 text-gray-900 dark:text-white"
+                  }`}
                 >
-                  <RadioGroupItem
-                    value={player.playerId}
-                    id={player.playerId}
-                    className="text-red-600 flex-shrink-0"
-                  />
-                  <Label
-                    htmlFor={player.playerId}
-                    className="flex-grow cursor-pointer text-xs sm:text-sm md:text-base lg:text-lg font-semibold truncate"
-                  >
+                  <div className="font-bold text-sm sm:text-base md:text-lg truncate">
                     {player.name}
-                    {player.isSheriff && " ⭐"}
-                  </Label>
-                </div>
+                  </div>
+                  {player.isSheriff && (
+                    <div className="text-xs sm:text-sm mt-1 opacity-90">
+                      ⭐ Sheriff
+                    </div>
+                  )}
+                </button>
               ))}
-            </RadioGroup>
+            </div>
 
             <div className="flex justify-center gap-2 sm:gap-4 flex-shrink-0">
               <Button
@@ -239,9 +241,10 @@ export default function VotingInterface({ gameState }: VotingInterfaceProps) {
                 className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-2 sm:py-3 px-4 sm:px-6 md:px-8 text-xs sm:text-sm md:text-base lg:text-lg"
               >
                 {selectedPlayerId
-                  ? `Vote ${
-                      alivePlayers.find((p: any) => p.playerId === selectedPlayerId)
-                        ?.name
+                  ? `Vote Out ${
+                      alivePlayers.find(
+                        (p: any) => p.playerId === selectedPlayerId
+                      )?.name
                     }`
                   : "Select Player"}
               </Button>
@@ -258,14 +261,17 @@ export default function VotingInterface({ gameState }: VotingInterfaceProps) {
       <Card className="w-full max-w-xl bg-white dark:bg-gray-900/90 border-2 border-green-600">
         <CardContent className="p-4 sm:p-6 md:p-8 text-center">
           <div className="text-4xl sm:text-5xl md:text-6xl mb-4">✅</div>
-          <h3 className="text-xl sm:text-2xl font-cinzel font-bold text-green-600 mb-2">
+          <h3 className="text-xl sm:text-2xl font-cinzel font-bold text-green-600 dark:text-green-400 mb-2">
             Vote Cast Successfully
           </h3>
-          <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base md:text-lg mb-4">
+          <p className="text-gray-700 dark:text-gray-300 text-sm sm:text-base md:text-lg mb-4">
             You voted for:{" "}
-            <span className="font-bold text-red-600">
-              {allPlayers.find((p: any) => p.playerId === currentPlayerVote?.targetId)
-                ?.name}
+            <span className="font-bold text-red-600 dark:text-red-400">
+              {
+                allPlayers.find(
+                  (p: any) => p.playerId === currentPlayerVote?.targetId
+                )?.name
+              }
             </span>
           </p>
           <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-300 dark:border-amber-700">
