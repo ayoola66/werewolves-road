@@ -391,10 +391,18 @@ export default function GameScreen({ gameState }: GameScreenProps) {
                       <h3 className="text-3xl font-cinzel font-bold text-amber-600 mb-4">
                         Discussion Time
                       </h3>
-                      <p className="text-lg text-gray-600 dark:text-gray-300">
+                      <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
                         Discuss with other players and share your suspicions.
-                        Voting phase will begin soon.
+                        When ready, start the voting phase.
                       </p>
+                      {gameState.canStartVoting() && (
+                        <Button
+                          onClick={gameState.startVoting}
+                          className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 text-lg"
+                        >
+                          ⚖️ Start Voting
+                        </Button>
+                      )}
                     </div>
                   </div>
                 )}

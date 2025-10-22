@@ -57,27 +57,29 @@ export function useGameState() {
       return;
     }
 
-    // Ensure we have the correct game state structure
+    // Preserve all server properties - don't restructure and lose data!
     const newGameState = {
       game: message.gameState.game,
       players: message.gameState.players || [],
       alivePlayers: message.gameState.alivePlayers || [],
       deadPlayers: message.gameState.deadPlayers || [],
-      phase: message.gameState.phase || message.gameState.game?.currentPhase || message.gameState.game?.phase || 'waiting',
-      phaseTimer: message.gameState.phaseTimer || message.gameState.game?.phaseTimer || 0,
-      votes: message.gameState.votes || {},
-      nightActions: message.gameState.nightActions || {},
+      votes: message.gameState.votes || [],
+      nightActions: message.gameState.nightActions || [],
       chatMessages: message.gameState.chatMessages || [],
+      phase: message.gameState.phase,
+      phaseTimer: message.gameState.phaseTimer,
+      nightCount: message.gameState.nightCount,
+      dayCount: message.gameState.dayCount,
+      werewolfCount: message.gameState.werewolfCount,
+      villagerCount: message.gameState.villagerCount,
+      seerInvestigationsLeft: message.gameState.seerInvestigationsLeft,
     };
 
     console.log("Setting new game state:", newGameState);
     setGameState(newGameState);
 
     // Handle phase transitions
-    const currentPhase =
-      message.gameState.game?.currentPhase ||
-      message.gameState.game?.phase ||
-      message.gameState.phase;
+    const currentPhase = newGameState.phase;
     if (currentPhase === "night") {
       setHasPerformedNightAction(false); // Reset night action state
       const currentPlayer = message.gameState.alivePlayers?.find(
@@ -259,6 +261,15 @@ export function useGameState() {
     [sendMessage, gameState]
   );
 
+  const startVoting = useCallback(() => {
+    if (gameState) {
+      sendMessage({
+        type: "start_voting",
+        gameCode: gameState.game.gameCode,
+      });
+    }
+  }, [sendMessage, gameState]);
+
   const leaveGame = useCallback(() => {
     if (gameState) {
       sendMessage({
@@ -307,17 +318,17 @@ export function useGameState() {
   };
 
   const canVote = (): boolean => {
-    const phase =
-      gameState?.game?.currentPhase ||
-      gameState?.game?.phase ||
-      gameState?.phase;
-    return phase === "voting" && isAlive();
+    return gameState?.phase === "voting" && isAlive();
   };
 
   const canChat = (): boolean => {
     // Chat is always enabled for alive players
     // Server will scramble messages for non-werewolves during night
     return isAlive();
+  };
+
+  const canStartVoting = (): boolean => {
+    return gameState?.phase === "day" && isAlive();
   };
 
   return {
@@ -340,6 +351,7 @@ export function useGameState() {
     sendChatMessage,
     vote,
     performNightAction,
+    startVoting,
     leaveGame,
 
     // UI Actions
@@ -358,6 +370,7 @@ export function useGameState() {
     isAlive,
     canVote,
     canChat,
+    canStartVoting,
     hasNightAction: () => hasNightAction(getPlayerRole()),
   };
 }

@@ -1,0 +1,19 @@
+CREATE TABLE IF NOT EXISTS votes (
+  id SERIAL PRIMARY KEY,
+  game_id TEXT NOT NULL,
+  voter_id TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  phase TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS night_actions (
+  id SERIAL PRIMARY KEY,
+  game_id TEXT NOT NULL,
+  player_id TEXT NOT NULL,
+  target_id TEXT,
+  action_type TEXT NOT NULL,
+  data JSONB,
+  phase TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+); 
