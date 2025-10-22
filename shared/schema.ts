@@ -116,6 +116,10 @@ export const wsMessageSchema = z.discriminatedUnion("type", [
     gameCode: z.string(),
   }),
   z.object({
+    type: z.literal("start_voting"),
+    gameCode: z.string(),
+  }),
+  z.object({
     type: z.literal("chat_message"),
     gameCode: z.string(),
     message: z.string(),

@@ -61,6 +61,9 @@ async function handleWebSocketMessage(
     case "start_game":
       await handleStartGame(ws, message);
       break;
+    case "start_voting":
+      await handleStartVoting(ws, message);
+      break;
     case "chat_message":
       await handleChatMessage(ws, message);
       break;
@@ -865,6 +868,78 @@ async function handleStartGame(
       JSON.stringify({
         type: "error",
         message: "Failed to start game",
+      })
+    );
+  }
+}
+
+async function handleStartVoting(
+  ws: ExtendedWebSocket,
+  message: { type: "start_voting"; gameCode: string }
+) {
+  try {
+    if (!ws.playerId) return;
+
+    const game = await storage.getGameByCode(message.gameCode);
+    if (!game) return;
+
+    // Check if game is in day phase
+    if (game.currentPhase !== "day") {
+      ws.send(
+        JSON.stringify({
+          type: "error",
+          message: "Voting can only be started during the day phase",
+        })
+      );
+      return;
+    }
+
+    // Check if player is alive
+    const players = await storage.getPlayersByGameId(game.gameCode);
+    const currentPlayer = players.find((p) => p.playerId === ws.playerId);
+    if (!currentPlayer || !currentPlayer.isAlive) {
+      ws.send(
+        JSON.stringify({
+          type: "error",
+          message: "Only alive players can start voting",
+        })
+      );
+      return;
+    }
+
+    // Transition to voting phase
+    await storage.updateGame(game.id, {
+      currentPhase: "voting",
+      phaseTimer: PHASE_TIMERS.voting,
+      phaseEndTime: new Date(Date.now() + PHASE_TIMERS.voting * 1000),
+    });
+
+    // Broadcast phase change
+    broadcastToGame(message.gameCode, {
+      type: "phase_change",
+      phase: "voting",
+      timer: PHASE_TIMERS.voting,
+      events: [
+        {
+          type: "phase_change",
+          message: "Voting phase has begun! Cast your votes.",
+        },
+      ],
+    });
+
+    // Start voting timer
+    setTimeout(async () => {
+      await advancePhase(message.gameCode);
+    }, PHASE_TIMERS.voting * 1000);
+
+    const gameState = await getGameState(message.gameCode);
+    broadcastGameState(message.gameCode, gameState);
+  } catch (error) {
+    console.error("Error starting voting:", error);
+    ws.send(
+      JSON.stringify({
+        type: "error",
+        message: "Failed to start voting",
       })
     );
   }

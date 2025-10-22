@@ -1,0 +1,7 @@
+-- Add phase tracking fields to games table
+ALTER TABLE games 
+ADD COLUMN IF NOT EXISTS night_count INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS day_count INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS last_phase_change TIMESTAMP DEFAULT NOW(),
+ADD COLUMN IF NOT EXISTS phase_end_time TIMESTAMP;
+
