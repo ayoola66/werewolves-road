@@ -48,19 +48,31 @@ export default function VotingInterface({ gameState }: VotingInterfaceProps) {
 
   // Get timer from game state
   const phaseEndTime = game?.game?.phaseEndTime || game?.phaseEndTime;
+  const phaseTimer = game?.game?.phaseTimer || game?.phaseTimer;
 
   // Countdown timer for voting results phase
   useEffect(() => {
-    if (isVotingResults && phaseEndTime) {
-      const interval = setInterval(() => {
+    if (isVotingResults) {
+      if (phaseEndTime) {
+        // Calculate from phaseEndTime
         const endTime = new Date(phaseEndTime).getTime();
         const now = Date.now();
         const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
         setCountdown(remaining);
-      }, 100);
-      return () => clearInterval(interval);
+
+        const interval = setInterval(() => {
+          const endTime = new Date(phaseEndTime).getTime();
+          const now = Date.now();
+          const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
+          setCountdown(remaining);
+        }, 100);
+        return () => clearInterval(interval);
+      } else if (phaseTimer) {
+        // Fallback to phaseTimer
+        setCountdown(phaseTimer);
+      }
     }
-  }, [isVotingResults, phaseEndTime]);
+  }, [isVotingResults, phaseEndTime, phaseTimer]);
 
   const handleVote = () => {
     if (selectedPlayerId && !hasVoted) {

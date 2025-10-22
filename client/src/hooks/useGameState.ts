@@ -222,12 +222,13 @@ export function useGameState() {
   }, [sendMessage, gameState]);
 
   const sendChatMessage = useCallback(
-    (message: string) => {
+    (message: string, channel?: string) => {
       if (gameState) {
         sendMessage({
           type: "chat_message",
           gameCode: gameState.game.gameCode,
           message,
+          channel,
         });
       }
     },

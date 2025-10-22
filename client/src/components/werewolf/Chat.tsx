@@ -7,9 +7,10 @@ import { MessageCircle, Send } from "lucide-react";
 
 interface ChatProps {
   gameState: any;
+  channel?: string; // "player" | "werewolf"
 }
 
-export default function Chat({ gameState }: ChatProps) {
+export default function Chat({ gameState, channel = "player" }: ChatProps) {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -20,10 +21,14 @@ export default function Chat({ gameState }: ChatProps) {
 
   useEffect(() => {
     if (gameState?.gameState?.chatMessages) {
-      setMessages(gameState.gameState.chatMessages);
+      // Filter messages by channel
+      const filteredMessages = gameState.gameState.chatMessages.filter(
+        (msg: any) => msg.type === channel
+      );
+      setMessages(filteredMessages);
       setTimeout(scrollToBottom, 100);
     }
-  }, [gameState?.gameState?.chatMessages]);
+  }, [gameState?.gameState?.chatMessages, channel]);
 
   const handleSendMessage = () => {
     if (!message.trim()) return;
@@ -33,7 +38,7 @@ export default function Chat({ gameState }: ChatProps) {
       return;
     }
 
-    gameState.sendChatMessage(message);
+    gameState.sendChatMessage(message, channel);
     setMessage("");
   };
 

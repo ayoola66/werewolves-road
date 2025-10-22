@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import PlayerList from "./PlayerList";
 import Chat from "./Chat";
 import RoleReveal from "./overlays/RoleReveal";
-import NightActionOverlay from "./overlays/NightActionOverlay";
 import GameOverOverlay from "./overlays/GameOverOverlay";
 import VotingInterface from "./VotingInterface";
+import NightActionInterface from "./NightActionInterface";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -18,7 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useTheme } from "next-themes";
-import { Shield, LogOut, User, Award } from "lucide-react";
+import { LogOut, User, Award } from "lucide-react";
 
 interface GameScreenProps {
   gameState: any;
@@ -155,10 +155,6 @@ export default function GameScreen({ gameState }: GameScreenProps) {
 
   const phaseInfo = getPhaseInfo();
 
-  const handleShieldAction = () => {
-    gameState.performNightAction(gameState.playerId, "shield");
-  };
-
   const handleLeaveGame = () => {
     gameState.leaveGame();
     setShowLeaveConfirm(false);
@@ -241,9 +237,6 @@ export default function GameScreen({ gameState }: GameScreenProps) {
 
       {/* Overlays */}
       {gameState.showRoleReveal && <RoleReveal gameState={gameState} />}
-      {gameState.showNightActionOverlay && (
-        <NightActionOverlay gameState={gameState} />
-      )}
       {gameState.showGameOverOverlay && (
         <GameOverOverlay gameState={gameState} />
       )}
@@ -355,7 +348,7 @@ export default function GameScreen({ gameState }: GameScreenProps) {
                   </div>
                 </div>
 
-                {/* Chat - Hidden during voting, voting_results and day phase */}
+                {/* Chat - Hidden during voting, voting_results and night phase */}
                 {!(
                   game?.game?.currentPhase === "voting" ||
                   game?.game?.phase === "voting" ||
@@ -363,9 +356,9 @@ export default function GameScreen({ gameState }: GameScreenProps) {
                   game?.game?.currentPhase === "voting_results" ||
                   game?.game?.phase === "voting_results" ||
                   game?.phase === "voting_results" ||
-                  game?.game?.currentPhase === "day" ||
-                  game?.game?.phase === "day" ||
-                  game?.phase === "day"
+                  game?.game?.currentPhase === "night" ||
+                  game?.game?.phase === "night" ||
+                  game?.phase === "night"
                 ) && (
                   <div className="flex-grow">
                     <Chat gameState={gameState} />
@@ -382,62 +375,28 @@ export default function GameScreen({ gameState }: GameScreenProps) {
                   <VotingInterface gameState={gameState} />
                 )}
 
-                {/* Day Phase Message */}
+                {/* Night Action Interface - Shown during night phase */}
+                {(game?.game?.currentPhase === "night" ||
+                  game?.game?.phase === "night" ||
+                  game?.phase === "night") && (
+                  <NightActionInterface gameState={gameState} />
+                )}
+
+                {/* Start Voting Button - During Day Phase */}
                 {(game?.game?.currentPhase === "day" ||
                   game?.game?.phase === "day" ||
-                  game?.phase === "day") && (
-                  <div className="flex-grow flex items-center justify-center">
-                    <div className="text-center p-8">
-                      <h3 className="text-3xl font-cinzel font-bold text-amber-600 mb-4">
-                        Discussion Time
-                      </h3>
-                      <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
-                        Discuss with other players and share your suspicions.
-                        When ready, start the voting phase.
-                      </p>
-                      {gameState.canStartVoting() && (
-                        <Button
-                          onClick={gameState.startVoting}
-                          className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 text-lg"
-                        >
-                          ⚖️ Start Voting
-                        </Button>
-                      )}
-                    </div>
+                  game?.phase === "day") &&
+                  gameState.getCurrentPlayer()?.isAlive && (
+                  <div className="mt-4 flex justify-center">
+                    <Button
+                      onClick={() => gameState.startVoting()}
+                      className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 text-lg shadow-lg"
+                    >
+                      🗳️ Start Voting Now
+                    </Button>
                   </div>
                 )}
 
-                {/* Action Buttons */}
-                <div className="mt-4 space-y-4">
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {(game?.game?.currentPhase === "night" ||
-                      game?.game?.phase === "night" ||
-                      game?.phase === "night") && (
-                      <>
-                        {gameState.hasNightAction() &&
-                          !gameState.hasPerformedNightAction && (
-                            <Button
-                              onClick={() =>
-                                gameState.setShowNightActionOverlay(true)
-                              }
-                              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg"
-                            >
-                              Night Action
-                            </Button>
-                          )}
-                        {gameState.getCurrentPlayer()?.hasShield && (
-                          <Button
-                            onClick={handleShieldAction}
-                            className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg flex items-center gap-2"
-                          >
-                            <Shield className="w-4 h-4" />
-                            Use Shield
-                          </Button>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </div>
