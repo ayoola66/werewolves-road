@@ -54,15 +54,15 @@ export default function Chat({ gameState, channel = "player" }: ChatProps) {
   const game = gameState.gameState;
   const currentPhase =
     game?.game?.currentPhase || game?.game?.phase || game?.phase;
-  
+
   const playerRole = gameState.getPlayerRole();
-  const isWerewolf = playerRole === 'werewolf' || playerRole === 'minion';
-  const isNightPhase = currentPhase === 'night';
-  
+  const isWerewolf = playerRole === "werewolf" || playerRole === "minion";
+  const isNightPhase = currentPhase === "night";
+
   // Determine chat label
   let chatLabel = "Village Chat";
   let chatSubtitle = "";
-  
+
   if (isNightPhase) {
     if (isWerewolf) {
       chatLabel = "🐺 Werewolf Chat";
@@ -71,7 +71,7 @@ export default function Chat({ gameState, channel = "player" }: ChatProps) {
       chatLabel = "🌙 Village Chat";
       chatSubtitle = "Messages scrambled for disguise";
     }
-  } else if (currentPhase === 'day' || currentPhase === 'voting') {
+  } else if (currentPhase === "day" || currentPhase === "voting") {
     chatLabel = "☀️ Village Chat";
   }
 

@@ -387,16 +387,15 @@ export default function GameScreen({ gameState }: GameScreenProps) {
                   game?.game?.phase === "day" ||
                   game?.phase === "day") &&
                   gameState.getCurrentPlayer()?.isAlive && (
-                  <div className="mt-4 flex justify-center">
-                    <Button
-                      onClick={() => gameState.startVoting()}
-                      className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 text-lg shadow-lg"
-                    >
-                      🗳️ Start Voting Now
-                    </Button>
-                  </div>
-                )}
-
+                    <div className="mt-4 flex justify-center">
+                      <Button
+                        onClick={() => gameState.startVoting()}
+                        className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 text-lg shadow-lg"
+                      >
+                        🗳️ Start Voting Now
+                      </Button>
+                    </div>
+                  )}
               </CardContent>
             </Card>
           </div>
