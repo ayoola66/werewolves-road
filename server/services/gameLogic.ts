@@ -235,6 +235,7 @@ const PHASE_TIMERS = {
   night: 120, // 2 minutes
   voting: 120, // 2 minutes
   roleReveal: 15, // 15 seconds
+  votingResults: 15, // 15 seconds
 };
 
 // Track active phase timers
@@ -632,8 +633,8 @@ async function checkPhaseActionsComplete(gameCode: string): Promise<boolean> {
       (vote) => vote.phase === game.currentPhase
     );
 
-    // Voting complete if >50% of alive players voted
-    return currentPhaseVotes.length >= Math.ceil(alivePlayers.length / 2);
+    // Voting complete if ALL alive players have voted
+    return currentPhaseVotes.length >= alivePlayers.length;
   }
 
   return false;
@@ -674,7 +675,12 @@ async function advancePhase(gameCode: string) {
       // Resolve votes
       events = await resolveVoting(gameCode);
 
-      // Check win condition
+      // Transition to voting results phase to show results
+      nextPhase = "voting_results";
+      break;
+
+    case "voting_results":
+      // Check win condition after showing results
       const winCheck = await checkWinCondition(gameCode);
       if (winCheck.gameOver) {
         await storage.updateGame(game.id, {
@@ -686,11 +692,11 @@ async function advancePhase(gameCode: string) {
           type: "game_over",
           winner: winCheck.winner,
           message: winCheck.message,
-          events,
         });
         return;
       }
 
+      // Transition to night
       nextPhase = "night";
       nightCount++;
       break;
@@ -748,7 +754,7 @@ function startPhaseTimer(gameCode: string) {
       return;
     }
 
-    // Check if phase actions are complete
+    // Check if phase actions are complete (not for voting_results, let it run full timer)
     if (game.currentPhase === "night" || game.currentPhase === "voting") {
       const actionsComplete = await checkPhaseActionsComplete(gameCode);
       if (actionsComplete) {

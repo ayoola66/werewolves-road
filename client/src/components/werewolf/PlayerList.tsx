@@ -58,7 +58,7 @@ export default function PlayerList({ gameState }: PlayerListProps) {
                     <div className="flex gap-2 mt-1">
                       {player.isHost && (
                         <Badge className="text-xs bg-yellow-600 hover:bg-yellow-700">
-                          HOST
+                          👑 HOST
                         </Badge>
                       )}
                       {player.isSheriff && (

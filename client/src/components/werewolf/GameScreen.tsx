@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import PlayerList from "./PlayerList";
 import Chat from "./Chat";
 import RoleReveal from "./overlays/RoleReveal";
-import VoteOverlay from "./overlays/VoteOverlay";
 import NightActionOverlay from "./overlays/NightActionOverlay";
 import GameOverOverlay from "./overlays/GameOverOverlay";
+import VotingInterface from "./VotingInterface";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -41,18 +41,22 @@ export default function GameScreen({ gameState }: GameScreenProps) {
       game.game?.currentPhase || game.game?.phase || game.phase;
 
     // Detect phase change and trigger transition
-    if (prevPhase && prevPhase !== currentPhase && currentPhase !== "role_reveal") {
+    if (
+      prevPhase &&
+      prevPhase !== currentPhase &&
+      currentPhase !== "role_reveal"
+    ) {
       setTransitionPhase(currentPhase);
       setShowPhaseTransition(true);
-      
+
       // Hide transition after 3 seconds
       const timeout = setTimeout(() => {
         setShowPhaseTransition(false);
       }, 3000);
-      
+
       return () => clearTimeout(timeout);
     }
-    
+
     setPrevPhase(currentPhase);
   }, [game?.game?.currentPhase, game?.game?.phase, game?.phase, prevPhase]);
 
@@ -73,7 +77,7 @@ export default function GameScreen({ gameState }: GameScreenProps) {
     // Calculate timer from phaseEndTime for real countdown
     const interval = setInterval(() => {
       const phaseEndTime = game.game?.phaseEndTime || game.phaseEndTime;
-      
+
       if (!phaseEndTime) {
         // Fallback to static timer if no end time
         const phaseTimer = game.game?.phaseTimer || game.phaseTimer || 0;
@@ -82,11 +86,11 @@ export default function GameScreen({ gameState }: GameScreenProps) {
         setTimer(`${minutes}:${seconds.toString().padStart(2, "0")}`);
         return;
       }
-      
+
       const endTime = new Date(phaseEndTime).getTime();
       const now = Date.now();
       const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
-      
+
       const minutes = Math.floor(remaining / 60);
       const seconds = remaining % 60;
       setTimer(`${minutes}:${seconds.toString().padStart(2, "0")}`);
@@ -132,6 +136,13 @@ export default function GameScreen({ gameState }: GameScreenProps) {
           color: "text-red-400",
           bgColor: "bg-gray-100",
         };
+      case "voting_results":
+        return {
+          title: "Voting Results",
+          subtitle: "The village has decided...",
+          color: "text-orange-400",
+          bgColor: "bg-gray-100",
+        };
       default:
         return {
           title: "Game Phase",
@@ -156,7 +167,7 @@ export default function GameScreen({ gameState }: GameScreenProps) {
   const getTransitionContent = () => {
     const nightCount = game?.game?.nightCount || game?.nightCount || 1;
     const dayCount = game?.game?.dayCount || game?.dayCount || 1;
-    
+
     switch (transitionPhase) {
       case "night":
         return {
@@ -164,7 +175,7 @@ export default function GameScreen({ gameState }: GameScreenProps) {
           title: `Night ${nightCount} Falls`,
           subtitle: "The village sleeps... darkness descends",
           bgGradient: "from-indigo-950 via-blue-950 to-black",
-          textColor: "text-blue-200"
+          textColor: "text-blue-200",
         };
       case "day":
         return {
@@ -172,7 +183,7 @@ export default function GameScreen({ gameState }: GameScreenProps) {
           title: `Day ${dayCount} Breaks`,
           subtitle: "Dawn arrives... the village awakens",
           bgGradient: "from-amber-300 via-orange-200 to-yellow-100",
-          textColor: "text-amber-900"
+          textColor: "text-amber-900",
         };
       case "voting":
         return {
@@ -180,7 +191,15 @@ export default function GameScreen({ gameState }: GameScreenProps) {
           title: "Voting Time",
           subtitle: "Make your choice... who shall be eliminated?",
           bgGradient: "from-red-900 via-red-700 to-orange-600",
-          textColor: "text-red-100"
+          textColor: "text-red-100",
+        };
+      case "voting_results":
+        return {
+          emoji: "📊",
+          title: "The Votes Are In",
+          subtitle: "The village has spoken...",
+          bgGradient: "from-orange-900 via-red-800 to-red-900",
+          textColor: "text-orange-100",
         };
       default:
         return {
@@ -188,7 +207,7 @@ export default function GameScreen({ gameState }: GameScreenProps) {
           title: "Phase Change",
           subtitle: "",
           bgGradient: "from-gray-900 to-gray-700",
-          textColor: "text-gray-100"
+          textColor: "text-gray-100",
         };
     }
   };
@@ -199,22 +218,29 @@ export default function GameScreen({ gameState }: GameScreenProps) {
     <>
       {/* Phase Transition Overlay */}
       {showPhaseTransition && (
-        <div className={`fixed inset-0 z-[100] flex items-center justify-center bg-gradient-to-br ${transitionContent.bgGradient} animate-in fade-in duration-500`}>
+        <div
+          className={`fixed inset-0 z-[100] flex items-center justify-center bg-gradient-to-br ${transitionContent.bgGradient} animate-in fade-in duration-500`}
+        >
           <div className="text-center animate-in zoom-in duration-700">
-            <div className="text-9xl mb-6 animate-bounce">{transitionContent.emoji}</div>
-            <h1 className={`font-cinzel text-6xl font-bold mb-4 ${transitionContent.textColor} drop-shadow-2xl`}>
+            <div className="text-9xl mb-6 animate-bounce">
+              {transitionContent.emoji}
+            </div>
+            <h1
+              className={`font-cinzel text-6xl font-bold mb-4 ${transitionContent.textColor} drop-shadow-2xl`}
+            >
               {transitionContent.title}
             </h1>
-            <p className={`text-2xl ${transitionContent.textColor} opacity-90 italic`}>
+            <p
+              className={`text-2xl ${transitionContent.textColor} opacity-90 italic`}
+            >
               {transitionContent.subtitle}
             </p>
           </div>
         </div>
       )}
-      
+
       {/* Overlays */}
       {gameState.showRoleReveal && <RoleReveal gameState={gameState} />}
-      {gameState.showVoteOverlay && <VoteOverlay gameState={gameState} />}
       {gameState.showNightActionOverlay && (
         <NightActionOverlay gameState={gameState} />
       )}
@@ -329,26 +355,53 @@ export default function GameScreen({ gameState }: GameScreenProps) {
                   </div>
                 </div>
 
-                {/* Chat */}
-                <div className="flex-grow">
-                  <Chat gameState={gameState} />
-                </div>
+                {/* Chat - Hidden during voting, voting_results and day phase */}
+                {!(
+                  game?.game?.currentPhase === "voting" ||
+                  game?.game?.phase === "voting" ||
+                  game?.phase === "voting" ||
+                  game?.game?.currentPhase === "voting_results" ||
+                  game?.game?.phase === "voting_results" ||
+                  game?.phase === "voting_results" ||
+                  game?.game?.currentPhase === "day" ||
+                  game?.game?.phase === "day" ||
+                  game?.phase === "day"
+                ) && (
+                  <div className="flex-grow">
+                    <Chat gameState={gameState} />
+                  </div>
+                )}
+
+                {/* Voting Interface - Shown during voting and voting_results phases */}
+                {(game?.game?.currentPhase === "voting" ||
+                  game?.game?.phase === "voting" ||
+                  game?.phase === "voting" ||
+                  game?.game?.currentPhase === "voting_results" ||
+                  game?.game?.phase === "voting_results" ||
+                  game?.phase === "voting_results") && (
+                  <VotingInterface gameState={gameState} />
+                )}
+
+                {/* Day Phase Message */}
+                {(game?.game?.currentPhase === "day" ||
+                  game?.game?.phase === "day" ||
+                  game?.phase === "day") && (
+                  <div className="flex-grow flex items-center justify-center">
+                    <div className="text-center p-8">
+                      <h3 className="text-3xl font-cinzel font-bold text-amber-600 mb-4">
+                        Discussion Time
+                      </h3>
+                      <p className="text-lg text-gray-600 dark:text-gray-300">
+                        Discuss with other players and share your suspicions.
+                        Voting phase will begin soon.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Action Buttons */}
                 <div className="mt-4 space-y-4">
                   <div className="flex flex-wrap gap-2 justify-center">
-                    {(game?.game?.currentPhase === "voting" ||
-                      game?.game?.phase === "voting" ||
-                      game?.phase === "voting") &&
-                      gameState.canVote() && (
-                        <Button
-                          onClick={() => gameState.setShowVoteOverlay(true)}
-                          className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg"
-                        >
-                          Vote
-                        </Button>
-                      )}
-
                     {(game?.game?.currentPhase === "night" ||
                       game?.game?.phase === "night" ||
                       game?.phase === "night") && (
