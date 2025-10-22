@@ -61,8 +61,12 @@ export function useGameState() {
     const newGameState = {
       game: message.gameState.game,
       players: message.gameState.players || [],
-      votes: message.gameState.votes || [],
-      nightActions: message.gameState.nightActions || [],
+      alivePlayers: message.gameState.alivePlayers || [],
+      deadPlayers: message.gameState.deadPlayers || [],
+      phase: message.gameState.phase || message.gameState.game?.currentPhase || message.gameState.game?.phase || 'waiting',
+      phaseTimer: message.gameState.phaseTimer || message.gameState.game?.phaseTimer || 0,
+      votes: message.gameState.votes || {},
+      nightActions: message.gameState.nightActions || {},
       chatMessages: message.gameState.chatMessages || [],
     };
 
