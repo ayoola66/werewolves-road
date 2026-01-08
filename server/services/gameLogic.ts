@@ -823,6 +823,20 @@ async function handleStartGame(
 
     const roles = await assignRoles(game, players);
 
+    // Send system message that game has started
+    const systemMessage = await storage.createChatMessage({
+      gameId: game.gameCode,
+      playerId: "system",
+      playerName: "System",
+      message: "🎮 The game has started! Roles are being revealed...",
+      type: "system",
+    });
+
+    broadcastToGame(message.gameCode, {
+      type: "chat_message",
+      message: systemMessage,
+    });
+
     // Send role information to each player
     const connections = gameConnections.get(message.gameCode);
     if (connections) {
