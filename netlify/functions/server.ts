@@ -1,30 +1,27 @@
-import serverless from "serverless-http";
-import express from "express";
-import { WebSocketServer } from "ws";
-import { handleWebSocket } from "../../server/services/gameLogic";
+import type { Handler } from '@netlify/functions';
 
-const app = express();
+export const handler: Handler = async (event) => {
+  // Health check endpoint
+  if (event.path === '/api/health') {
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ status: 'ok', message: 'Werewolf Game API' }),
+    };
+  }
 
-app.use(express.json());
-
-// Health check endpoint
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok" });
-});
-
-// WebSocket upgrade handling for Netlify
-export const handler = async (event: any, context: any) => {
-  // For WebSocket connections
-  if (event.headers.upgrade === "websocket") {
+  // For WebSocket upgrade attempts
+  if (event.headers.upgrade === 'websocket') {
     return {
       statusCode: 426,
       body: JSON.stringify({
-        message: "WebSocket connections not supported on Netlify. Please use a dedicated WebSocket service.",
+        message: 'WebSocket connections not supported on Netlify. Using Supabase Realtime instead.',
       }),
     };
   }
 
-  // For regular HTTP requests
-  const serverlessHandler = serverless(app);
-  return serverlessHandler(event, context);
+  // Default response
+  return {
+    statusCode: 404,
+    body: JSON.stringify({ message: 'Not found' }),
+  };
 };
