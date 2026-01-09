@@ -80,7 +80,7 @@ export function useGameState() {
             gameCode: game.game_code,
             hostId: game.host_id,
             status: game.status,
-            currentPhase: game.phase,
+            currentPhase: game.current_phase || game.phase || 'lobby',
             phaseTimer: game.phase_timer || 0,
             nightCount: game.night_count,
             dayCount: game.day_count,
@@ -131,7 +131,7 @@ export function useGameState() {
           votes: {},
           nightActions: {},
           chatMessages: [],
-          phase: game.phase,
+          phase: game.current_phase || game.phase || 'lobby',
           phaseTimer: 0,
           werewolfCount: alivePlayers.filter((p) => p.role === "werewolf")
             .length,
@@ -140,7 +140,7 @@ export function useGameState() {
           seerInvestigationsLeft: {},
         });
 
-        if (game.phase === "game_over") {
+        if ((game.current_phase || game.phase) === "game_over") {
           setShowGameOverOverlay(true);
         }
       }
@@ -435,6 +435,11 @@ export function useGameState() {
     return player || null;
   };
 
+  const isHost = (): boolean => {
+    const currentPlayer = getCurrentPlayer();
+    return currentPlayer?.isHost || false;
+  };
+
   const leaveGame = useCallback(async () => {
     if (!gameState || !playerId) return;
 
@@ -554,6 +559,7 @@ export function useGameState() {
     setPlayerName,
     getPlayerRole,
     getCurrentPlayer,
+    isHost,
     leaveGame,
     startVoting,
   };
