@@ -250,9 +250,18 @@ export function useGameState() {
   );
 
   const startGame = useCallback(async () => {
-    if (!gameState || !playerId) return;
+    if (!gameState || !playerId) {
+      console.error('Cannot start game: missing gameState or playerId', { gameState: !!gameState, playerId });
+      return;
+    }
 
     try {
+      console.log('Starting game with:', { 
+        gameCode: gameState.game.gameCode, 
+        playerId,
+        currentPlayer: getCurrentPlayer()
+      });
+      
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/start-game`,
         {
@@ -288,7 +297,7 @@ export function useGameState() {
         variant: "destructive",
       });
     }
-  }, [gameState, playerId, toast, fetchGameState]);
+  }, [gameState, playerId, toast, fetchGameState, getCurrentPlayer]);
 
   const sendChatMessage = useCallback(
     async (message: string, channel?: string) => {
