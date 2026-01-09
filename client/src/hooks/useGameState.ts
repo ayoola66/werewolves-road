@@ -387,6 +387,92 @@ export function useGameState() {
     return player?.role || null;
   };
 
+  const getCurrentPlayer = (): Player | null => {
+    if (!gameState || !playerId) return null;
+    const player = gameState.players.find(p => p.playerId === playerId);
+    return player || null;
+  };
+
+  const leaveGame = useCallback(async () => {
+    if (!gameState || !playerId) return;
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/leave-game`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            gameCode: gameState.game.gameCode,
+            playerId,
+          }),
+        }
+      );
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+
+      // Clean up state
+      setGameState(null);
+      setPlayerId(null);
+      setCurrentScreen("initial");
+      setShowRoleReveal(false);
+      setShowVoteOverlay(false);
+      setShowNightActionOverlay(false);
+      setShowGameOverOverlay(false);
+      setHasPerformedNightAction(false);
+
+      toast({
+        title: "Left Game",
+        description: "You have left the game",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  }, [gameState, playerId, toast]);
+
+  const startVoting = useCallback(async () => {
+    if (!gameState || !playerId) return;
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/start-voting`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            gameCode: gameState.game.gameCode,
+            playerId,
+          }),
+        }
+      );
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+
+      toast({
+        title: "Voting Started",
+        description: "The voting phase has begun!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  }, [gameState, playerId, toast]);
+
   return {
     gameState,
     playerId,
@@ -412,5 +498,8 @@ export function useGameState() {
     setShowGameOverOverlay,
     setCurrentScreen,
     getPlayerRole,
+    getCurrentPlayer,
+    leaveGame,
+    startVoting,
   };
 }
