@@ -69,12 +69,12 @@ export default function ErrorLogs() {
   const resolvedErrors = getErrorsByStatus('resolved');
   const investigatingErrors = getErrorsByStatus('investigating');
 
-  if (!isLoaded) {
+  if (!isLoaded || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-white">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Loading error logs...</p>
+          <p>Loading error logs from database...</p>
         </div>
       </div>
     );
@@ -201,18 +201,26 @@ export default function ErrorLogs() {
                                   <Badge variant={getSourceBadgeVariant(error.source)}>
                                     {error.source}
                                   </Badge>
-                                  {error.functionName && (
-                                    <Badge variant="outline">{error.functionName}</Badge>
+                                  {(error.function_name || error.functionName) && (
+                                    <Badge variant="outline">{error.function_name || error.functionName}</Badge>
+                                  )}
+                                  {error.game_code && (
+                                    <Badge variant="outline" className="bg-purple-600/30">Game: {error.game_code}</Badge>
                                   )}
                                 </div>
                                 <h3 className="font-semibold text-white mb-1">{error.message}</h3>
                                 {error.details && (
                                   <p className="text-sm text-gray-400 mb-2 line-clamp-2">{error.details}</p>
                                 )}
+                                {error.game_code && (
+                                  <p className="text-xs text-purple-400 mb-1">Game Code: {error.game_code}</p>
+                                )}
                                 <div className="flex items-center gap-4 text-xs text-gray-500">
                                   <span>{new Date(error.timestamp).toLocaleString()}</span>
-                                  {error.resolvedAt && (
-                                    <span>Resolved: {new Date(error.resolvedAt).toLocaleString()}</span>
+                                  {(error.resolved_at || error.resolvedAt) && (
+                                    <span className="text-green-400">
+                                      Resolved: {new Date(error.resolved_at || error.resolvedAt || '').toLocaleString()}
+                                    </span>
                                   )}
                                 </div>
                                 {error.notes && (

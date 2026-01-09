@@ -155,6 +155,8 @@ export function useGameState() {
         source: "network",
         functionName: "fetchGameState",
         stack: error.stack,
+        gameCode: gameCode,
+        playerId: playerId || undefined,
       });
       console.error("Error fetching game state:", error);
     }
@@ -234,6 +236,8 @@ export function useGameState() {
           source: "edge-function",
           functionName: "join-game",
           stack: error.stack,
+          gameCode: gameCode,
+          playerId: playerId || undefined,
         });
         toast({
           title: "Error",
@@ -313,6 +317,8 @@ export function useGameState() {
           source: "edge-function",
           functionName: "send-chat",
           stack: error.stack,
+          gameCode: gameState?.game?.gameCode,
+          playerId: playerId || undefined,
         });
         toast({
           title: "Error",
@@ -361,6 +367,8 @@ export function useGameState() {
           source: "edge-function",
           functionName: "submit-vote",
           stack: error.stack,
+          gameCode: gameState?.game?.gameCode,
+          playerId: playerId || undefined,
         });
         toast({
           title: "Error",
@@ -413,6 +421,8 @@ export function useGameState() {
           source: "edge-function",
           functionName: "submit-night-action",
           stack: error.stack,
+          gameCode: gameState?.game?.gameCode,
+          playerId: playerId || undefined,
         });
         toast({
           title: "Error",
@@ -487,6 +497,8 @@ export function useGameState() {
         source: "edge-function",
         functionName: "leave-game",
         stack: error.stack,
+        gameCode: gameState?.game?.gameCode,
+        playerId: playerId || undefined,
       });
       toast({
         title: "Error",
@@ -528,6 +540,8 @@ export function useGameState() {
         source: "edge-function",
         functionName: "start-voting",
         stack: error.stack,
+        gameCode: gameState?.game?.gameCode,
+        playerId: playerId || undefined,
       });
       toast({
         title: "Error",
