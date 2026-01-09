@@ -44,7 +44,7 @@ export function useGameState() {
           event: "*",
           schema: "public",
           table: "players",
-          filter: `game_code=eq.${gameState.game.gameCode}`,
+          filter: `game_id=eq.${gameState.game.id}`,
         },
         async () => {
           await fetchGameState(gameState.game.gameCode);
@@ -65,10 +65,15 @@ export function useGameState() {
         .eq("game_code", gameCode)
         .single();
 
+      if (!game) {
+        console.error("Game not found:", gameCode);
+        return;
+      }
+
       const { data: players } = await supabase
         .from("players")
         .select("*")
-        .eq("game_code", gameCode);
+        .eq("game_id", game.id);
 
       if (game && players) {
         const alivePlayers = players.filter((p) => p.is_alive);
@@ -80,7 +85,7 @@ export function useGameState() {
             gameCode: game.game_code,
             hostId: game.host_id,
             status: game.status,
-            currentPhase: game.current_phase || game.phase || 'lobby',
+            currentPhase: game.current_phase || game.phase || "lobby",
             phaseTimer: game.phase_timer || 0,
             nightCount: game.night_count,
             dayCount: game.day_count,
@@ -93,7 +98,7 @@ export function useGameState() {
             id: p.id,
             gameId: p.game_id,
             playerId: p.player_id,
-            name: p.player_name,
+            name: p.name || p.player_name,
             role: p.role,
             isAlive: p.is_alive,
             isHost: p.player_id === game.host_id,
@@ -106,7 +111,7 @@ export function useGameState() {
             id: p.id,
             gameId: p.game_id,
             playerId: p.player_id,
-            name: p.player_name,
+            name: p.name || p.player_name,
             role: p.role,
             isAlive: true,
             isHost: p.player_id === game.host_id,
@@ -119,7 +124,7 @@ export function useGameState() {
             id: p.id,
             gameId: p.game_id,
             playerId: p.player_id,
-            name: p.player_name,
+            name: p.name || p.player_name,
             role: p.role,
             isAlive: false,
             isHost: p.player_id === game.host_id,
@@ -131,7 +136,7 @@ export function useGameState() {
           votes: {},
           nightActions: {},
           chatMessages: [],
-          phase: game.current_phase || game.phase || 'lobby',
+          phase: game.current_phase || game.phase || "lobby",
           phaseTimer: 0,
           werewolfCount: alivePlayers.filter((p) => p.role === "werewolf")
             .length,
