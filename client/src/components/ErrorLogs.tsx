@@ -15,6 +15,7 @@ export default function ErrorLogs() {
   const {
     errors,
     isLoaded,
+    isLoading,
     updateErrorStatus,
     deleteError,
     clearAllErrors,

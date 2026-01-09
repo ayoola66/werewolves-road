@@ -31,7 +31,19 @@ export default function GameScreen({ gameState }: GameScreenProps) {
   const [transitionPhase, setTransitionPhase] = useState("");
   const [prevPhase, setPrevPhase] = useState("");
   const { setTheme } = useTheme();
-  const game = gameState.gameState;
+  const game = gameState?.gameState;
+
+  // Show loading state if game state is not available
+  if (!game) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p>Loading game state...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Phase change detection and transition animation
   useEffect(() => {

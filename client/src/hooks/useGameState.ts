@@ -271,6 +271,9 @@ export function useGameState() {
       const data = await response.json();
       if (data.error) throw new Error(data.error);
 
+      // Refresh game state after starting
+      await fetchGameState(gameState.game.gameCode);
+      
       setCurrentScreen("game");
       setShowRoleReveal(true);
 
@@ -285,7 +288,7 @@ export function useGameState() {
         variant: "destructive",
       });
     }
-  }, [gameState, playerId, toast]);
+  }, [gameState, playerId, toast, fetchGameState]);
 
   const sendChatMessage = useCallback(
     async (message: string, channel?: string) => {
