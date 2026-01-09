@@ -258,14 +258,18 @@ export function useGameState() {
       return;
     }
 
-      try {
-        // Get current player for logging (don't include in dependency array to avoid circular dependency)
-        const currentPlayer = gameState?.players?.find((p) => p.playerId === playerId);
-        console.log("Starting game with:", {
-          gameCode: gameState.game.gameCode,
-          playerId,
-          currentPlayer: currentPlayer ? { name: currentPlayer.name, isHost: currentPlayer.isHost } : null,
-        });
+    try {
+      // Get current player for logging (don't include in dependency array to avoid circular dependency)
+      const currentPlayer = gameState?.players?.find(
+        (p) => p.playerId === playerId
+      );
+      console.log("Starting game with:", {
+        gameCode: gameState.game.gameCode,
+        playerId,
+        currentPlayer: currentPlayer
+          ? { name: currentPlayer.name, isHost: currentPlayer.isHost }
+          : null,
+      });
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/start-game`,
@@ -464,13 +468,13 @@ export function useGameState() {
   };
 
   const getPlayerRole = () => {
-    if (!gameState || !playerId) return null;
+    if (!gameState || !playerId || !Array.isArray(gameState.players)) return null;
     const player = gameState.players.find((p) => p.playerId === playerId);
     return player?.role || null;
   };
 
   const getCurrentPlayer = (): Player | null => {
-    if (!gameState || !playerId) return null;
+    if (!gameState || !playerId || !Array.isArray(gameState.players)) return null;
     const player = gameState.players.find((p) => p.playerId === playerId);
     return player || null;
   };
