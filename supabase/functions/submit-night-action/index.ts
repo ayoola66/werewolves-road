@@ -33,7 +33,7 @@ serve(async (req) => {
     }
 
     // Verify game is in night phase
-    if (game.phase !== 'night') {
+    if (game.current_phase !== 'night') {
       return new Response(
         JSON.stringify({ error: 'Can only perform night actions during night phase' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

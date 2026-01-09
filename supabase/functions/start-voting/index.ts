@@ -33,7 +33,7 @@ serve(async (req) => {
     }
 
     // Validate game is in "day" phase
-    if (game.phase !== 'day') {
+    if (game.current_phase !== 'day') {
       return new Response(
         JSON.stringify({ error: 'Voting can only be started during the day phase' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

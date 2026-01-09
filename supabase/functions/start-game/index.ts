@@ -82,7 +82,7 @@ serve(async (req) => {
       .from('games')
       .update({ 
         status: 'playing',
-        phase: 'night',
+        current_phase: 'night',
         night_count: 1,
         day_count: 0
       })

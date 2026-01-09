@@ -22,25 +22,26 @@ serve(async (req) => {
 
     const supabase = createSupabaseClient(req)
     const gameCode = generateGameCode()
+    
+    // Generate a unique player_id first (needed for host_id)
+    const playerId = `player_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
 
     // Create game
     const { data: game, error: gameError } = await supabase
       .from('games')
       .insert({
         game_code: gameCode,
+        host_id: playerId,
         status: 'waiting',
-        phase: 'lobby',
+        current_phase: 'lobby',
         settings: settings,
-        day_count: 0,
-        night_count: 0
+        night_count: 0,
+        day_count: 0
       })
       .select()
       .single()
 
     if (gameError) throw gameError
-
-    // Generate a unique player_id
-    const playerId = `player_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
 
     // Create host player
     const { data: player, error: playerError } = await supabase

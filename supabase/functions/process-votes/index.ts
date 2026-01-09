@@ -18,7 +18,7 @@ serve(async (req) => {
       .eq('id', gameId)
       .single()
 
-    if (game?.phase !== 'voting') {
+    if (game?.current_phase !== 'voting') {
       return new Response(
         JSON.stringify({ error: 'Not in voting phase' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -145,10 +145,10 @@ export function useGameState() {
         }
       }
     } catch (error: any) {
-      logError(error.message || 'Failed to fetch game state', {
+      logError(error.message || "Failed to fetch game state", {
         details: error.stack || JSON.stringify(error),
-        source: 'network',
-        functionName: 'fetchGameState',
+        source: "network",
+        functionName: "fetchGameState",
         stack: error.stack,
       });
       console.error("Error fetching game state:", error);
@@ -224,10 +224,10 @@ export function useGameState() {
           description: "Welcome to the game!",
         });
       } catch (error: any) {
-        logError(error.message || 'Failed to join game', {
+        logError(error.message || "Failed to join game", {
           details: error.stack || JSON.stringify(error),
-          source: 'edge-function',
-          functionName: 'join-game',
+          source: "edge-function",
+          functionName: "join-game",
           stack: error.stack,
         });
         toast({
@@ -303,10 +303,10 @@ export function useGameState() {
         const data = await response.json();
         if (data.error) throw new Error(data.error);
       } catch (error: any) {
-        logError(error.message || 'Failed to send chat message', {
+        logError(error.message || "Failed to send chat message", {
           details: error.stack || JSON.stringify(error),
-          source: 'edge-function',
-          functionName: 'send-chat',
+          source: "edge-function",
+          functionName: "send-chat",
           stack: error.stack,
         });
         toast({
@@ -351,10 +351,10 @@ export function useGameState() {
           description: "Your vote has been recorded",
         });
       } catch (error: any) {
-        logError(error.message || 'Failed to submit vote', {
+        logError(error.message || "Failed to submit vote", {
           details: error.stack || JSON.stringify(error),
-          source: 'edge-function',
-          functionName: 'submit-vote',
+          source: "edge-function",
+          functionName: "submit-vote",
           stack: error.stack,
         });
         toast({
@@ -403,10 +403,10 @@ export function useGameState() {
           description: "Your night action has been recorded",
         });
       } catch (error: any) {
-        logError(error.message || 'Failed to perform night action', {
+        logError(error.message || "Failed to perform night action", {
           details: error.stack || JSON.stringify(error),
-          source: 'edge-function',
-          functionName: 'submit-night-action',
+          source: "edge-function",
+          functionName: "submit-night-action",
           stack: error.stack,
         });
         toast({
@@ -472,10 +472,10 @@ export function useGameState() {
         description: "You have left the game",
       });
     } catch (error: any) {
-      logError(error.message || 'Failed to leave game', {
+      logError(error.message || "Failed to leave game", {
         details: error.stack || JSON.stringify(error),
-        source: 'edge-function',
-        functionName: 'leave-game',
+        source: "edge-function",
+        functionName: "leave-game",
         stack: error.stack,
       });
       toast({
@@ -513,10 +513,10 @@ export function useGameState() {
         description: "The voting phase has begun!",
       });
     } catch (error: any) {
-      logError(error.message || 'Failed to start voting', {
+      logError(error.message || "Failed to start voting", {
         details: error.stack || JSON.stringify(error),
-        source: 'edge-function',
-        functionName: 'start-voting',
+        source: "edge-function",
+        functionName: "start-voting",
         stack: error.stack,
       });
       toast({

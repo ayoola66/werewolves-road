@@ -18,7 +18,7 @@ serve(async (req) => {
       .eq('id', gameId)
       .single()
 
-    if (game?.phase !== 'night') {
+    if (game?.current_phase !== 'night') {
       return new Response(
         JSON.stringify({ error: 'Not in night phase' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -122,7 +122,7 @@ serve(async (req) => {
       // Transition to day phase
       await supabase
         .from('games')
-        .update({ phase: 'day' })
+        .update({ current_phase: 'day' })
         .eq('id', gameId)
 
       await supabase

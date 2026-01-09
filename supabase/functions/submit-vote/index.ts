@@ -33,7 +33,7 @@ serve(async (req) => {
     }
 
     // Verify game is in voting phase
-    if (game.phase !== 'voting') {
+    if (game.current_phase !== 'voting') {
       return new Response(
         JSON.stringify({ error: 'Can only vote during voting phase' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
