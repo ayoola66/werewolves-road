@@ -75,7 +75,7 @@ export function useGameState() {
         .select("*")
         .eq("game_id", game.id);
 
-      if (game && players) {
+      if (game && players && Array.isArray(players)) {
         const alivePlayers = players.filter((p) => p.is_alive);
         const deadPlayers = players.filter((p) => !p.is_alive);
 
@@ -138,10 +138,10 @@ export function useGameState() {
           chatMessages: [],
           phase: game.current_phase || game.phase || "lobby",
           phaseTimer: 0,
-          werewolfCount: alivePlayers.filter((p) => p.role === "werewolf")
-            .length,
-          villagerCount: alivePlayers.filter((p) => p.role !== "werewolf")
-            .length,
+          werewolfCount: Array.isArray(alivePlayers) ? alivePlayers.filter((p) => p.role === "werewolf")
+            .length : 0,
+          villagerCount: Array.isArray(alivePlayers) ? alivePlayers.filter((p) => p.role !== "werewolf")
+            .length : 0,
           seerInvestigationsLeft: {},
         });
 
