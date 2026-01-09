@@ -273,7 +273,7 @@ export function useGameState() {
 
       // Refresh game state after starting
       await fetchGameState(gameState.game.gameCode);
-      
+
       setCurrentScreen("game");
       setShowRoleReveal(true);
 

@@ -32,19 +32,71 @@ serve(async (req) => {
       )
     }
 
+    // Get all players for debugging
+    const { data: allPlayers } = await supabase
+      .from('players')
+      .select('player_id, name, is_host')
+      .eq('game_id', game.id)
+
     // Verify player is host - use player_id field (text) not id (integer)
     const { data: player, error: playerError } = await supabase
       .from('players')
-      .select('is_host')
+      .select('is_host, player_id, name')
       .eq('player_id', playerId)
       .eq('game_id', game.id)
       .single()
 
     if (playerError || !player) {
-      return new Response(
-        JSON.stringify({ error: 'Player not found in game' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      // Try alternative: check if host_id matches
+      if (game.host_id === playerId) {
+        // Find player by host_id
+        const { data: hostPlayer, error: hostError } = await supabase
+          .from('players')
+          .select('is_host, player_id, name')
+          .eq('player_id', game.host_id)
+          .eq('game_id', game.id)
+          .single()
+        
+        if (hostError || !hostPlayer) {
+          const playerList = allPlayers?.map(p => `${p.name} (${p.player_id})`).join(', ') || 'none'
+          return new Response(
+            JSON.stringify({ 
+              error: 'Player not found in game',
+              debug: {
+                requestedPlayerId: playerId,
+                gameHostId: game.host_id,
+                gameId: game.id,
+                playersInGame: playerList
+              }
+            }),
+            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+        // Use host player found by host_id
+        if (!hostPlayer.is_host) {
+          return new Response(
+            JSON.stringify({ error: 'Player found but is not marked as host' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+        // Assign hostPlayer to player variable
+        player = hostPlayer
+      } else {
+        const playerList = allPlayers?.map(p => `${p.name} (${p.player_id})`).join(', ') || 'none'
+        return new Response(
+          JSON.stringify({ 
+            error: 'Player not found in game',
+            debug: {
+              requestedPlayerId: playerId,
+              gameHostId: game.host_id,
+              gameId: game.id,
+              playersInGame: playerList,
+              playerError: playerError?.message
+            }
+          }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
     }
 
     if (!player.is_host) {
