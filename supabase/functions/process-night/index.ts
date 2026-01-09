@@ -107,7 +107,7 @@ serve(async (req) => {
         .from('games')
         .update({ 
           status: 'finished',
-          phase: 'game_over'
+          current_phase: 'game_over'
         })
         .eq('id', gameId)
 

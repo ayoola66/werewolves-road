@@ -97,7 +97,7 @@ serve(async (req) => {
         .from('games')
         .update({ 
           status: 'finished',
-          phase: 'game_over'
+          current_phase: 'game_over'
         })
         .eq('id', gameId)
 
@@ -114,7 +114,7 @@ serve(async (req) => {
       await supabase
         .from('games')
         .update({ 
-          phase: 'night',
+          current_phase: 'night',
           night_count: newNight
         })
         .eq('id', gameId)

@@ -78,7 +78,7 @@ serve(async (req) => {
     const { error: updateError } = await supabase
       .from('games')
       .update({
-        phase: 'voting',
+        current_phase: 'voting',
         phase_timer: voteDuration,
         phase_end_time: phaseEndTime
       })
