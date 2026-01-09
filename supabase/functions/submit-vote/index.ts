@@ -7,18 +7,33 @@ serve(async (req) => {
   }
 
   try {
-    const { gameId, voterId, targetId } = await req.json()
+    const { gameCode, playerId, targetId } = await req.json() as { gameCode: string; playerId: string; targetId: string }
     
+    if (!gameCode || !playerId || !targetId) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required fields: gameCode, playerId, and targetId' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const supabase = createSupabaseClient(req)
 
-    // Verify game is in voting phase
-    const { data: game } = await supabase
+    // Find game by game_code
+    const { data: game, error: gameError } = await supabase
       .from('games')
-      .select('phase')
-      .eq('id', gameId)
+      .select('*')
+      .eq('game_code', gameCode.toUpperCase())
       .single()
 
-    if (game?.phase !== 'voting') {
+    if (gameError || !game) {
+      return new Response(
+        JSON.stringify({ error: 'Game not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Verify game is in voting phase
+    if (game.phase !== 'voting') {
       return new Response(
         JSON.stringify({ error: 'Can only vote during voting phase' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -29,8 +44,8 @@ serve(async (req) => {
     const { data: existing } = await supabase
       .from('votes')
       .select('*')
-      .eq('game_id', gameId)
-      .eq('voter_id', voterId)
+      .eq('game_id', game.id)
+      .eq('voter_id', playerId)
 
     if (existing && existing.length > 0) {
       // Update existing vote
@@ -43,9 +58,10 @@ serve(async (req) => {
       await supabase
         .from('votes')
         .insert({
-          game_id: gameId,
-          voter_id: voterId,
-          target_id: targetId
+          game_id: game.id,
+          voter_id: playerId,
+          target_id: targetId,
+          phase: 'voting'
         })
     }
 

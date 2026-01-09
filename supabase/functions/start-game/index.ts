@@ -7,43 +7,58 @@ serve(async (req) => {
   }
 
   try {
-    const { gameId, playerId } = await req.json() as { gameId: number; playerId: number }
+    const { gameCode, playerId } = await req.json() as { gameCode: string; playerId: string }
     
-    if (!gameId || !playerId) {
+    if (!gameCode || !playerId) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields' }),
+        JSON.stringify({ error: 'Missing required fields: gameCode and playerId' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     const supabase = createSupabaseClient(req)
 
-    // Verify player is host
-    const { data: player } = await supabase
-      .from('players')
-      .select('is_host')
-      .eq('id', playerId)
-      .eq('game_id', gameId)
+    // Find game by game_code
+    const { data: game, error: gameError } = await supabase
+      .from('games')
+      .select('*')
+      .eq('game_code', gameCode.toUpperCase())
       .single()
 
-    if (!player?.is_host) {
+    if (gameError || !game) {
+      return new Response(
+        JSON.stringify({ error: 'Game not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Verify player is host - use player_id field (text) not id (integer)
+    const { data: player, error: playerError } = await supabase
+      .from('players')
+      .select('is_host')
+      .eq('player_id', playerId)
+      .eq('game_id', game.id)
+      .single()
+
+    if (playerError || !player) {
+      return new Response(
+        JSON.stringify({ error: 'Player not found in game' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (!player.is_host) {
       return new Response(
         JSON.stringify({ error: 'Only host can start the game' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Get game and players
-    const { data: game } = await supabase
-      .from('games')
-      .select('*')
-      .eq('id', gameId)
-      .single()
-
+    // Get all players for the game
     const { data: players } = await supabase
       .from('players')
       .select('*')
-      .eq('game_id', gameId)
+      .eq('game_id', game.id)
 
     if (!players || players.length < 3) {
       return new Response(
@@ -63,20 +78,22 @@ serve(async (req) => {
     }
 
     // Update game status
-    await supabase
+    const { error: updateError } = await supabase
       .from('games')
       .update({ 
-        status: 'in_progress',
+        status: 'playing',
         phase: 'night',
         current_day: 1
       })
-      .eq('id', gameId)
+      .eq('id', game.id)
+
+    if (updateError) throw updateError
 
     // Add system message
     await supabase
       .from('chat_messages')
       .insert({
-        game_id: gameId,
+        game_id: game.id,
         message: '🎮 The game has started! Roles are being revealed...',
         type: 'system'
       })
@@ -84,13 +101,17 @@ serve(async (req) => {
     await supabase
       .from('chat_messages')
       .insert({
-        game_id: gameId,
+        game_id: game.id,
         message: '🌙 Night falls... Werewolves, choose your target.',
         type: 'system'
       })
 
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ 
+        success: true,
+        gameCode: game.game_code,
+        gameId: game.id
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {

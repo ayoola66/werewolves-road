@@ -7,18 +7,33 @@ serve(async (req) => {
   }
 
   try {
-    const { gameId, actorId, targetId, actionType } = await req.json()
+    const { gameCode, playerId, targetId, action } = await req.json() as { gameCode: string; playerId: string; targetId: string; action: string }
     
+    if (!gameCode || !playerId || !action) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required fields: gameCode, playerId, and action' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const supabase = createSupabaseClient(req)
 
-    // Verify game is in night phase
-    const { data: game } = await supabase
+    // Find game by game_code
+    const { data: game, error: gameError } = await supabase
       .from('games')
-      .select('phase')
-      .eq('id', gameId)
+      .select('*')
+      .eq('game_code', gameCode.toUpperCase())
       .single()
 
-    if (game?.phase !== 'night') {
+    if (gameError || !game) {
+      return new Response(
+        JSON.stringify({ error: 'Game not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Verify game is in night phase
+    if (game.phase !== 'night') {
       return new Response(
         JSON.stringify({ error: 'Can only perform night actions during night phase' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -29,9 +44,9 @@ serve(async (req) => {
     const { data: existing } = await supabase
       .from('night_actions')
       .select('*')
-      .eq('game_id', gameId)
-      .eq('actor_id', actorId)
-      .eq('action_type', actionType)
+      .eq('game_id', game.id)
+      .eq('player_id', playerId)
+      .eq('action_type', action)
 
     if (existing && existing.length > 0) {
       // Update existing action
@@ -44,10 +59,11 @@ serve(async (req) => {
       await supabase
         .from('night_actions')
         .insert({
-          game_id: gameId,
-          actor_id: actorId,
+          game_id: game.id,
+          player_id: playerId,
           target_id: targetId,
-          action_type: actionType
+          action_type: action,
+          phase: 'night'
         })
     }
 

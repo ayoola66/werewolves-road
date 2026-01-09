@@ -39,8 +39,8 @@ serve(async (req) => {
       .eq('is_alive', true)
 
     // Process actions
-    let killedPlayerId: number | null = null
-    let protectedPlayerId: number | null = null
+    let killedPlayerId: string | null = null
+    let protectedPlayerId: string | null = null
     let investigationResult: string | null = null
 
     // Find werewolf kill
@@ -58,7 +58,7 @@ serve(async (req) => {
     // Find seer investigation
     const investigateAction = actions?.find(a => a.action_type === 'investigate')
     if (investigateAction) {
-      const target = players?.find(p => p.id === investigateAction.target_id)
+      const target = players?.find(p => p.player_id === investigateAction.target_id)
       investigationResult = target?.role === 'werewolf' ? 'werewolf' : 'not werewolf'
     }
 
@@ -67,9 +67,9 @@ serve(async (req) => {
       await supabase
         .from('players')
         .update({ is_alive: false })
-        .eq('id', killedPlayerId)
+        .eq('player_id', killedPlayerId)
 
-      const killedPlayer = players?.find(p => p.id === killedPlayerId)
+      const killedPlayer = players?.find(p => p.player_id === killedPlayerId)
       await supabase
         .from('chat_messages')
         .insert({

@@ -7,21 +7,42 @@ serve(async (req) => {
   }
 
   try {
-    const { gameId, playerId, message } = await req.json()
+    const { gameCode, playerId, message, channel } = await req.json() as { gameCode: string; playerId: string; message: string; channel?: string }
     
+    if (!gameCode || !playerId || !message) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required fields: gameCode, playerId, and message' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const supabase = createSupabaseClient(req)
 
-    // Verify player exists and is alive
-    const { data: player } = await supabase
-      .from('players')
-      .select('is_alive, name')
-      .eq('id', playerId)
-      .eq('game_id', gameId)
+    // Find game by game_code
+    const { data: game, error: gameError } = await supabase
+      .from('games')
+      .select('*')
+      .eq('game_code', gameCode.toUpperCase())
       .single()
 
-    if (!player) {
+    if (gameError || !game) {
       return new Response(
-        JSON.stringify({ error: 'Player not found' }),
+        JSON.stringify({ error: 'Game not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Verify player exists and is alive - use player_id field (text) not id (integer)
+    const { data: player, error: playerError } = await supabase
+      .from('players')
+      .select('is_alive, name')
+      .eq('player_id', playerId)
+      .eq('game_id', game.id)
+      .single()
+
+    if (playerError || !player) {
+      return new Response(
+        JSON.stringify({ error: 'Player not found in game' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -37,10 +58,11 @@ serve(async (req) => {
     await supabase
       .from('chat_messages')
       .insert({
-        game_id: gameId,
+        game_id: game.id,
         player_id: playerId,
+        player_name: player.name,
         message: message,
-        type: 'player'
+        type: channel === 'werewolf' ? 'werewolf' : 'player'
       })
 
     return new Response(

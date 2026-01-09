@@ -31,33 +31,33 @@ serve(async (req) => {
       .select('*')
       .eq('game_id', gameId)
 
-    // Count votes
-    const voteCounts = new Map<number, number>()
+    // Count votes - target_id is TEXT (player_id string), not integer
+    const voteCounts = new Map<string, number>()
     votes?.forEach(vote => {
       voteCounts.set(vote.target_id, (voteCounts.get(vote.target_id) || 0) + 1)
     })
 
     // Find player with most votes
-    let eliminatedId: number | null = null
+    let eliminatedPlayerId: string | null = null
     let maxVotes = 0
     voteCounts.forEach((count, playerId) => {
       if (count > maxVotes) {
         maxVotes = count
-        eliminatedId = playerId
+        eliminatedPlayerId = playerId
       }
     })
 
-    if (eliminatedId) {
-      // Eliminate player
+    if (eliminatedPlayerId) {
+      // Eliminate player - use player_id field (text) not id (integer)
       await supabase
         .from('players')
         .update({ is_alive: false })
-        .eq('id', eliminatedId)
+        .eq('player_id', eliminatedPlayerId)
 
       const { data: eliminatedPlayer } = await supabase
         .from('players')
         .select('name, role')
-        .eq('id', eliminatedId)
+        .eq('player_id', eliminatedPlayerId)
         .single()
 
       await supabase

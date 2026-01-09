@@ -131,8 +131,10 @@ export function useGameState() {
           chatMessages: [],
           phase: game.phase,
           phaseTimer: 0,
-          werewolfCount: alivePlayers.filter((p) => p.role === "werewolf").length,
-          villagerCount: alivePlayers.filter((p) => p.role !== "werewolf").length,
+          werewolfCount: alivePlayers.filter((p) => p.role === "werewolf")
+            .length,
+          villagerCount: alivePlayers.filter((p) => p.role !== "werewolf")
+            .length,
           seerInvestigationsLeft: {},
         });
 
@@ -195,7 +197,10 @@ export function useGameState() {
               "Content-Type": "application/json",
               Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
             },
-            body: JSON.stringify({ gameCode: gameCode.toUpperCase(), playerName: name }),
+            body: JSON.stringify({
+              gameCode: gameCode.toUpperCase(),
+              playerName: name,
+            }),
           }
         );
 
@@ -222,7 +227,7 @@ export function useGameState() {
   );
 
   const startGame = useCallback(async () => {
-    if (!gameState) return;
+    if (!gameState || !playerId) return;
 
     try {
       const response = await fetch(
@@ -233,7 +238,10 @@ export function useGameState() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           },
-          body: JSON.stringify({ gameCode: gameState.game.gameCode }),
+          body: JSON.stringify({ 
+            gameCode: gameState.game.gameCode,
+            playerId: playerId
+          }),
         }
       );
 
@@ -254,7 +262,7 @@ export function useGameState() {
         variant: "destructive",
       });
     }
-  }, [gameState, toast]);
+  }, [gameState, playerId, toast]);
 
   const sendChatMessage = useCallback(
     async (message: string, channel?: string) => {
@@ -339,7 +347,9 @@ export function useGameState() {
 
       try {
         const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-night-action`,
+          `${
+            import.meta.env.VITE_SUPABASE_URL
+          }/functions/v1/submit-night-action`,
           {
             method: "POST",
             headers: {
@@ -383,13 +393,13 @@ export function useGameState() {
 
   const getPlayerRole = () => {
     if (!gameState || !playerId) return null;
-    const player = gameState.players.find(p => p.playerId === playerId);
+    const player = gameState.players.find((p) => p.playerId === playerId);
     return player?.role || null;
   };
 
   const getCurrentPlayer = (): Player | null => {
     if (!gameState || !playerId) return null;
-    const player = gameState.players.find(p => p.playerId === playerId);
+    const player = gameState.players.find((p) => p.playerId === playerId);
     return player || null;
   };
 
