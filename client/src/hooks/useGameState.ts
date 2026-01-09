@@ -291,13 +291,21 @@ export function useGameState() {
         description: "The game has begun!",
       });
     } catch (error: any) {
+      logError(error.message || "Failed to start game", {
+        details: error.stack || JSON.stringify(error),
+        source: "edge-function",
+        functionName: "start-game",
+        stack: error.stack,
+        gameCode: gameState?.game?.gameCode,
+        playerId: playerId || undefined,
+      });
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
     }
-  }, [gameState, playerId, toast, fetchGameState, getCurrentPlayer]);
+  }, [gameState, playerId, toast, fetchGameState, getCurrentPlayer, logError]);
 
   const sendChatMessage = useCallback(
     async (message: string, channel?: string) => {
