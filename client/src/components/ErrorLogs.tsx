@@ -57,11 +57,13 @@ export default function ErrorLogs() {
 
   const filteredErrors = errors.filter((error) => {
     const matchesStatus = selectedStatus === 'all' || error.status === selectedStatus;
+    const functionName = (error as any).function_name || (error as any).functionName;
     const matchesSearch =
       searchQuery === '' ||
       error.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
       error.details?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      error.functionName?.toLowerCase().includes(searchQuery.toLowerCase());
+      functionName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (error as any).game_code?.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
