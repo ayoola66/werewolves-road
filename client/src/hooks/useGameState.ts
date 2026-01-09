@@ -497,6 +497,7 @@ export function useGameState() {
     setShowNightActionOverlay,
     setShowGameOverOverlay,
     setCurrentScreen,
+    setPlayerName,
     getPlayerRole,
     getCurrentPlayer,
     leaveGame,

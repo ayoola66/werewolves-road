@@ -15,6 +15,8 @@ export default function InitialScreen({ gameState }: InitialScreenProps) {
 
   const handleCreateGame = () => {
     if (!playerName.trim()) return;
+    // Set player name in gameState before navigating to settings
+    gameState.setPlayerName?.(playerName.trim());
     gameState.setCurrentScreen('settings');
   };
 
