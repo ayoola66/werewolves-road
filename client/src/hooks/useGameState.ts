@@ -32,8 +32,9 @@ export function useGameState() {
           table: "games",
           filter: `game_code=eq.${gameState.game.gameCode}`,
         },
-        async (
-          e
+        async () => {
+          await fetchGameState(gameState.game.gameCode);
+        }
       )
       .on(
         "postgres_changes",
@@ -73,57 +74,146 @@ export function useGameState() {
 
         setGameState({
           game: {
+            id: game.id,
             gameCode: game.game_code,
             hostId: game.host_id,
             status: game.status,
-            phase: game.phase,
-            dayCount: game.day_count,
+            currentPhase: game.phase,
+            phaseTimer: game.phase_timer || 0,
             nightCount: game.night_count,
-            winner: game.winner,
+            dayCount: game.day_count,
+            lastPhaseChange: game.last_phase_change,
+            phaseEndTime: game.phase_end_time,
+            createdAt: game.created_at,
             settings: game.settings,
           },
           players: players.map((p) => ({
+            id: p.id,
+            gameId: p.game_id,
             playerId: p.player_id,
-            playerName: p.player_name,
+            name: p.player_name,
             role: p.role,
             isAlive: p.is_alive,
             isHost: p.player_id === game.host_id,
+            isSheriff: p.is_sheriff,
+            joinedAt: p.joined_at,
+            hasShield: p.has_shield,
+            actionUsed: p.action_used,
           })),
           alivePlayers: alivePlayers.map((p) => ({
+            id: p.id,
+            gameId: p.game_id,
             playerId: p.player_id,
-            playerName: p.player_name,
+            name: p.player_name,
             role: p.role,
             isAlive: true,
             isHost: p.player_id === game.host_id,
+            isSheriff: p.is_sheriff,
+            joinedAt: p.joined_at,
+            hasShield: p.has_shield,
+            actionUsed: p.action_used,
           })),
           deadPlayers: deadPlayers.map((p) => ({
+            id: p.id,
+            gameId: p.game_id,
             playerId: p.player_id,
-            playerName: p.player_name,
+            name: p.player_name,
             role: p.role,
             isAlive: false,
             isHost: p.player_id === game.host_id,
+            isSheriff: p.is_sheriff,
+            joinedAt: p.joined_at,
+            hasShield: p.has_shield,
+            actionUsed: p.action_used,
           })),
-          votes: [],
-          vhes: [],     phase: game.phase,
-    _    lih A)s[]
-      ch}M ([]
-      rs:epGa C:l am.ph r,,
-    ifc   p mnvTim : 0, method: "POST",
-      hs  n gh CCuotntgami.aut
-    Con : gcta. ay_teuso,son();
-    wwelfCatpe:rIl;vePly .filtarspp.role === "werew  f")iteatth
-      v llh (rCour::aliPaytriltepp.r cr !trctwvrewolf).lng,
- }srIvsgsLf0
-  const jch(
-ASE_URL}/functions/v1/join-game`,
-         metdCt-Type": "a
-    as        if (data.error) throw new
-      ld}layerId);
-     S}
-   c tch ile: "" description: "Welcome to the game!",
-      conso)e.;rror( f tah(rgogn{{a: error);
-        title: "Error",
-         description: error.message,
+          votes: {},
+          nightActions: {},
+          chatMessages: [],
+          phase: game.phase,
+          phaseTimer: 0,
+          werewolfCount: alivePlayers.filter((p) => p.role === "werewolf").length,
+          villagerCount: alivePlayers.filter((p) => p.role !== "werewolf").length,
+          seerInvestigationsLeft: {},
+        });
+
+        if (game.phase === "game_over") {
+          setShowGameOverOverlay(true);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching game state:", error);
+    }
+  };
+
+  const createGame = useCallback(
+    async (name: string, settings: GameSettings) => {
+      try {
+        setPlayerName(name);
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-game`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({ playerName: name, settings }),
+          }
+        );
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+
+        setPlayerId(data.playerId);
+        setCurrentScreen("lobby");
+        await fetchGameState(data.gameCode);
+
+        toast({
+          title: "Game Created",
+          description: `Game code: ${data.gameCode}`,
+        });
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    },
+    [toast]
+  );
+
+  const joinGame = useCallback(
+    async (gameCode: string, name: string) => {
+      try {
+        setPlayerName(name);
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/join-game`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({ gameCode: gameCode.toUpperCase(), playerName: name }),
+          }
+        );
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+
+        setPlayerId(data.playerId);
+        setCurrentScreen("lobby");
+        await fetchGameState(gameCode.toUpperCase());
+
+        toast({
+          title: "Joined Game",
+          description: "Welcome to the game!",
+        });
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message,
           variant: "destructive",
         });
       }
@@ -291,6 +381,12 @@ ASE_URL}/functions/v1/join-game`,
     return ["werewolf", "seer", "doctor"].includes(role);
   };
 
+  const getPlayerRole = () => {
+    if (!gameState || !playerId) return null;
+    const player = gameState.players.find(p => p.playerId === playerId);
+    return player?.role || null;
+  };
+
   return {
     gameState,
     playerId,
@@ -314,12 +410,7 @@ ASE_URL}/functions/v1/join-game`,
     setShowVoteOverlay,
     setShowNightActionOverlay,
     setShowGameOverOverlay,
-  seatnc(gtIdrf(!St||!rId) tur;
-try{sponwiftch`${iprt.nvVITE_SUPABASE_URL/fuci/v1/t-it-co`,th"POT"edrs:{"Co-Typ":"ppio/json",Authorizion`Brr${ipor.nv.VTE_SUPABASE_ANON_KEY}`oyJSON.yplyerIdtrId,cion,}) }  
-dtwrspo.json);if(rrrhrwwEod.rr
-    lctdPernul    rutst(tit:AinRere,dscripio"Youhcohs brco", };
-}ach(o: a {a{
-i:"Er",
-dsripti:o.mssg,vari"dsrciv",
-  )}},
-[gmStt,Id,ta]hsNighAcor: strig)["wrwolf", "er",octor].nclude(ro:rue,Sn
+    setCurrentScreen,
+    getPlayerRole,
+  };
+}
