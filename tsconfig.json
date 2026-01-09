@@ -18,5 +18,5 @@
     "types": ["node", "vite/client"]
   },
   "include": ["client/src/**/*", "shared/**/*"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"]
+  "exclude": ["node_modules", "build", "dist", "**/*.test.ts", "supabase/**/*"]
 }
