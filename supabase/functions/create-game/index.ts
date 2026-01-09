@@ -8,11 +8,14 @@ serve(async (req) => {
   }
 
   try {
-    const { hostName, settings } = await req.json() as { hostName: string; settings: GameSettings }
+    const { playerName, hostName, settings } = await req.json() as { playerName?: string; hostName?: string; settings: GameSettings }
     
-    if (!hostName || !settings) {
+    // Support both playerName and hostName for backwards compatibility
+    const name = playerName || hostName
+    
+    if (!name || !settings) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields' }),
+        JSON.stringify({ error: 'Missing required fields: playerName and settings' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -35,12 +38,16 @@ serve(async (req) => {
 
     if (gameError) throw gameError
 
+    // Generate a unique player_id
+    const playerId = `player_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+
     // Create host player
     const { data: player, error: playerError } = await supabase
       .from('players')
       .insert({
         game_id: game.id,
-        name: hostName,
+        player_id: playerId,
+        name: name,
         is_host: true,
         is_alive: true
       })
@@ -63,7 +70,8 @@ serve(async (req) => {
         success: true,
         game,
         player,
-        gameCode
+        gameCode,
+        playerId: playerId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

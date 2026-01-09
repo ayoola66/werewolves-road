@@ -52,11 +52,15 @@ serve(async (req) => {
       )
     }
 
+    // Generate a unique player_id
+    const playerId = `player_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+
     // Create player
     const { data: player, error: playerError } = await supabase
       .from('players')
       .insert({
         game_id: game.id,
+        player_id: playerId,
         name: playerName,
         is_host: false,
         is_alive: true
@@ -79,7 +83,8 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true,
         game,
-        player
+        player,
+        playerId: playerId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
