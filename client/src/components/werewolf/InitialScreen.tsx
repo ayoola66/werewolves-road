@@ -1,7 +1,11 @@
 import { useState } from 'react';
+import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { AlertCircle } from 'lucide-react';
+import { useErrorLog } from '@/hooks/useErrorLog';
 
 interface InitialScreenProps {
   gameState: any;
@@ -12,6 +16,8 @@ export default function InitialScreen({ gameState }: InitialScreenProps) {
   const [showJoinForm, setShowJoinForm] = useState(false);
   const [playerName, setPlayerName] = useState('');
   const [gameCode, setGameCode] = useState('');
+  const { getNewErrorsCount } = useErrorLog();
+  const newErrorsCount = getNewErrorsCount();
 
   const handleCreateGame = () => {
     if (!playerName.trim()) return;
@@ -35,6 +41,24 @@ export default function InitialScreen({ gameState }: InitialScreenProps) {
       <p className="text-gray-300 mb-12 text-lg font-medium">
         Where pointing fingers is totally normal and trust issues are a feature, not a bug!
       </p>
+      
+      {/* Error Logs Link */}
+      <div className="mb-6 flex justify-center">
+        <Link href="/error-logs">
+          <Button
+            variant="outline"
+            className="bg-black/40 border-purple-500/50 text-purple-300 hover:bg-purple-500/20 hover:text-purple-200"
+          >
+            <AlertCircle className="w-4 h-4 mr-2" />
+            Error Logs
+            {newErrorsCount > 0 && (
+              <Badge variant="destructive" className="ml-2">
+                {newErrorsCount}
+              </Badge>
+            )}
+          </Button>
+        </Link>
+      </div>
       
       <div className="space-y-4 md:space-y-0 md:space-x-4 md:flex md:justify-center">
         <Button

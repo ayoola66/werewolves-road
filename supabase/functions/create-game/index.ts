@@ -31,7 +31,8 @@ serve(async (req) => {
         status: 'waiting',
         phase: 'lobby',
         settings: settings,
-        current_day: 0
+        day_count: 0,
+        night_count: 0
       })
       .select()
       .single()

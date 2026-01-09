@@ -4,10 +4,12 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import WerewolfGame from "@/pages/werewolf";
+import ErrorLogsPage from "@/pages/ErrorLogs";
 
 function Router() {
   return (
     <Switch>
+      <Route path="/error-logs" component={ErrorLogsPage} />
       <Route path="/" component={WerewolfGame} />
       <Route path="*" component={WerewolfGame} />
     </Switch>

@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { GameState, GameSettings, Player } from "@/lib/gameTypes";
 import { useToast } from "./use-toast";
 import { supabase } from "@/lib/supabase";
+import { useErrorLog } from "./useErrorLog";
 
 export function useGameState() {
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -18,6 +19,7 @@ export function useGameState() {
   const [hasPerformedNightAction, setHasPerformedNightAction] = useState(false);
 
   const { toast } = useToast();
+  const { logError } = useErrorLog();
 
   useEffect(() => {
     if (!gameState?.game?.gameCode) return;
@@ -142,7 +144,13 @@ export function useGameState() {
           setShowGameOverOverlay(true);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
+      logError(error.message || 'Failed to fetch game state', {
+        details: error.stack || JSON.stringify(error),
+        source: 'network',
+        functionName: 'fetchGameState',
+        stack: error.stack,
+      });
       console.error("Error fetching game state:", error);
     }
   };
@@ -216,6 +224,12 @@ export function useGameState() {
           description: "Welcome to the game!",
         });
       } catch (error: any) {
+        logError(error.message || 'Failed to join game', {
+          details: error.stack || JSON.stringify(error),
+          source: 'edge-function',
+          functionName: 'join-game',
+          stack: error.stack,
+        });
         toast({
           title: "Error",
           description: error.message,
@@ -223,7 +237,7 @@ export function useGameState() {
         });
       }
     },
-    [toast]
+    [toast, logError]
   );
 
   const startGame = useCallback(async () => {
@@ -238,9 +252,9 @@ export function useGameState() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             gameCode: gameState.game.gameCode,
-            playerId: playerId
+            playerId: playerId,
           }),
         }
       );
@@ -289,6 +303,12 @@ export function useGameState() {
         const data = await response.json();
         if (data.error) throw new Error(data.error);
       } catch (error: any) {
+        logError(error.message || 'Failed to send chat message', {
+          details: error.stack || JSON.stringify(error),
+          source: 'edge-function',
+          functionName: 'send-chat',
+          stack: error.stack,
+        });
         toast({
           title: "Error",
           description: error.message,
@@ -296,7 +316,7 @@ export function useGameState() {
         });
       }
     },
-    [gameState, playerId, toast]
+    [gameState, playerId, toast, logError]
   );
 
   const vote = useCallback(
@@ -331,6 +351,12 @@ export function useGameState() {
           description: "Your vote has been recorded",
         });
       } catch (error: any) {
+        logError(error.message || 'Failed to submit vote', {
+          details: error.stack || JSON.stringify(error),
+          source: 'edge-function',
+          functionName: 'submit-vote',
+          stack: error.stack,
+        });
         toast({
           title: "Error",
           description: error.message,
@@ -338,7 +364,7 @@ export function useGameState() {
         });
       }
     },
-    [gameState, playerId, toast]
+    [gameState, playerId, toast, logError]
   );
 
   const performNightAction = useCallback(
@@ -377,6 +403,12 @@ export function useGameState() {
           description: "Your night action has been recorded",
         });
       } catch (error: any) {
+        logError(error.message || 'Failed to perform night action', {
+          details: error.stack || JSON.stringify(error),
+          source: 'edge-function',
+          functionName: 'submit-night-action',
+          stack: error.stack,
+        });
         toast({
           title: "Error",
           description: error.message,
@@ -384,7 +416,7 @@ export function useGameState() {
         });
       }
     },
-    [gameState, playerId, toast]
+    [gameState, playerId, toast, logError]
   );
 
   const hasNightAction = (role: string) => {
@@ -440,13 +472,19 @@ export function useGameState() {
         description: "You have left the game",
       });
     } catch (error: any) {
+      logError(error.message || 'Failed to leave game', {
+        details: error.stack || JSON.stringify(error),
+        source: 'edge-function',
+        functionName: 'leave-game',
+        stack: error.stack,
+      });
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
     }
-  }, [gameState, playerId, toast]);
+  }, [gameState, playerId, toast, logError]);
 
   const startVoting = useCallback(async () => {
     if (!gameState || !playerId) return;
@@ -475,13 +513,19 @@ export function useGameState() {
         description: "The voting phase has begun!",
       });
     } catch (error: any) {
+      logError(error.message || 'Failed to start voting', {
+        details: error.stack || JSON.stringify(error),
+        source: 'edge-function',
+        functionName: 'start-voting',
+        stack: error.stack,
+      });
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
     }
-  }, [gameState, playerId, toast]);
+  }, [gameState, playerId, toast, logError]);
 
   return {
     gameState,

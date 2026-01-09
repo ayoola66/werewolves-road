@@ -110,12 +110,12 @@ serve(async (req) => {
         })
     } else {
       // Transition to night phase
-      const newDay = (game.current_day || 0) + 1
+      const newNight = (game.night_count || 0) + 1
       await supabase
         .from('games')
         .update({ 
           phase: 'night',
-          current_day: newDay
+          night_count: newNight
         })
         .eq('id', gameId)
 
