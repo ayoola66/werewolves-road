@@ -1,7 +1,7 @@
-import { useState, useCallback } from "react";
-import { GameState, GameSettings, Player, ChatMessage } from "@/lib/gameTypes";
-import { useWebSocket } from "./useWebSocket";
+import { useState, useCallback, useEffect } from "react";
+import { GameState, GameSettings, Player } from "@/lib/gameTypes";
 import { useToast } from "./use-toast";
+import { supabase } from "@/lib/supabase";
 
 export function useGameState() {
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -17,319 +17,278 @@ export function useGameState() {
   const [showGameOverOverlay, setShowGameOverOverlay] = useState(false);
   const [hasPerformedNightAction, setHasPerformedNightAction] = useState(false);
 
-  const { sendMessage, onMessage, isConnected } = useWebSocket();
   const { toast } = useToast();
 
-  // WebSocket message handlers
-  onMessage("game_created", (message) => {
-    setGameState(message.gameState);
-    setPlayerId(message.playerId);
-    setCurrentScreen("lobby");
-    toast({
-      title: "Game Created",
-      description: `Game code: ${message.gameCode}`,
-    });
-  });
+  useEffect(() => {
+    if (!gameState?.game?.gameCode) return;
 
-  onMessage("game_joined", (message) => {
-    setGameState(message.gameState);
-    setPlayerId(message.playerId);
-    setCurrentScreen("lobby");
-    toast({
-      title: "Joined Game",
-      description: `Welcome to the game!`,
-    });
-  });
+    const channel = supabase
+      .channel(`game:${gameState.game.gameCode}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "games",
+          filter: `game_code=eq.${gameState.game.gameCode}`,
+        },
+        async (
+          e
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "players",
+          filter: `game_code=eq.${gameState.game.gameCode}`,
+        },
+        async () => {
+          await fetchGameState(gameState.game.gameCode);
+        }
+      )
+      .subscribe();
 
-  onMessage("game_started", () => {
-    setCurrentScreen("game");
-    setShowRoleReveal(true);
-    toast({
-      title: "Game Started",
-      description: "The game has begun!",
-    });
-  });
-
-  onMessage("game_state_update", (message) => {
-    console.log("Received game state update:", message);
-    if (!message.gameState) {
-      console.error("Invalid game state update:", message);
-      return;
-    }
-
-    // Preserve all server properties - don't restructure and lose data!
-    const newGameState = {
-      game: message.gameState.game,
-      players: message.gameState.players || [],
-      alivePlayers: message.gameState.alivePlayers || [],
-      deadPlayers: message.gameState.deadPlayers || [],
-      votes: message.gameState.votes || [],
-      nightActions: message.gameState.nightActions || [],
-      chatMessages: message.gameState.chatMessages || [],
-      phase: message.gameState.phase,
-      phaseTimer: message.gameState.phaseTimer,
-      nightCount: message.gameState.nightCount,
-      dayCount: message.gameState.dayCount,
-      werewolfCount: message.gameState.werewolfCount,
-      villagerCount: message.gameState.villagerCount,
-      seerInvestigationsLeft: message.gameState.seerInvestigationsLeft,
+    return () => {
+      supabase.removeChannel(channel);
     };
+  }, [gameState?.game?.gameCode]);
 
-    console.log("Setting new game state:", newGameState);
-    setGameState(newGameState);
+  const fetchGameState = async (gameCode: string) => {
+    try {
+      const { data: game } = await supabase
+        .from("games")
+        .select("*")
+        .eq("game_code", gameCode)
+        .single();
 
-    // Handle phase transitions
-    const currentPhase = newGameState.phase;
-    if (currentPhase === "night") {
-      setHasPerformedNightAction(false); // Reset night action state
-      const currentPlayer = message.gameState.alivePlayers?.find(
-        (p: Player) => p.playerId === playerId
-      );
-      if (currentPlayer && hasNightAction(currentPlayer.role)) {
-        setTimeout(() => {
-          if (!showRoleReveal) {
-            // Only show night action if role reveal is done
-            setShowNightActionOverlay(true);
-          }
-        }, 2000);
-      }
-    } else if (currentPhase === "day") {
-      setShowNightActionOverlay(false);
-      setHasPerformedNightAction(false);
-    } else if (currentPhase === "game_over") {
-      setShowGameOverOverlay(true);
-      setShowNightActionOverlay(false);
-      setShowVoteOverlay(false);
-    }
-  });
+      const { data: players } = await supabase
+        .from("players")
+        .select("*")
+        .eq("game_code", gameCode);
 
-  onMessage("player_joined", (message) => {
-    console.log("Player joined:", message);
-    toast({
-      title: "Player Joined",
-      description: `${message.playerName} joined the game`,
-    });
-  });
+      if (game && players) {
+        const alivePlayers = players.filter((p) => p.is_alive);
+        const deadPlayers = players.filter((p) => !p.is_alive);
 
-  onMessage("player_left", (message) => {
-    toast({
-      title: "Player Left",
-      description: `${message.playerName} left the game`,
-    });
-  });
-
-  onMessage("chat_message", (message) => {
-    // Chat messages are handled in the GameState update
-  });
-
-  onMessage("vote_recorded", () => {
-    setShowVoteOverlay(false);
-    setSelectedPlayer(null);
-    toast({
-      title: "Vote Recorded",
-      description: "Your vote has been recorded",
-    });
-  });
-
-  onMessage("night_action_recorded", () => {
-    setShowNightActionOverlay(false);
-    setSelectedPlayer(null);
-    setHasPerformedNightAction(true);
-    toast({
-      title: "Action Recorded",
-      description: "Your night action has been recorded",
-    });
-  });
-
-  onMessage("phase_change", (message) => {
-    console.log("Phase changed:", message);
-
-    // Show events (deaths, eliminations, etc.)
-    if (message.events && message.events.length > 0) {
-      message.events.forEach((event: any) => {
-        toast({
-          title:
-            event.type === "death"
-              ? "💀 Death"
-              : event.type === "elimination"
-              ? "⚖️ Elimination"
-              : "Event",
-          description: event.message,
+        setGameState({
+          game: {
+            gameCode: game.game_code,
+            hostId: game.host_id,
+            status: game.status,
+            phase: game.phase,
+            dayCount: game.day_count,
+            nightCount: game.night_count,
+            winner: game.winner,
+            settings: game.settings,
+          },
+          players: players.map((p) => ({
+            playerId: p.player_id,
+            playerName: p.player_name,
+            role: p.role,
+            isAlive: p.is_alive,
+            isHost: p.player_id === game.host_id,
+          })),
+          alivePlayers: alivePlayers.map((p) => ({
+            playerId: p.player_id,
+            playerName: p.player_name,
+            role: p.role,
+            isAlive: true,
+            isHost: p.player_id === game.host_id,
+          })),
+          deadPlayers: deadPlayers.map((p) => ({
+            playerId: p.player_id,
+            playerName: p.player_name,
+            role: p.role,
+            isAlive: false,
+            isHost: p.player_id === game.host_id,
+          })),
+          votes: [],
+          vhes: [],     phase: game.phase,
+    _    lih A)s[]
+      ch}M ([]
+      rs:epGa C:l am.ph r,,
+    ifc   p mnvTim : 0, method: "POST",
+      hs  n gh CCuotntgami.aut
+    Con : gcta. ay_teuso,son();
+    wwelfCatpe:rIl;vePly .filtarspp.role === "werew  f")iteatth
+      v llh (rCour::aliPaytriltepp.r cr !trctwvrewolf).lng,
+ }srIvsgsLf0
+  const jch(
+ASE_URL}/functions/v1/join-game`,
+         metdCt-Type": "a
+    as        if (data.error) throw new
+      ld}layerId);
+     S}
+   c tch ile: "" description: "Welcome to the game!",
+      conso)e.;rror( f tah(rgogn{{a: error);
+        title: "Error",
+         description: error.message,
+          variant: "destructive",
         });
-      });
-    }
-
-    // Reset overlays on phase change
-    if (message.phase === "day") {
-      setShowNightActionOverlay(false);
-      setShowVoteOverlay(false);
-    } else if (message.phase === "voting") {
-      setShowNightActionOverlay(false);
-    } else if (message.phase === "night") {
-      setShowVoteOverlay(false);
-      setHasPerformedNightAction(false);
-    }
-  });
-
-  onMessage("game_over", (message) => {
-    console.log("Game over:", message);
-    setShowGameOverOverlay(true);
-    toast({
-      title: "Game Over!",
-      description: message.message,
-    });
-  });
-
-  onMessage("error", (message) => {
-    toast({
-      title: "Error",
-      description: message.message,
-      variant: "destructive",
-    });
-  });
-
-  const createGame = useCallback(
-    (name: string, settings: GameSettings) => {
-      setPlayerName(name);
-      sendMessage({
-        type: "create_game",
-        playerName: name,
-        settings,
-      });
+      }
     },
-    [sendMessage]
+    [toast]
   );
 
-  const joinGame = useCallback(
-    (gameCode: string, name: string) => {
-      setPlayerName(name);
-      sendMessage({
-        type: "join_game",
-        gameCode: gameCode.toUpperCase(),
-        playerName: name,
-      });
-    },
-    [sendMessage]
-  );
+  const startGame = useCallback(async () => {
+    if (!gameState) return;
 
-  const startGame = useCallback(() => {
-    if (gameState) {
-      sendMessage({
-        type: "start_game",
-        gameCode: gameState.game.gameCode,
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/start-game`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ gameCode: gameState.game.gameCode }),
+        }
+      );
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+
+      setCurrentScreen("game");
+      setShowRoleReveal(true);
+
+      toast({
+        title: "Game Started",
+        description: "The game has begun!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
       });
     }
-  }, [sendMessage, gameState]);
+  }, [gameState, toast]);
 
   const sendChatMessage = useCallback(
-    (message: string, channel?: string) => {
-      if (gameState) {
-        sendMessage({
-          type: "chat_message",
-          gameCode: gameState.game.gameCode,
-          message,
-          channel,
+    async (message: string, channel?: string) => {
+      if (!gameState || !playerId) return;
+
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-chat`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({
+              gameCode: gameState.game.gameCode,
+              playerId,
+              message,
+              channel: channel || "all",
+            }),
+          }
+        );
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
         });
       }
     },
-    [sendMessage, gameState]
+    [gameState, playerId, toast]
   );
 
   const vote = useCallback(
-    (targetId: string) => {
-      if (gameState) {
-        sendMessage({
-          type: "vote",
-          gameCode: gameState.game.gameCode,
-          targetId,
+    async (targetId: string) => {
+      if (!gameState || !playerId) return;
+
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-vote`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({
+              gameCode: gameState.game.gameCode,
+              playerId,
+              targetId,
+            }),
+          }
+        );
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+
+        setShowVoteOverlay(false);
+        setSelectedPlayer(null);
+
+        toast({
+          title: "Vote Recorded",
+          description: "Your vote has been recorded",
+        });
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
         });
       }
     },
-    [sendMessage, gameState]
+    [gameState, playerId, toast]
   );
 
   const performNightAction = useCallback(
-    (targetId?: string, actionData?: any) => {
-      if (gameState) {
-        sendMessage({
-          type: "night_action",
-          gameCode: gameState.game.gameCode,
-          targetId,
-          actionData,
+    async (targetId: string, action: string) => {
+      if (!gameState || !playerId) return;
+
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-night-action`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({
+              gameCode: gameState.game.gameCode,
+              playerId,
+              targetId,
+              action,
+            }),
+          }
+        );
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+
+        setShowNightActionOverlay(false);
+        setSelectedPlayer(null);
+        setHasPerformedNightAction(true);
+
+        toast({
+          title: "Action Recorded",
+          description: "Your night action has been recorded",
+        });
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
         });
       }
     },
-    [sendMessage, gameState]
+    [gameState, playerId, toast]
   );
 
-  const startVoting = useCallback(() => {
-    if (gameState) {
-      sendMessage({
-        type: "start_voting",
-        gameCode: gameState.game.gameCode,
-      });
-    }
-  }, [sendMessage, gameState]);
-
-  const leaveGame = useCallback(() => {
-    if (gameState) {
-      sendMessage({
-        type: "leave_game",
-        gameCode: gameState.game.gameCode,
-      });
-    }
-
-    // Reset local state
-    setGameState(null);
-    setPlayerId(null);
-    setPlayerName("");
-    setCurrentScreen("initial");
-    setSelectedPlayer(null);
-    setShowRoleReveal(false);
-    setShowVoteOverlay(false);
-    setShowNightActionOverlay(false);
-    setShowGameOverOverlay(false);
-    setHasPerformedNightAction(false);
-  }, [sendMessage, gameState]);
-
-  const hasNightAction = (role: string | null): boolean => {
-    return role
-      ? ["werewolf", "seer", "doctor", "witch", "bodyguard"].includes(role)
-      : false;
-  };
-
-  const getCurrentPlayer = (): Player | undefined => {
-    if (!gameState || !playerId) return undefined;
-    return gameState.players.find((p) => p.playerId === playerId);
-  };
-
-  const getPlayerRole = (): string | null => {
-    const player = getCurrentPlayer();
-    return player?.role || null;
-  };
-
-  const isHost = (): boolean => {
-    const player = getCurrentPlayer();
-    return player?.isHost || false;
-  };
-
-  const isAlive = (): boolean => {
-    const player = getCurrentPlayer();
-    return player?.isAlive || false;
-  };
-
-  const canVote = (): boolean => {
-    return gameState?.phase === "voting" && isAlive();
-  };
-
-  const canChat = (): boolean => {
-    // Chat is always enabled for alive players
-    // Server will scramble messages for non-werewolves during night
-    return isAlive();
-  };
-
-  const canStartVoting = (): boolean => {
-    return gameState?.phase === "day" && isAlive();
+  const hasNightAction = (role: string) => {
+    return ["werewolf", "seer", "doctor"].includes(role);
   };
 
   return {
@@ -343,35 +302,24 @@ export function useGameState() {
     showNightActionOverlay,
     showGameOverOverlay,
     hasPerformedNightAction,
-    isConnected,
-
-    // Actions
+    isConnected: true,
     createGame,
     joinGame,
     startGame,
     sendChatMessage,
     vote,
     performNightAction,
-    startVoting,
-    leaveGame,
-
-    // UI Actions
-    setCurrentScreen,
     setSelectedPlayer,
     setShowRoleReveal,
     setShowVoteOverlay,
     setShowNightActionOverlay,
     setShowGameOverOverlay,
-    setHasPerformedNightAction,
-
-    // Computed properties
-    getCurrentPlayer,
-    getPlayerRole,
-    isHost,
-    isAlive,
-    canVote,
-    canChat,
-    canStartVoting,
-    hasNightAction: () => hasNightAction(getPlayerRole()),
-  };
-}
+  seatnc(gtIdrf(!St||!rId) tur;
+try{sponwiftch`${iprt.nvVITE_SUPABASE_URL/fuci/v1/t-it-co`,th"POT"edrs:{"Co-Typ":"ppio/json",Authorizion`Brr${ipor.nv.VTE_SUPABASE_ANON_KEY}`oyJSON.yplyerIdtrId,cion,}) }  
+dtwrspo.json);if(rrrhrwwEod.rr
+    lctdPernul    rutst(tit:AinRere,dscripio"Youhcohs brco", };
+}ach(o: a {a{
+i:"Er",
+dsripti:o.mssg,vari"dsrciv",
+  )}},
+[gmStt,Id,ta]hsNighAcor: strig)["wrwolf", "er",octor].nclude(ro:rue,Sn
