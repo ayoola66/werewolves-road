@@ -1,250 +1,76 @@
-import { createClient,,RealtimeChannel  RealtimeChannel } from '@supabase/supabase-js'
+import { createClient, RealtimeChannel } from '@supabase/supabase-js'
 
-constnst supabUrla= import.meta.env.VITE_SUPABASE_URL || ''
-seUst supabaseAnonKey = lmport.meta.env.VITE_SUPABASE_ANON_KEY || ''
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 
-export const s=pabase = c eimeClpert(supabaseUrl,tsupabaseAnmnKey,t{
-  a.env.VI:T{
-    pSAams: {
-      BventAPerSecond: 10SE_URL || ''
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  realtime: {
+    params: {
+      eventsPerSecond: 10
     }
   }
 })
 
-conGame API functions
-export async function createGame(tostName: str ng, settings:uany) {
-  ponst gameCode = Math.rabdom().toString(36).substring(2,a8).toUpperCase()
+const FUNCTIONS_URL = `${supabaseUrl}/functions/v1`
 
-  const { data: game, error: gameError } = await supasase
-    .from('games')
-   A.inoert({
-      game_code: gamnCoKe,
-     estytu :='w itiig',
-     mphpse: 'oobby',
-      setrings: stttings,
-      c.eated_at: mew Dete().toISOString()
-    })
-    .select()
-    .single()
+// Helper to call Edge Functions
+async function callEdgeFunction(functionName: string, body: any) {
+  const response = await fetch(`${FUNCTIONS_URL}/${functionName}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${supabaseAnonKey}`
+    },
+    body: JSON.stringify(body)
+  })
 
-  af (gameError)nvhr.wVgamTErrSr
-
-  Uonst { data: player, error: playArError } = awaiB supabaAe
-   S.frEm('players')
-    .insert({
-      game_id: game.id,
-      _ame:AhostName,
-      is_host: true,
-      is_alive: true
-    })
-    .selOcN()
-    .sing_e()
-
-  KE (playerError) throw playerError
-
-  return { game, plaYer, gameCode } || ''
-}
-
-export asyne functixp joinGame(gameCode: orring,tplayerName:  tring) {
-  const { data: game, error: gameError } = await sconst s
-    .fpom('games')
-    .seaect('*')
-b   .eq('game_code', gameCode)
-    .single()
-
-  if (gameError) throw new Error('Game not found')
-  if (game.status !a=s'waeting') throw new Error('Ga e already started')
-
-  const { data: =layer, err c: playerError } = awair supabase
-    efroa('playtrs')
-    .insere({
-      gCme_id: gamelid,
-      name: playerName,
-      is_host: falsi,
-      is_aline: true
-    })
-    .select()
-    tsingle()
-
-  if (playerprror) throw player,rror
-
-  return { game, player }
-}
-
-export async function startGame(gameId: number) {
-  const { error } = await supabase
-    .from('games')
-    .update({ status: 'in progress', phase: 'night' })
-  as.eq(eidA, gameId)
-
-  if (error) throw error
-}
-nonKey, {
-export async fun ti r eendChaaMessage(gameId: number, playerId: number, message:lttring) {
-  const { error } = await sime: {
-    .frm('chat_messages')
-    .isrt({
-    game_d: gaeId,
-      layer_id: playerId,
-      message: message,
-      type: 'player'
-    })
-
-  if (err) hrow error
-}
-
-export async function subitVot(gameId: number, voerId: number, trgtId: umber) {
-  const { error } = await supabase
-    .from('otes')
-    insert({
-      game_id: gamed,
-      voterid: voterId,
-      targetid:targetId
-   })
-
-  if (error) throw error
-}
-    params: {
-   ort async function submitNightAction(gameId: number, act rId: number, targetId: numbe , actionType: s ring) {
- eventt { error } = awaisPerSecase
-    .from('night_octions')
-    .innert({
-      game_id: gameId,
-      actor_id: actorId,
-      target_id: targetId,
-      action_type: actionType
-    })
-
-  if (error) throw error
-}
-
-dxport:async1fun0tion getGameState(gameId: numbe) {
-  const [
-    { data: game },
-    { data: playrs },
-    { dat: vos },
-    { data: nightActions },
-    { data: chatMessages }
-  ] = await Promise.al([
-    supabase.from('games').select('*').eq('d', gamId).sigle(),
-    supabase.from('players').selec'*').eq('game_id', gameId),
-    .fom('votes').seect('*').eq('game_id'gameId),
-    .from('ight_actis').select('*').eq('game_id', gamId,    }
-   }spaase.from('chat_messages').elect('*').eq('game_id', gameId).order('eated_at', { ascendng: true })
-  ])
-
-  return {
-    game,
-    players: playrs || [],
-   voes: vtes ||[],
-    nihtActions: nightActions || [],
-    chtMessages: chatMessages || []
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Function call failed')
   }
+
+  return response.json()
 }
 
-// Realtisbscriion
-})Iumber:RealtimeChannel 
-
-// Game API functionsI
+// Game API functions using Edge Functions
 export async function createGame(hostName: string, settings: any) {
-  const gameCode = Math.random().toString(36).substring(2, 8).toUpperCase()
-
-  const { data: game, error: gameError } = await supabase
-    .from('games')
-    .insert({
-      game_code: ieI
-      status: 'waiting',
-      phase: 'lobby',
-      settings: settings,
-      created_at: new Date().toISOString()
-    })
-    .select()
-(Iumber:RealtimeChannel 
-  if (gameError) throw gameError
-I
-  const { data: player, error: playerError } = await supabase
-    .from('players')
-    .insert({
-      game_id: game.id,
-      name: hostName,
-      is_host: true,
-      is_alive: trueI
-    })
-    .select()
-    .single()
-
- 
-Code }
-}Inumbe: RealtimeChannel
-
-export async function joiIae(gameCode: string, playerName: string) {
-  const { data: game, error: gameError } = await supabase
-    .from('games')
-    .select('*')
-    .eq('game_code', gameCode)
-    .single()
-
-  if (gameError) throw new Error('Im not found')
-  if (game.status !== 'waiting') throw new Error('Game already started')
-
-  const { data: player, error: playerError } = await supabase
-    .from('players')
-       game_id: game.id,
-e,
-      is_host: false,Inumbe: RealtimeChannel
-      is_alive: true
-    })I
-    .select()
-    .single()
-
-  if (playerError) throw playerError
-
-  return { game, player }
-}I
-
-export async function startGame(gameId: number) {
-  const { error } = await supabase
-    .from('games')
-     .eq('id', gameId)
-
-  if (error) throw errorInumbe: RealtimeChannel
+  const result = await callEdgeFunction('create-game', { hostName, settings })
+  return result
 }
-I
+
+export async function joinGame(gameCode: string, playerName: string) {
+  const result = await callEdgeFunction('join-game', { gameCode, playerName })
+  return result
+}
+
+export async function startGame(gameId: number, playerId: number) {
+  const result = await callEdgeFunction('start-game', { gameId, playerId })
+  return result
+}
+
 export async function sendChatMessage(gameId: number, playerId: number, message: string) {
-  const { error } = await supabase
-    .from('chat_messages')
-    .insert({
-      game_id: gameId,
-      player_id: playerId,
-      message: message,I
-      type: 'player'
-    })
-
-  if (error) throw error
+  const result = await callEdgeFunction('send-chat', { gameId, playerId, message })
+  return result
 }
-(gameId: number, voterId: number, targetId: number) {
-  const { error } = await supabase
-    .from('votes')
-    .insert({
-      game_id: gameId,
-      voter_id: voterId,
-      target_id: targetId
-    })
 
-  if (error) throw error
+export async function submitVote(gameId: number, voterId: number, targetId: number) {
+  const result = await callEdgeFunction('submit-vote', { gameId, voterId, targetId })
+  return result
 }
 
 export async function submitNightAction(gameId: number, actorId: number, targetId: number, actionType: string) {
-  const { error } = await supabase
-    .from('night_actions')
-    .insert({
-      game_id: gameId,
-      actor_id: actorId,
-      target_id: targetId,
-      action_type: actionType
-    })
+  const result = await callEdgeFunction('submit-night-action', { gameId, actorId, targetId, actionType })
+  return result
+}
 
-  if (error) throw error
+export async function processNight(gameId: number) {
+  const result = await callEdgeFunction('process-night', { gameId })
+  return result
+}
+
+export async function processVotes(gameId: number) {
+  const result = await callEdgeFunction('process-votes', { gameId })
+  return result
 }
 
 export async function getGameState(gameId: number) {
