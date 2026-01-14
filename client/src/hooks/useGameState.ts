@@ -875,6 +875,44 @@ export function useGameState() {
     }
   }, [gameState, playerId, toast, logError]);
 
+  // Activate shield for the current night
+  const useShield = useCallback(async () => {
+    if (!gameState || !playerId) return;
+
+    try {
+      await callEdgeFunctionWithRetry(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/use-shield`,
+        {
+          gameCode: gameState.game.gameCode,
+          playerId,
+        },
+        "use-shield"
+      );
+
+      // Refresh game state to reflect shield activation
+      await fetchGameState(gameState.game.gameCode);
+
+      toast({
+        title: "🛡️ Shield Activated!",
+        description: "You are protected from all attacks tonight!",
+      });
+    } catch (error: any) {
+      logError(error.message || "Failed to activate shield", {
+        details: error.stack || JSON.stringify(error),
+        source: "edge-function",
+        functionName: "use-shield",
+        stack: error.stack,
+        gameCode: gameState?.game?.gameCode,
+        playerId: playerId || undefined,
+      });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  }, [gameState, playerId, toast, logError, fetchGameState]);
+
   return {
     gameState,
     playerId,
@@ -907,5 +945,6 @@ export function useGameState() {
     startVoting,
     clearGameState,
     canChat,
+    useShield,
   };
 }

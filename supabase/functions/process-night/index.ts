@@ -224,24 +224,32 @@ serve(async (req) => {
     }
 
     // Process kills in priority order:
-    // 1. Check shield (highest priority - personal protection)
+    // 1. Check shield ACTIVATION this night (player-chosen protection)
     // 2. Check witch save
     // 3. Check doctor save
     // 4. Apply werewolf kill
     // 5. Apply bodyguard death mechanic
     // 6. Apply witch poison
 
+    // Get all shield actions this night
+    const shieldActions = actions?.filter(a => a.action_type === 'shield') || []
+    const activatedShields = new Set(shieldActions.map(a => a.player_id))
+
+    // Helper function to check if player activated shield this night
+    const hasActiveShield = (playerId: string) => activatedShields.has(playerId)
+
     if (killedPlayerId) {
       const target = allPlayers.find(p => p.player_id === killedPlayerId)
       
-      // Check if target has shield (personal protection - highest priority)
-      if (target?.has_shield) {
-        messages.push(`🛡️ ${target.name} used their shield and survived the attack!`)
-        // Remove shield after use
+      // Check if target ACTIVATED their shield this night (player chose to use it)
+      if (hasActiveShield(killedPlayerId) && target?.has_shield) {
+        messages.push(`🛡️ ${target.name} activated their shield and survived the attack!`)
+        // Remove shield permanently after use
         await supabase
           .from('players')
           .update({ has_shield: false })
           .eq('player_id', killedPlayerId)
+        killedPlayerId = null // Prevent kill
       }
       // Check witch save (processed before kill)
       else if (killedPlayerId === witchSaveTargetId) {
@@ -260,10 +268,10 @@ serve(async (req) => {
         deaths.push(bodyguardPlayerId)
         messages.push(`🛡️ ${bodyguard?.name || 'The bodyguard'} died protecting ${target?.name || 'someone'}!`)
         
-        // Check if protected player has shield or doctor save
+        // Check if protected player activated shield or has doctor save
         const protectedPlayer = allPlayers.find(p => p.player_id === bodyguardProtectTargetId)
-        if (protectedPlayer?.has_shield) {
-          messages.push(`🛡️ ${protectedPlayer.name} used their shield and survived!`)
+        if (hasActiveShield(bodyguardProtectTargetId) && protectedPlayer?.has_shield) {
+          messages.push(`🛡️ ${protectedPlayer.name} activated their shield and survived!`)
           await supabase
             .from('players')
             .update({ has_shield: false })
@@ -284,12 +292,21 @@ serve(async (req) => {
       }
     }
 
-    // Apply witch poison (after kill processing)
+    // Apply witch poison (after kill processing) - shield protects against poison too!
     if (witchPoisonTargetId) {
       const poisonedPlayer = allPlayers.find(p => p.player_id === witchPoisonTargetId)
       if (poisonedPlayer && poisonedPlayer.is_alive) {
-        deaths.push(witchPoisonTargetId)
-        messages.push(`☠️ ${poisonedPlayer.name} was poisoned by the witch!`)
+        // Check if target activated shield this night
+        if (hasActiveShield(witchPoisonTargetId) && poisonedPlayer.has_shield) {
+          messages.push(`🛡️ ${poisonedPlayer.name} activated their shield and survived the witch's poison!`)
+          await supabase
+            .from('players')
+            .update({ has_shield: false })
+            .eq('player_id', witchPoisonTargetId)
+        } else {
+          deaths.push(witchPoisonTargetId)
+          messages.push(`☠️ ${poisonedPlayer.name} was poisoned by the witch!`)
+        }
       }
     }
 

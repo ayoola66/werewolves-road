@@ -12,6 +12,7 @@ export default function NightActionInterface({
 }: NightActionInterfaceProps) {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>("");
   const [hasActed, setHasActed] = useState(false);
+  const [shieldActivated, setShieldActivated] = useState(false);
 
   const game = gameState.gameState;
   const currentPlayer = gameState.getCurrentPlayer();
@@ -20,6 +21,14 @@ export default function NightActionInterface({
   // Safe array access
   const allAlivePlayers = Array.isArray(game?.alivePlayers) ? game.alivePlayers : [];
   const nightActions = Array.isArray(game?.nightActions) ? game.nightActions : [];
+
+  // Check if player has shield available and hasn't used it yet
+  const hasShieldAvailable = currentPlayer?.hasShield && !shieldActivated;
+  
+  // Check if shield was already activated this night
+  const shieldActionThisNight = nightActions.find(
+    (a: any) => a.playerId === gameState.playerId && a.actionType === 'shield'
+  );
 
   // Check if current player has acted
   const currentPlayerAction = nightActions.find(
@@ -30,7 +39,22 @@ export default function NightActionInterface({
     if (currentPlayerAction) {
       setHasActed(true);
     }
-  }, [currentPlayerAction]);
+    if (shieldActionThisNight) {
+      setShieldActivated(true);
+    }
+  }, [currentPlayerAction, shieldActionThisNight]);
+  
+  // Handle shield activation
+  const handleUseShield = async () => {
+    if (!hasShieldAvailable || shieldActivated) return;
+    
+    try {
+      await gameState.useShield();
+      setShieldActivated(true);
+    } catch (error) {
+      console.error('Failed to activate shield:', error);
+    }
+  };
 
   // Filter available targets based on role
   const getAvailableTargets = () => {
@@ -142,6 +166,37 @@ export default function NightActionInterface({
   const totalActors = playersWithRoles.length;
   const actedCount = nightActions.length;
 
+  // Shield Button Component (reusable)
+  const ShieldButton = () => {
+    if (!hasShieldAvailable && !shieldActivated) return null;
+    
+    return (
+      <div className="mt-4 p-4 bg-gradient-to-r from-cyan-900/30 to-blue-900/30 rounded-lg border-2 border-cyan-500/50">
+        {shieldActivated ? (
+          <div className="text-center">
+            <div className="text-3xl mb-2">🛡️✨</div>
+            <p className="text-cyan-300 font-bold">Shield Active!</p>
+            <p className="text-cyan-400 text-sm">You are protected tonight</p>
+          </div>
+        ) : (
+          <div className="text-center">
+            <div className="text-3xl mb-2">🛡️</div>
+            <p className="text-cyan-300 font-bold mb-2">One-Time Shield Available</p>
+            <p className="text-cyan-400 text-sm mb-3">
+              Activate to protect yourself from ALL attacks tonight. Once used, it's gone forever!
+            </p>
+            <Button
+              onClick={handleUseShield}
+              className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold px-6 py-2"
+            >
+              🛡️ Activate Shield
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // If player has no night action, show waiting screen
   if (!hasNightAction) {
     return (
@@ -156,6 +211,10 @@ export default function NightActionInterface({
               The night is dark and full of secrets. Wait while others perform
               their actions.
             </p>
+            
+            {/* Shield Button */}
+            <ShieldButton />
+            
             <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-300 dark:border-blue-700">
               <p className="text-blue-800 dark:text-blue-300 font-semibold text-sm sm:text-base mb-2">
                 Night Progress
