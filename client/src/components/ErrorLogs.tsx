@@ -201,6 +201,11 @@ export default function ErrorLogs() {
                                   <Badge variant={getStatusBadgeVariant(error.status)}>
                                     {error.status}
                                   </Badge>
+                                  {error.status === 'resolved' && (
+                                    <Badge variant="outline" className="bg-green-600/30 text-green-400 border-green-500/50">
+                                      ✓ Resolved
+                                    </Badge>
+                                  )}
                                   <Badge variant={getSourceBadgeVariant(error.source)}>
                                     {error.source}
                                   </Badge>
@@ -238,6 +243,8 @@ export default function ErrorLogs() {
                                       size="sm"
                                       onClick={() => setSelectedError(error)}
                                       className="text-purple-400 hover:text-purple-300"
+                                      disabled={error.status === 'resolved'}
+                                      title={error.status === 'resolved' ? 'View details (read-only)' : 'View details'}
                                     >
                                       <FileText className="w-4 h-4" />
                                     </Button>
@@ -246,10 +253,23 @@ export default function ErrorLogs() {
                                     <DialogHeader>
                                       <DialogTitle>Error Details</DialogTitle>
                                       <DialogDescription className="text-gray-300">
-                                        Full error information and stack trace
+                                        {error.status === 'resolved' ? 'This error has been resolved (read-only)' : 'Full error information and stack trace'}
                                       </DialogDescription>
                                     </DialogHeader>
                                     <div className="space-y-4">
+                                      {error.status === 'resolved' && (
+                                        <div className="bg-green-900/30 border border-green-500/50 rounded p-3">
+                                          <div className="flex items-center gap-2 text-green-400">
+                                            <CheckCircle2 className="w-5 h-5" />
+                                            <span className="font-semibold">This error has been resolved</span>
+                                          </div>
+                                          {(error.resolved_at || error.resolvedAt) && (
+                                            <p className="text-sm text-gray-300 mt-1">
+                                              Resolved on: {new Date(error.resolved_at || error.resolvedAt || '').toLocaleString()}
+                                            </p>
+                                          )}
+                                        </div>
+                                      )}
                                       <div>
                                         <label className="text-sm font-semibold text-gray-400">Message</label>
                                         <p className="text-white">{error.message}</p>
@@ -284,36 +304,44 @@ export default function ErrorLogs() {
                                   </DialogContent>
                                 </Dialog>
                                 {error.status !== 'resolved' && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => updateErrorStatus(error.id, 'resolved')}
-                                    className="text-green-400 hover:text-green-300"
-                                    title="Mark as resolved"
-                                  >
+                                  <>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => updateErrorStatus(error.id, 'resolved')}
+                                      className="text-green-400 hover:text-green-300"
+                                      title="Mark as resolved"
+                                    >
+                                      <CheckCircle2 className="w-4 h-4" />
+                                    </Button>
+                                    {error.status !== 'ignored' && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => updateErrorStatus(error.id, 'ignored')}
+                                        className="text-gray-400 hover:text-gray-300"
+                                        title="Ignore"
+                                      >
+                                        <XCircle className="w-4 h-4" />
+                                      </Button>
+                                    )}
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => deleteError(error.id)}
+                                      className="text-red-400 hover:text-red-300"
+                                      title="Delete"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </>
+                                )}
+                                {error.status === 'resolved' && (
+                                  <div className="flex items-center gap-2 text-green-400 text-sm">
                                     <CheckCircle2 className="w-4 h-4" />
-                                  </Button>
+                                    <span className="text-xs">Resolved</span>
+                                  </div>
                                 )}
-                                {error.status !== 'ignored' && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => updateErrorStatus(error.id, 'ignored')}
-                                    className="text-gray-400 hover:text-gray-300"
-                                    title="Ignore"
-                                  >
-                                    <XCircle className="w-4 h-4" />
-                                  </Button>
-                                )}
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => deleteError(error.id)}
-                                  className="text-red-400 hover:text-red-300"
-                                  title="Delete"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
                               </div>
                             </div>
                           </CardContent>
@@ -376,30 +404,44 @@ export default function ErrorLogs() {
                               </div>
                             )}
                             <div className="flex gap-2 pt-2 border-t border-purple-500/30">
-                              <Select
-                                value={error.status}
-                                onValueChange={(value) =>
-                                  updateErrorStatus(error.id, value as ErrorLog['status'])
-                                }
-                              >
-                                <SelectTrigger className="w-[180px] bg-black/40 border-purple-500/50 text-white">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent className="bg-black border-purple-500/50">
-                                  <SelectItem value="new">New</SelectItem>
-                                  <SelectItem value="investigating">Investigating</SelectItem>
-                                  <SelectItem value="resolved">Resolved</SelectItem>
-                                  <SelectItem value="ignored">Ignored</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => deleteError(error.id)}
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Delete
-                              </Button>
+                              {error.status === 'resolved' ? (
+                                <div className="flex items-center gap-2 text-green-400">
+                                  <CheckCircle2 className="w-4 h-4" />
+                                  <span className="text-sm">This error has been resolved</span>
+                                  {(error.resolved_at || error.resolvedAt) && (
+                                    <span className="text-xs text-gray-400">
+                                      ({new Date(error.resolved_at || error.resolvedAt || '').toLocaleString()})
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <>
+                                  <Select
+                                    value={error.status}
+                                    onValueChange={(value) =>
+                                      updateErrorStatus(error.id, value as ErrorLog['status'])
+                                    }
+                                  >
+                                    <SelectTrigger className="w-[180px] bg-black/40 border-purple-500/50 text-white">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-black border-purple-500/50">
+                                      <SelectItem value="new">New</SelectItem>
+                                      <SelectItem value="investigating">Investigating</SelectItem>
+                                      <SelectItem value="resolved">Resolved</SelectItem>
+                                      <SelectItem value="ignored">Ignored</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => deleteError(error.id)}
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Delete
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           </CardContent>
                         </Card>

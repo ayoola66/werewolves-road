@@ -71,52 +71,55 @@ export function useGameState() {
   }, [gameState?.game?.gameCode, debouncedFetchGameState]);
 
   // Retry logic helper for Edge Function calls
-  const callEdgeFunctionWithRetry = useCallback(async (
-    url: string,
-    body: any,
-    functionName: string,
-    maxRetries = 3
-  ): Promise<any> => {
-    let lastError: any = null;
-    
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        const response = await fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify(body),
-        });
+  const callEdgeFunctionWithRetry = useCallback(
+    async (
+      url: string,
+      body: any,
+      functionName: string,
+      maxRetries = 3
+    ): Promise<any> => {
+      let lastError: any = null;
 
-        const data = await response.json();
-        
-        if (!response.ok || data.error) {
-          throw new Error(data.error || `HTTP ${response.status}`);
-        }
-
-        return data;
-      } catch (error: any) {
-        lastError = error;
-        
-        if (attempt < maxRetries) {
-          // Exponential backoff: 1s, 2s, 4s
-          const delay = Math.pow(2, attempt - 1) * 1000;
-          await new Promise(resolve => setTimeout(resolve, delay));
-          
-          toast({
-            title: "Retrying...",
-            description: `Attempt ${attempt + 1} of ${maxRetries}`,
-            duration: delay,
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          const response = await fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify(body),
           });
+
+          const data = await response.json();
+
+          if (!response.ok || data.error) {
+            throw new Error(data.error || `HTTP ${response.status}`);
+          }
+
+          return data;
+        } catch (error: any) {
+          lastError = error;
+
+          if (attempt < maxRetries) {
+            // Exponential backoff: 1s, 2s, 4s
+            const delay = Math.pow(2, attempt - 1) * 1000;
+            await new Promise((resolve) => setTimeout(resolve, delay));
+
+            toast({
+              title: "Retrying...",
+              description: `Attempt ${attempt + 1} of ${maxRetries}`,
+              duration: delay,
+            });
+          }
         }
       }
-    }
 
-    // All retries failed
-    throw lastError;
-  }, [toast]);
+      // All retries failed
+      throw lastError;
+    },
+    [toast]
+  );
 
   const fetchGameState = async (gameCode: string) => {
     try {
@@ -592,7 +595,9 @@ export function useGameState() {
 
       try {
         await callEdgeFunctionWithRetry(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-night-action`,
+          `${
+            import.meta.env.VITE_SUPABASE_URL
+          }/functions/v1/submit-night-action`,
           {
             gameCode: gameState.game.gameCode,
             playerId,
