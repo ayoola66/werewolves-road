@@ -123,21 +123,52 @@ export function useGameState() {
 
   const fetchGameState = async (gameCode: string) => {
     try {
-      const { data: game } = await supabase
+      console.log("Fetching game state for:", gameCode);
+      const { data: game, error: gameError } = await supabase
         .from("games")
         .select("*")
         .eq("game_code", gameCode)
         .single();
 
+      if (gameError) {
+        console.error("Error fetching game:", gameError);
+        logError(gameError.message || "Failed to fetch game", {
+          details: JSON.stringify(gameError),
+          source: "database",
+          functionName: "fetchGameState",
+          gameCode: gameCode,
+        });
+        throw gameError;
+      }
+
       if (!game) {
         console.error("Game not found:", gameCode);
+        logError("Game not found", {
+          details: `Game code: ${gameCode}`,
+          source: "database",
+          functionName: "fetchGameState",
+          gameCode: gameCode,
+        });
         return;
       }
 
-      const { data: players } = await supabase
+      console.log("Game found:", game.id, "Phase:", game.current_phase);
+
+      const { data: players, error: playersError } = await supabase
         .from("players")
         .select("*")
         .eq("game_id", game.id);
+
+      if (playersError) {
+        console.error("Error fetching players:", playersError);
+        logError(playersError.message || "Failed to fetch players", {
+          details: JSON.stringify(playersError),
+          source: "database",
+          functionName: "fetchGameState",
+          gameCode: gameCode,
+        });
+        throw playersError;
+      }
 
       if (game && players && Array.isArray(players)) {
         const alivePlayers = players.filter((p) => p.is_alive);
