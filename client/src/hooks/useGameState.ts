@@ -57,8 +57,7 @@ export function useGameState() {
     };
   }, [gameState?.game?.gameCode]);
 
-  // Phase timer checking - automatically transition phases when timer expires
-  useEffect(() => {
+  const fetchGameState = async (gameCode: string) => {
     if (!gameState?.game?.gameCode || currentScreen !== 'game') return;
 
     const currentPhase = gameState.game?.currentPhase || gameState.game?.phase || gameState.phase;
@@ -164,7 +163,7 @@ export function useGameState() {
     return () => {
       clearInterval(interval);
     };
-  }, [gameState?.game?.gameCode, gameState?.game?.currentPhase, gameState?.game?.phaseEndTime, currentScreen, logError, fetchGameState]);
+  }, [gameState?.game?.gameCode, gameState?.game?.currentPhase, gameState?.game?.phaseEndTime, currentScreen, logError]);
 
   const fetchGameState = async (gameCode: string) => {
     try {
