@@ -60,10 +60,9 @@ export function useGameState() {
   // Phase timer checking - automatically transition phases when timer expires
   useEffect(() => {
     if (!gameState?.game?.gameCode || currentScreen !== 'game') return;
-    if (!gameState.gameState) return;
 
-    const currentPhase = gameState.gameState.game?.currentPhase || gameState.gameState.game?.phase || gameState.gameState.phase;
-    const phaseEndTime = gameState.gameState.game?.phaseEndTime || gameState.gameState.phaseEndTime;
+    const currentPhase = gameState.game?.currentPhase || gameState.game?.phase || gameState.phase;
+    const phaseEndTime = gameState.game?.phaseEndTime || gameState.phaseEndTime;
 
     // Only check for night and voting phases (these need automatic processing)
     if (currentPhase !== 'night' && currentPhase !== 'voting' && currentPhase !== 'role_reveal') {
