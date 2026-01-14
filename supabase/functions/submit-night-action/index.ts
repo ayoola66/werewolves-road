@@ -40,6 +40,45 @@ serve(async (req) => {
       )
     }
 
+    // Validate player is alive
+    const { data: player } = await supabase
+      .from('players')
+      .select('is_alive, role')
+      .eq('player_id', playerId)
+      .eq('game_id', game.id)
+      .single()
+
+    if (!player) {
+      return new Response(
+        JSON.stringify({ error: 'Player not found in game' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (!player.is_alive) {
+      return new Response(
+        JSON.stringify({ error: 'Dead players cannot perform actions' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Validate role can perform this action
+    const roleActionMap: Record<string, string[]> = {
+      werewolf: ['kill'],
+      doctor: ['save', 'protect'],
+      seer: ['investigate'],
+      bodyguard: ['protect'],
+      witch: ['save', 'poison']
+    }
+
+    const allowedActions = roleActionMap[player.role || ''] || []
+    if (!allowedActions.includes(action)) {
+      return new Response(
+        JSON.stringify({ error: `Role '${player.role}' cannot perform action '${action}'. Allowed actions: ${allowedActions.join(', ')}` }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Check if action already exists
     const { data: existing } = await supabase
       .from('night_actions')

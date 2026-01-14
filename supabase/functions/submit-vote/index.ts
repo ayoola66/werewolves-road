@@ -40,6 +40,28 @@ serve(async (req) => {
       )
     }
 
+    // Validate player is alive
+    const { data: player } = await supabase
+      .from('players')
+      .select('is_alive')
+      .eq('player_id', playerId)
+      .eq('game_id', game.id)
+      .single()
+
+    if (!player) {
+      return new Response(
+        JSON.stringify({ error: 'Player not found in game' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (!player.is_alive) {
+      return new Response(
+        JSON.stringify({ error: 'Dead players cannot vote' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Check if vote already exists
     const { data: existing } = await supabase
       .from('votes')
