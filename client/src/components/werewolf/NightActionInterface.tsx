@@ -17,11 +17,9 @@ export default function NightActionInterface({
   const currentPlayer = gameState.getCurrentPlayer();
   const playerRole = gameState.getPlayerRole();
 
-  // Get alive players
-  const allAlivePlayers = game?.alivePlayers || [];
-
-  // Get night actions data
-  const nightActions = game?.nightActions || [];
+  // Safe array access
+  const allAlivePlayers = Array.isArray(game?.alivePlayers) ? game.alivePlayers : [];
+  const nightActions = Array.isArray(game?.nightActions) ? game.nightActions : [];
 
   // Check if current player has acted
   const currentPlayerAction = nightActions.find(
@@ -140,9 +138,7 @@ export default function NightActionInterface({
 
   // Calculate action progress
   const rolesWithActions = ["werewolf", "seer", "doctor", "bodyguard"];
-  const playersWithRoles =
-    game?.alivePlayers?.filter((p: any) => rolesWithActions.includes(p.role)) ||
-    [];
+  const playersWithRoles = allAlivePlayers.filter((p: any) => rolesWithActions.includes(p.role));
   const totalActors = playersWithRoles.length;
   const actedCount = nightActions.length;
 

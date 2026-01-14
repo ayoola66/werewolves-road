@@ -9,13 +9,17 @@ interface GameOverOverlayProps {
 export default function GameOverOverlay({ gameState }: GameOverOverlayProps) {
   const game = gameState.gameState;
   
+  // Safe array access
+  const alivePlayers = Array.isArray(game?.alivePlayers) ? game.alivePlayers : [];
+  const deadPlayers = Array.isArray(game?.deadPlayers) ? game.deadPlayers : [];
+  
   const getWinnerInfo = () => {
-    const aliveWerewolves = game?.alivePlayers?.filter((p: any) => p.role === 'werewolf').length || 0;
-    const aliveVillagers = game?.alivePlayers?.filter((p: any) => 
+    const aliveWerewolves = alivePlayers.filter((p: any) => p.role === 'werewolf').length;
+    const aliveVillagers = alivePlayers.filter((p: any) => 
       p.role !== 'werewolf' && p.role !== 'minion'
-    ).length || 0;
+    ).length;
     
-    const jesterWon = game?.deadPlayers?.some((p: any) => p.role === 'jester');
+    const jesterWon = deadPlayers.some((p: any) => p.role === 'jester');
     
     if (jesterWon) {
       return {
@@ -41,7 +45,7 @@ export default function GameOverOverlay({ gameState }: GameOverOverlayProps) {
   };
 
   const winnerInfo = getWinnerInfo();
-  const allPlayers = [...(game?.alivePlayers || []), ...(game?.deadPlayers || [])];
+  const allPlayers = [...alivePlayers, ...deadPlayers];
 
   return (
     <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[70] p-4">

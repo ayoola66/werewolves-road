@@ -29,7 +29,8 @@ export default function RoleReveal({ gameState }: RoleRevealProps) {
   if (!playerRole || countdown <= 0) return null;
 
   const roleInfo = ROLE_INFO[playerRole as keyof typeof ROLE_INFO];
-  const werewolfPack = game?.players.filter((p: any) => 
+  const players = Array.isArray(game?.players) ? game.players : [];
+  const werewolfPack = players.filter((p: any) => 
     p.role === 'werewolf' && p.playerId !== gameState.playerId
   );
 

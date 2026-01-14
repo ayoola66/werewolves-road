@@ -7,18 +7,20 @@ interface VoteOverlayProps {
 
 export default function VoteOverlay({ gameState }: VoteOverlayProps) {
   const game = gameState.gameState;
-  const alivePlayers =
-    game?.alivePlayers?.filter((p: any) => p.playerId !== gameState.playerId) ||
-    [];
+  
+  // Safe array access
+  const allAlivePlayers = Array.isArray(game?.alivePlayers) ? game.alivePlayers : [];
+  const allPlayers = Array.isArray(game?.players) ? game.players : [];
+  const votesArray = Array.isArray(game?.votes) ? game.votes : [];
+  
+  const alivePlayers = allAlivePlayers.filter((p: any) => p.playerId !== gameState.playerId);
 
   // Get list of players who have voted
-  const votes = game?.votes || [];
-  const voterIds = votes.map((v: any) => v.voterId);
-  const playersWhoVoted =
-    game?.players?.filter((p: any) => voterIds.includes(p.playerId)) || [];
+  const voterIds = votesArray.map((v: any) => v.voterId);
+  const playersWhoVoted = allPlayers.filter((p: any) => voterIds.includes(p.playerId));
 
-  const totalAlivePlayers = game?.alivePlayers?.length || 0;
-  const totalVotes = votes.length;
+  const totalAlivePlayers = allAlivePlayers.length;
+  const totalVotes = votesArray.length;
   const votesNeeded = Math.ceil(totalAlivePlayers / 2);
 
   const handleVote = (targetId: string) => {

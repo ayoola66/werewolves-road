@@ -27,7 +27,7 @@ export function useGameState() {
 
   // Define fetchGameState first so it can be used in the debounced version
   const fetchGameStateRef = useRef<(gameCode: string) => Promise<void>>();
-  
+
   const debouncedFetchGameState = useCallback(async (gameCode: string) => {
     const now = Date.now();
     if (now - lastFetchRef.current < DEBOUNCE_MS) {
@@ -105,7 +105,13 @@ export function useGameState() {
     if (gamePhase === "game_over" && currentScreen === "game") {
       setShowGameOverOverlay(true);
     }
-  }, [gameState?.game?.status, gameState?.game?.currentPhase, gameState?.phase, currentScreen, toast]);
+  }, [
+    gameState?.game?.status,
+    gameState?.game?.currentPhase,
+    gameState?.phase,
+    currentScreen,
+    toast,
+  ]);
 
   // Retry logic helper for Edge Function calls
   const callEdgeFunctionWithRetry = useCallback(
@@ -158,143 +164,146 @@ export function useGameState() {
     [toast]
   );
 
-  const fetchGameState = useCallback(async (gameCode: string) => {
-    try {
-      console.log("Fetching game state for:", gameCode);
-      const { data: game, error: gameError } = await supabase
-        .from("games")
-        .select("*")
-        .eq("game_code", gameCode)
-        .single();
+  const fetchGameState = useCallback(
+    async (gameCode: string) => {
+      try {
+        console.log("Fetching game state for:", gameCode);
+        const { data: game, error: gameError } = await supabase
+          .from("games")
+          .select("*")
+          .eq("game_code", gameCode)
+          .single();
 
-      if (gameError) {
-        console.error("Error fetching game:", gameError);
-        logError(gameError.message || "Failed to fetch game", {
-          details: JSON.stringify(gameError),
-          source: "database",
-          functionName: "fetchGameState",
-          gameCode: gameCode,
-        });
-        throw gameError;
-      }
-
-      if (!game) {
-        console.error("Game not found:", gameCode);
-        logError("Game not found", {
-          details: `Game code: ${gameCode}`,
-          source: "database",
-          functionName: "fetchGameState",
-          gameCode: gameCode,
-        });
-        return;
-      }
-
-      console.log("Game found:", game.id, "Phase:", game.current_phase);
-
-      const { data: players, error: playersError } = await supabase
-        .from("players")
-        .select("*")
-        .eq("game_id", game.id);
-
-      if (playersError) {
-        console.error("Error fetching players:", playersError);
-        logError(playersError.message || "Failed to fetch players", {
-          details: JSON.stringify(playersError),
-          source: "database",
-          functionName: "fetchGameState",
-          gameCode: gameCode,
-        });
-        throw playersError;
-      }
-
-      if (game && players && Array.isArray(players)) {
-        const alivePlayers = players.filter((p) => p.is_alive);
-        const deadPlayers = players.filter((p) => !p.is_alive);
-
-        setGameState({
-          game: {
-            id: game.id,
-            gameCode: game.game_code,
-            hostId: game.host_id,
-            status: game.status,
-            currentPhase: game.current_phase || game.phase || "lobby",
-            phaseTimer: game.phase_timer || 0,
-            nightCount: game.night_count,
-            dayCount: game.day_count,
-            lastPhaseChange: game.last_phase_change,
-            phaseEndTime: game.phase_end_time,
-            createdAt: game.created_at,
-            settings: game.settings,
-          },
-          players: players.map((p) => ({
-            id: p.id,
-            gameId: p.game_id,
-            playerId: p.player_id,
-            name: p.name || p.player_name,
-            role: p.role,
-            isAlive: p.is_alive,
-            isHost: p.player_id === game.host_id,
-            isSheriff: p.is_sheriff,
-            joinedAt: p.joined_at,
-            hasShield: p.has_shield,
-            actionUsed: p.action_used,
-          })),
-          alivePlayers: alivePlayers.map((p) => ({
-            id: p.id,
-            gameId: p.game_id,
-            playerId: p.player_id,
-            name: p.name || p.player_name,
-            role: p.role,
-            isAlive: true,
-            isHost: p.player_id === game.host_id,
-            isSheriff: p.is_sheriff,
-            joinedAt: p.joined_at,
-            hasShield: p.has_shield,
-            actionUsed: p.action_used,
-          })),
-          deadPlayers: deadPlayers.map((p) => ({
-            id: p.id,
-            gameId: p.game_id,
-            playerId: p.player_id,
-            name: p.name || p.player_name,
-            role: p.role,
-            isAlive: false,
-            isHost: p.player_id === game.host_id,
-            isSheriff: p.is_sheriff,
-            joinedAt: p.joined_at,
-            hasShield: p.has_shield,
-            actionUsed: p.action_used,
-          })),
-          votes: {},
-          nightActions: {},
-          chatMessages: [],
-          phase: game.current_phase || game.phase || "lobby",
-          phaseTimer: 0,
-          werewolfCount: Array.isArray(alivePlayers)
-            ? alivePlayers.filter((p) => p.role === "werewolf").length
-            : 0,
-          villagerCount: Array.isArray(alivePlayers)
-            ? alivePlayers.filter((p) => p.role !== "werewolf").length
-            : 0,
-          seerInvestigationsLeft: {},
-        });
-
-        if ((game.current_phase || game.phase) === "game_over") {
-          setShowGameOverOverlay(true);
+        if (gameError) {
+          console.error("Error fetching game:", gameError);
+          logError(gameError.message || "Failed to fetch game", {
+            details: JSON.stringify(gameError),
+            source: "database",
+            functionName: "fetchGameState",
+            gameCode: gameCode,
+          });
+          throw gameError;
         }
+
+        if (!game) {
+          console.error("Game not found:", gameCode);
+          logError("Game not found", {
+            details: `Game code: ${gameCode}`,
+            source: "database",
+            functionName: "fetchGameState",
+            gameCode: gameCode,
+          });
+          return;
+        }
+
+        console.log("Game found:", game.id, "Phase:", game.current_phase);
+
+        const { data: players, error: playersError } = await supabase
+          .from("players")
+          .select("*")
+          .eq("game_id", game.id);
+
+        if (playersError) {
+          console.error("Error fetching players:", playersError);
+          logError(playersError.message || "Failed to fetch players", {
+            details: JSON.stringify(playersError),
+            source: "database",
+            functionName: "fetchGameState",
+            gameCode: gameCode,
+          });
+          throw playersError;
+        }
+
+        if (game && players && Array.isArray(players)) {
+          const alivePlayers = players.filter((p) => p.is_alive);
+          const deadPlayers = players.filter((p) => !p.is_alive);
+
+          setGameState({
+            game: {
+              id: game.id,
+              gameCode: game.game_code,
+              hostId: game.host_id,
+              status: game.status,
+              currentPhase: game.current_phase || game.phase || "lobby",
+              phaseTimer: game.phase_timer || 0,
+              nightCount: game.night_count,
+              dayCount: game.day_count,
+              lastPhaseChange: game.last_phase_change,
+              phaseEndTime: game.phase_end_time,
+              createdAt: game.created_at,
+              settings: game.settings,
+            },
+            players: players.map((p) => ({
+              id: p.id,
+              gameId: p.game_id,
+              playerId: p.player_id,
+              name: p.name || p.player_name,
+              role: p.role,
+              isAlive: p.is_alive,
+              isHost: p.player_id === game.host_id,
+              isSheriff: p.is_sheriff,
+              joinedAt: p.joined_at,
+              hasShield: p.has_shield,
+              actionUsed: p.action_used,
+            })),
+            alivePlayers: alivePlayers.map((p) => ({
+              id: p.id,
+              gameId: p.game_id,
+              playerId: p.player_id,
+              name: p.name || p.player_name,
+              role: p.role,
+              isAlive: true,
+              isHost: p.player_id === game.host_id,
+              isSheriff: p.is_sheriff,
+              joinedAt: p.joined_at,
+              hasShield: p.has_shield,
+              actionUsed: p.action_used,
+            })),
+            deadPlayers: deadPlayers.map((p) => ({
+              id: p.id,
+              gameId: p.game_id,
+              playerId: p.player_id,
+              name: p.name || p.player_name,
+              role: p.role,
+              isAlive: false,
+              isHost: p.player_id === game.host_id,
+              isSheriff: p.is_sheriff,
+              joinedAt: p.joined_at,
+              hasShield: p.has_shield,
+              actionUsed: p.action_used,
+            })),
+            votes: {},
+            nightActions: {},
+            chatMessages: [],
+            phase: game.current_phase || game.phase || "lobby",
+            phaseTimer: 0,
+            werewolfCount: Array.isArray(alivePlayers)
+              ? alivePlayers.filter((p) => p.role === "werewolf").length
+              : 0,
+            villagerCount: Array.isArray(alivePlayers)
+              ? alivePlayers.filter((p) => p.role !== "werewolf").length
+              : 0,
+            seerInvestigationsLeft: {},
+          });
+
+          if ((game.current_phase || game.phase) === "game_over") {
+            setShowGameOverOverlay(true);
+          }
+        }
+      } catch (error: any) {
+        logError(error.message || "Failed to fetch game state", {
+          details: error.stack || JSON.stringify(error),
+          source: "network",
+          functionName: "fetchGameState",
+          stack: error.stack,
+          gameCode: gameCode,
+          playerId: playerId || undefined,
+        });
+        console.error("Error fetching game state:", error);
       }
-    } catch (error: any) {
-      logError(error.message || "Failed to fetch game state", {
-        details: error.stack || JSON.stringify(error),
-        source: "network",
-        functionName: "fetchGameState",
-        stack: error.stack,
-        gameCode: gameCode,
-        playerId: playerId || undefined,
-      });
-      console.error("Error fetching game state:", error);
-    }
-  }, [logError]);
+    },
+    [logError]
+  );
 
   // Update the ref when fetchGameState changes
   useEffect(() => {

@@ -20,9 +20,10 @@ export default function Chat({ gameState, channel = "player" }: ChatProps) {
   };
 
   useEffect(() => {
-    if (gameState?.gameState?.chatMessages) {
+    const chatMessages = gameState?.gameState?.chatMessages;
+    if (chatMessages && Array.isArray(chatMessages)) {
       // Filter messages by channel
-      const filteredMessages = gameState.gameState.chatMessages.filter(
+      const filteredMessages = chatMessages.filter(
         (msg: any) => msg.type === channel
       );
       setMessages(filteredMessages);

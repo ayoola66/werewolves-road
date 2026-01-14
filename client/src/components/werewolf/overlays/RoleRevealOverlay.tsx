@@ -28,9 +28,10 @@ export default function RoleRevealOverlay({ role, phaseTimer, gameState }: RoleR
 
   const roleInfo = ROLE_INFO[role as keyof typeof ROLE_INFO];
   
-  // Show werewolf allies for werewolves
+  // Safe array access for werewolf allies
+  const alivePlayers = Array.isArray(gameState?.alivePlayers) ? gameState.alivePlayers : [];
   const werewolfAllies = role === 'werewolf' 
-    ? gameState?.alivePlayers?.filter((p: any) => p.role === 'werewolf' && p.playerId !== gameState.playerId) || []
+    ? alivePlayers.filter((p: any) => p.role === 'werewolf' && p.playerId !== gameState?.playerId)
     : [];
 
   return (
