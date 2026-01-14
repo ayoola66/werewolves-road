@@ -62,7 +62,7 @@ export function useGameState() {
     if (!gameState?.game?.gameCode || currentScreen !== 'game') return;
 
     const currentPhase = gameState.game?.currentPhase || gameState.game?.phase || gameState.phase;
-    const phaseEndTime = gameState.game?.phaseEndTime || gameState.phaseEndTime;
+    const phaseEndTime = gameState.game?.phaseEndTime;
 
     // Only check for night and voting phases (these need automatic processing)
     if (currentPhase !== 'night' && currentPhase !== 'voting' && currentPhase !== 'role_reveal') {
@@ -164,7 +164,7 @@ export function useGameState() {
     return () => {
       clearInterval(interval);
     };
-  }, [gameState?.game?.gameCode, gameState?.gameState?.game?.currentPhase, gameState?.gameState?.game?.phaseEndTime, currentScreen, logError]);
+  }, [gameState?.game?.gameCode, gameState?.game?.currentPhase, gameState?.game?.phaseEndTime, currentScreen, logError, fetchGameState]);
 
   const fetchGameState = async (gameCode: string) => {
     try {
