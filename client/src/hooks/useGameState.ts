@@ -487,16 +487,44 @@ export function useGameState() {
         "start-game"
       );
 
-      // Refresh game state after starting
-      await fetchGameState(gameState.game.gameCode);
+      console.log("Start game response:", data);
 
-      setCurrentScreen("game");
-      setShowRoleReveal(true);
+      // Refresh game state after starting - wait for it to complete
+      try {
+        await fetchGameState(gameState.game.gameCode);
+        console.log("Game state fetched after start");
+        
+        // Double-check game state was loaded before switching screens
+        const updatedState = await supabase
+          .from("games")
+          .select("*")
+          .eq("game_code", gameState.game.gameCode)
+          .single();
 
-      toast({
-        title: "Game Started",
-        description: "The game has begun!",
-      });
+        if (!updatedState.data) {
+          throw new Error("Failed to verify game state after start");
+        }
+
+        console.log("Game state verified, switching to game screen");
+        setCurrentScreen("game");
+        setShowRoleReveal(true);
+
+        toast({
+          title: "Game Started",
+          description: "The game has begun!",
+        });
+      } catch (fetchError: any) {
+        console.error("Error fetching game state after start:", fetchError);
+        logError(fetchError.message || "Failed to fetch game state after starting", {
+          details: fetchError.stack || JSON.stringify(fetchError),
+          source: "client",
+          functionName: "startGame-fetchState",
+          stack: fetchError.stack,
+          gameCode: gameState?.game?.gameCode,
+          playerId: playerId || undefined,
+        });
+        throw fetchError; // Re-throw to trigger error handling
+      }
     } catch (error: any) {
       logError(error.message || "Failed to start game", {
         details: error.stack || JSON.stringify(error),

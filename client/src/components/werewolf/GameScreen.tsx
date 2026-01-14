@@ -31,15 +31,23 @@ export default function GameScreen({ gameState }: GameScreenProps) {
   const [transitionPhase, setTransitionPhase] = useState("");
   const [prevPhase, setPrevPhase] = useState("");
   const { setTheme } = useTheme();
+  
+  // gameState prop is the hook return value, so access gameState.gameState
   const game = gameState?.gameState;
 
   // Show loading state if game state is not available
   if (!game) {
+    console.error("GameScreen: No game state available", {
+      gameStateExists: !!gameState,
+      gameStateKeys: gameState ? Object.keys(gameState) : [],
+      gameStateGameState: gameState?.gameState,
+    });
     return (
       <div className="min-h-screen flex items-center justify-center text-white">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
           <p>Loading game state...</p>
+          <p className="text-sm text-gray-400 mt-2">If this persists, check console for errors</p>
         </div>
       </div>
     );
