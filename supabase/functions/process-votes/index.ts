@@ -7,18 +7,32 @@ serve(async (req) => {
   }
 
   try {
-    const { gameId } = await req.json()
+    const { gameCode } = await req.json() as { gameCode: string }
+    
+    if (!gameCode) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required field: gameCode' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
     
     const supabase = createSupabaseClient(req)
 
-    // Get game
-    const { data: game } = await supabase
+    // Get game by game_code
+    const { data: game, error: gameError } = await supabase
       .from('games')
       .select('*')
-      .eq('id', gameId)
+      .eq('game_code', gameCode.toUpperCase())
       .single()
 
-    if (game?.current_phase !== 'voting') {
+    if (gameError || !game) {
+      return new Response(
+        JSON.stringify({ error: 'Game not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (game.current_phase !== 'voting') {
       return new Response(
         JSON.stringify({ error: 'Not in voting phase' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -29,7 +43,7 @@ serve(async (req) => {
     const { data: votes } = await supabase
       .from('votes')
       .select('*')
-      .eq('game_id', gameId)
+      .eq('game_id', game.id)
 
     // Count votes - target_id is TEXT (player_id string), not integer
     const voteCounts = new Map<string, number>()
@@ -63,7 +77,7 @@ serve(async (req) => {
       await supabase
         .from('chat_messages')
         .insert({
-          game_id: gameId,
+          game_id: game.id,
           message: `⚖️ ${eliminatedPlayer?.name} was eliminated! They were a ${eliminatedPlayer?.role}.`,
           type: 'system'
         })
@@ -71,7 +85,7 @@ serve(async (req) => {
       await supabase
         .from('chat_messages')
         .insert({
-          game_id: gameId,
+          game_id: game.id,
           message: `🤷 No one was eliminated (tie vote or no votes).`,
           type: 'system'
         })
@@ -81,13 +95,13 @@ serve(async (req) => {
     await supabase
       .from('votes')
       .delete()
-      .eq('game_id', gameId)
+      .eq('game_id', game.id)
 
     // Check win condition
     const { data: alivePlayers } = await supabase
       .from('players')
       .select('*')
-      .eq('game_id', gameId)
+      .eq('game_id', game.id)
       .eq('is_alive', true)
 
     const winCheck = checkWinCondition(alivePlayers || [])
@@ -104,26 +118,41 @@ serve(async (req) => {
       await supabase
         .from('chat_messages')
         .insert({
-          game_id: gameId,
+          game_id: game.id,
           message: `🎉 Game Over! ${winCheck.winner === 'villagers' ? 'Villagers' : 'Werewolves'} win!`,
           type: 'system'
         })
     } else {
+      // Phase timers (in seconds)
+      const PHASE_TIMERS = {
+        role_reveal: 15,
+        night: 120,
+        day: 180,
+        voting: 120,
+        voting_results: 15
+      }
+
       // Transition to night phase
       const newNight = (game.night_count || 0) + 1
+      const phaseTimer = PHASE_TIMERS.night
+      const phaseEndTime = new Date(Date.now() + phaseTimer * 1000)
+      
       await supabase
         .from('games')
         .update({ 
           current_phase: 'night',
-          night_count: newNight
+          phase_timer: phaseTimer,
+          phase_end_time: phaseEndTime.toISOString(),
+          night_count: newNight,
+          last_phase_change: new Date().toISOString()
         })
-        .eq('id', gameId)
+        .eq('id', game.id)
 
       await supabase
         .from('chat_messages')
         .insert({
-          game_id: gameId,
-          message: `🌙 Night ${newDay} falls... Werewolves, choose your target.`,
+          game_id: game.id,
+          message: `🌙 Night ${newNight} falls... Werewolves, choose your target.`,
           type: 'system'
         })
     }

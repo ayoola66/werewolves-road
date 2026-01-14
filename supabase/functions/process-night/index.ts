@@ -7,18 +7,32 @@ serve(async (req) => {
   }
 
   try {
-    const { gameId } = await req.json()
+    const { gameCode } = await req.json() as { gameCode: string }
+    
+    if (!gameCode) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required field: gameCode' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
     
     const supabase = createSupabaseClient(req)
 
-    // Get game
-    const { data: game } = await supabase
+    // Get game by game_code
+    const { data: game, error: gameError } = await supabase
       .from('games')
       .select('*')
-      .eq('id', gameId)
+      .eq('game_code', gameCode.toUpperCase())
       .single()
 
-    if (game?.current_phase !== 'night') {
+    if (gameError || !game) {
+      return new Response(
+        JSON.stringify({ error: 'Game not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (game.current_phase !== 'night') {
       return new Response(
         JSON.stringify({ error: 'Not in night phase' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -29,13 +43,13 @@ serve(async (req) => {
     const { data: actions } = await supabase
       .from('night_actions')
       .select('*')
-      .eq('game_id', gameId)
+      .eq('game_id', game.id)
 
     // Get all alive players
     const { data: players } = await supabase
       .from('players')
       .select('*')
-      .eq('game_id', gameId)
+      .eq('game_id', game.id)
       .eq('is_alive', true)
 
     // Process actions
@@ -73,7 +87,7 @@ serve(async (req) => {
       await supabase
         .from('chat_messages')
         .insert({
-          game_id: gameId,
+          game_id: game.id,
           message: `💀 ${killedPlayer?.name} was killed during the night!`,
           type: 'system'
         })
@@ -81,7 +95,7 @@ serve(async (req) => {
       await supabase
         .from('chat_messages')
         .insert({
-          game_id: gameId,
+          game_id: game.id,
           message: `🛡️ The doctor saved someone from death!`,
           type: 'system'
         })
@@ -91,13 +105,13 @@ serve(async (req) => {
     await supabase
       .from('night_actions')
       .delete()
-      .eq('game_id', gameId)
+      .eq('game_id', game.id)
 
     // Check win condition
     const { data: alivePlayers } = await supabase
       .from('players')
       .select('*')
-      .eq('game_id', gameId)
+      .eq('game_id', game.id)
       .eq('is_alive', true)
 
     const winCheck = checkWinCondition(alivePlayers || [])
@@ -114,7 +128,7 @@ serve(async (req) => {
       await supabase
         .from('chat_messages')
         .insert({
-          game_id: gameId,
+          game_id: game.id,
           message: `🎉 Game Over! ${winCheck.winner === 'villagers' ? 'Villagers' : 'Werewolves'} win!`,
           type: 'system'
         })

@@ -129,13 +129,27 @@ serve(async (req) => {
         .eq('id', players[i].id)
     }
 
-    // Update game status
+    // Phase timers (in seconds)
+    const PHASE_TIMERS = {
+      role_reveal: 15,
+      night: 120,
+      day: 180,
+      voting: 120,
+      voting_results: 15
+    }
+
+    // Update game status - start with role_reveal phase
+    const phaseTimer = PHASE_TIMERS.role_reveal
+    const phaseEndTime = new Date(Date.now() + phaseTimer * 1000)
+    
     const { error: updateError } = await supabase
       .from('games')
       .update({ 
         status: 'playing',
-        current_phase: 'night',
-        night_count: 1,
+        current_phase: 'role_reveal',
+        phase_timer: phaseTimer,
+        phase_end_time: phaseEndTime.toISOString(),
+        night_count: 0,
         day_count: 0
       })
       .eq('id', game.id)

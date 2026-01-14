@@ -262,7 +262,7 @@ export function useGameState() {
 
     try {
       // Get current player for logging (don't include in dependency array to avoid circular dependency)
-      const currentPlayer = Array.isArray(gameState?.players) 
+      const currentPlayer = Array.isArray(gameState?.players)
         ? gameState.players.find((p) => p.playerId === playerId)
         : null;
       console.log("Starting game with:", {
