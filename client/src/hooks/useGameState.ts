@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { GameState, GameSettings, Player } from "@/lib/gameTypes";
 import { useToast } from "./use-toast";
 import { supabase } from "@/lib/supabase";
@@ -21,6 +21,19 @@ export function useGameState() {
   const { toast } = useToast();
   const { logError } = useErrorLog();
 
+  // Debounce fetchGameState calls to prevent race conditions
+  const lastFetchRef = useRef<number>(0);
+  const DEBOUNCE_MS = 500;
+
+  const debouncedFetchGameState = useCallback(async (gameCode: string) => {
+    const now = Date.now();
+    if (now - lastFetchRef.current < DEBOUNCE_MS) {
+      return; // Skip if called too recently
+    }
+    lastFetchRef.current = now;
+    await fetchGameState(gameCode);
+  }, []);
+
   useEffect(() => {
     if (!gameState?.game?.gameCode) return;
 
@@ -35,7 +48,7 @@ export function useGameState() {
           filter: `game_code=eq.${gameState.game.gameCode}`,
         },
         async () => {
-          await fetchGameState(gameState.game.gameCode);
+          await debouncedFetchGameState(gameState.game.gameCode);
         }
       )
       .on(
@@ -47,7 +60,7 @@ export function useGameState() {
           filter: `game_id=eq.${gameState.game.id}`,
         },
         async () => {
-          await fetchGameState(gameState.game.gameCode);
+          await debouncedFetchGameState(gameState.game.gameCode);
         }
       )
       .subscribe();
@@ -55,7 +68,7 @@ export function useGameState() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [gameState?.game?.gameCode]);
+  }, [gameState?.game?.gameCode, debouncedFetchGameState]);
 
   const fetchGameState = async (gameCode: string) => {
     try {
