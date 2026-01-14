@@ -113,6 +113,48 @@ export function useGameState() {
     toast,
   ]);
 
+  // CRITICAL FIX: Polling mechanism for players in lobby to catch game start
+  // This handles race conditions where Supabase Realtime subscription might miss updates
+  useEffect(() => {
+    if (currentScreen !== "lobby" || !gameState?.game?.gameCode) return;
+
+    console.log("Starting lobby polling for game:", gameState.game.gameCode);
+
+    // Poll every 2 seconds while in lobby to check if game has started
+    const pollInterval = setInterval(async () => {
+      try {
+        const { data: game } = await supabase
+          .from("games")
+          .select("status, current_phase")
+          .eq("game_code", gameState.game.gameCode)
+          .single();
+
+        if (game && game.status === "playing" && currentScreen === "lobby") {
+          console.log(
+            "Polling detected game started! Switching to game screen..."
+          );
+          // Fetch full game state before switching
+          if (fetchGameStateRef.current) {
+            await fetchGameStateRef.current(gameState.game.gameCode);
+          }
+          setCurrentScreen("game");
+          setShowRoleReveal(true);
+          toast({
+            title: "Game Started",
+            description: "The game has begun!",
+          });
+        }
+      } catch (error) {
+        console.error("Polling error:", error);
+      }
+    }, 2000);
+
+    return () => {
+      console.log("Stopping lobby polling");
+      clearInterval(pollInterval);
+    };
+  }, [currentScreen, gameState?.game?.gameCode, toast]);
+
   // Retry logic helper for Edge Function calls
   const callEdgeFunctionWithRetry = useCallback(
     async (

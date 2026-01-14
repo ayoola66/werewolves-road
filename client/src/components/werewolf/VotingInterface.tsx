@@ -44,6 +44,9 @@ export default function VotingInterface({ gameState }: VotingInterfaceProps) {
   const totalAlivePlayers = game?.alivePlayers?.length || 0;
   const totalVotes = votes.length;
 
+  // SECRET VOTING: Check if all players have voted
+  const allPlayersVoted = totalVotes >= totalAlivePlayers;
+
   // Get timer from game state
   const phaseEndTime = game?.game?.phaseEndTime || game?.phaseEndTime;
   const phaseTimer = game?.game?.phaseTimer || game?.phaseTimer;
@@ -179,7 +182,7 @@ export default function VotingInterface({ gameState }: VotingInterfaceProps) {
     );
   }
 
-  // If not voted yet, show voting interface
+  // If not voted yet, show voting interface with radio buttons
   if (!hasVoted && currentPlayer?.isAlive) {
     return (
       <div className="flex-grow flex flex-col p-2 sm:p-4 md:p-6 overflow-hidden">
@@ -191,6 +194,12 @@ export default function VotingInterface({ gameState }: VotingInterfaceProps) {
             <p className="text-center text-gray-700 dark:text-gray-300 text-xs sm:text-sm md:text-base lg:text-lg mt-1 sm:mt-2">
               Select a player to vote for elimination
             </p>
+            {/* Secret Voting Notice */}
+            <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-300 dark:border-blue-700">
+              <p className="text-center text-blue-700 dark:text-blue-300 text-xs sm:text-sm">
+                🔒 <strong>Secret Voting:</strong> Votes are hidden until all players have voted
+              </p>
+            </div>
             {/* Vote Progress */}
             <div className="mt-2 sm:mt-3 md:mt-4">
               <div className="flex justify-between text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1 sm:mb-2">
@@ -210,43 +219,58 @@ export default function VotingInterface({ gameState }: VotingInterfaceProps) {
             </div>
           </CardHeader>
           <CardContent className="p-3 sm:p-4 md:p-6 flex-grow overflow-hidden flex flex-col">
-            {/* Simple 2-column tap-to-select grid */}
-            <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4 sm:mb-6 overflow-y-auto pr-1">
+            {/* Radio button selection list */}
+            <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6 overflow-y-auto pr-1">
               {alivePlayers.map((player: any) => (
-                <button
+                <label
                   key={player.playerId}
-                  onClick={() => setSelectedPlayerId(player.playerId)}
-                  className={`p-3 sm:p-4 rounded-lg border-2 transition-all text-left ${
+                  className={`flex items-center p-3 sm:p-4 rounded-lg border-2 transition-all cursor-pointer ${
                     selectedPlayerId === player.playerId
-                      ? "bg-red-600 border-red-700 text-white ring-2 ring-red-500"
-                      : "bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-red-400 dark:hover:border-red-500 text-gray-900 dark:text-white"
+                      ? "bg-red-100 dark:bg-red-900/30 border-red-600 ring-2 ring-red-500"
+                      : "bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-red-400 dark:hover:border-red-500"
                   }`}
                 >
-                  <div className="font-bold text-sm sm:text-base md:text-lg truncate">
-                    {player.name}
-                  </div>
-                  {player.isSheriff && (
-                    <div className="text-xs sm:text-sm mt-1 opacity-90">
-                      ⭐ Sheriff
+                  <input
+                    type="radio"
+                    name="vote-selection"
+                    value={player.playerId}
+                    checked={selectedPlayerId === player.playerId}
+                    onChange={() => setSelectedPlayerId(player.playerId)}
+                    className="w-5 h-5 text-red-600 border-gray-300 focus:ring-red-500 mr-3 sm:mr-4"
+                  />
+                  <div className="flex-grow">
+                    <div className="font-bold text-sm sm:text-base md:text-lg text-gray-900 dark:text-white">
+                      {player.name}
                     </div>
+                    {player.isSheriff && (
+                      <div className="text-xs sm:text-sm text-amber-600 dark:text-amber-400">
+                        ⭐ Sheriff
+                      </div>
+                    )}
+                  </div>
+                  {selectedPlayerId === player.playerId && (
+                    <div className="text-red-600 dark:text-red-400 text-lg">✓</div>
                   )}
-                </button>
+                </label>
               ))}
             </div>
 
-            <div className="flex justify-center gap-2 sm:gap-4 flex-shrink-0">
+            {/* Confirm Vote Button */}
+            <div className="flex flex-col items-center gap-2 sm:gap-3 flex-shrink-0">
+              {selectedPlayerId && (
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+                  You are voting to eliminate:{" "}
+                  <span className="font-bold text-red-600 dark:text-red-400">
+                    {alivePlayers.find((p: any) => p.playerId === selectedPlayerId)?.name}
+                  </span>
+                </p>
+              )}
               <Button
                 onClick={handleVote}
                 disabled={!selectedPlayerId}
-                className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-2 sm:py-3 px-4 sm:px-6 md:px-8 text-xs sm:text-sm md:text-base lg:text-lg"
+                className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-3 sm:py-4 px-8 sm:px-12 text-sm sm:text-base md:text-lg lg:text-xl shadow-lg"
               >
-                {selectedPlayerId
-                  ? `Vote Out ${
-                      alivePlayers.find(
-                        (p: any) => p.playerId === selectedPlayerId
-                      )?.name
-                    }`
-                  : "Select Player"}
+                {selectedPlayerId ? "✓ Confirm Vote" : "Select a Player"}
               </Button>
             </div>
           </CardContent>

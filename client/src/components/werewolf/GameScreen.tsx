@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import PlayerSidebar from "./PlayerSidebar";
 import Chat from "./Chat";
 import RoleReveal from "./overlays/RoleReveal";
 import GameOverOverlay from "./overlays/GameOverOverlay";
+import EliminatedOverlay from "./overlays/EliminatedOverlay";
 import VotingInterface from "./VotingInterface";
 import NightActionInterface from "./NightActionInterface";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,8 @@ export default function GameScreen({ gameState }: GameScreenProps) {
   const [showPhaseTransition, setShowPhaseTransition] = useState(false);
   const [transitionPhase, setTransitionPhase] = useState("");
   const [prevPhase, setPrevPhase] = useState("");
+  const [showEliminatedOverlay, setShowEliminatedOverlay] = useState(false);
+  const wasAliveRef = useRef<boolean | null>(null);
   const { setTheme } = useTheme();
   
   // gameState prop is the hook return value, so access gameState.gameState
@@ -80,6 +83,20 @@ export default function GameScreen({ gameState }: GameScreenProps) {
     setPrevPhase(currentPhase);
   }, [game?.game?.currentPhase, game?.game?.phase, game?.phase, prevPhase]);
 
+  // Detect when current player is eliminated
+  useEffect(() => {
+    const currentPlayer = gameState.getCurrentPlayer();
+    const isCurrentlyAlive = currentPlayer?.isAlive;
+
+    // If player was alive and is now dead, show eliminated overlay
+    if (wasAliveRef.current === true && isCurrentlyAlive === false) {
+      setShowEliminatedOverlay(true);
+    }
+
+    // Update the ref for next comparison
+    wasAliveRef.current = isCurrentlyAlive ?? null;
+  }, [gameState]);
+
   // Theme and timer updates
   useEffect(() => {
     if (!game) return;
@@ -94,27 +111,41 @@ export default function GameScreen({ gameState }: GameScreenProps) {
       setTheme("light");
     }
 
-    // Calculate timer from phaseEndTime for real countdown
-    const interval = setInterval(() => {
+    // Phase default timers (fallback when phaseEndTime not yet set)
+    const PHASE_DEFAULTS: Record<string, number> = {
+      role_reveal: 15,
+      night: 120,
+      day: 180,
+      voting: 120,
+      voting_results: 10,
+    };
+
+    // Calculate timer immediately on mount
+    const calculateTimer = () => {
       const phaseEndTime = game.game?.phaseEndTime || game.phaseEndTime;
 
-      if (!phaseEndTime) {
-        // Fallback to static timer if no end time
-        const phaseTimer = game.game?.phaseTimer || game.phaseTimer || 0;
+      if (phaseEndTime) {
+        const endTime = new Date(phaseEndTime).getTime();
+        const now = Date.now();
+        const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
+
+        const minutes = Math.floor(remaining / 60);
+        const seconds = remaining % 60;
+        setTimer(`${minutes}:${seconds.toString().padStart(2, "0")}`);
+      } else {
+        // Fallback to phase default or phaseTimer
+        const phaseTimer = game.game?.phaseTimer || game.phaseTimer || PHASE_DEFAULTS[currentPhase] || 120;
         const minutes = Math.floor(phaseTimer / 60);
         const seconds = phaseTimer % 60;
         setTimer(`${minutes}:${seconds.toString().padStart(2, "0")}`);
-        return;
       }
+    };
 
-      const endTime = new Date(phaseEndTime).getTime();
-      const now = Date.now();
-      const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
+    // Calculate immediately
+    calculateTimer();
 
-      const minutes = Math.floor(remaining / 60);
-      const seconds = remaining % 60;
-      setTimer(`${minutes}:${seconds.toString().padStart(2, "0")}`);
-    }, 1000);
+    // Then update every second
+    const interval = setInterval(calculateTimer, 1000);
 
     return () => clearInterval(interval);
   }, [
@@ -259,6 +290,12 @@ export default function GameScreen({ gameState }: GameScreenProps) {
       {gameState.showRoleReveal && <RoleReveal gameState={gameState} />}
       {gameState.showGameOverOverlay && (
         <GameOverOverlay gameState={gameState} />
+      )}
+      {showEliminatedOverlay && (
+        <EliminatedOverlay 
+          gameState={gameState} 
+          onContinueWatching={() => setShowEliminatedOverlay(false)} 
+        />
       )}
 
       {/* Leave Game Confirmation Dialog */}

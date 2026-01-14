@@ -221,42 +221,63 @@ export default function NightActionInterface({
     );
   };
 
-  // If player has no night action, show waiting screen
+  // If player has no night action, show waiting screen WITH chat (Bug #3 fix)
   if (!hasNightAction) {
     return (
-      <div className="flex-grow flex flex-col items-center justify-center p-2 sm:p-4 md:p-6">
-        <Card className="w-full max-w-xl bg-gray-900/90 border-2 border-gray-600">
-          <CardContent className="p-4 sm:p-6 md:p-8 text-center">
-            <div className="text-4xl sm:text-5xl md:text-6xl mb-4">🌙</div>
-            <h3 className="text-xl sm:text-2xl font-cinzel font-bold text-gray-300 mb-2">
-              Night Time
-            </h3>
-            <p className="text-gray-400 text-sm sm:text-base md:text-lg mb-4">
-              The night is dark and full of secrets. Wait while others perform
-              their actions.
-            </p>
-            
-            {/* Shield Button */}
-            <ShieldButton />
-            
-            <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-300 dark:border-blue-700">
-              <p className="text-blue-800 dark:text-blue-300 font-semibold text-sm sm:text-base mb-2">
-                Night Progress
+      <div className="flex-grow flex flex-col md:flex-row gap-2 sm:gap-3 md:gap-4 p-2 sm:p-3 md:p-4 overflow-hidden">
+        {/* Village Chat Panel - ALL players must have chat during night to avoid unfair lightning strikes */}
+        <div className="flex-1 min-h-[200px] md:min-h-0 max-h-[350px] md:max-h-full">
+          <Card className="h-full bg-indigo-900/10 border-2 border-indigo-600 flex flex-col">
+            <CardHeader className="pb-2 sm:pb-3 p-2 sm:p-3 md:p-4">
+              <CardTitle className="font-cinzel text-sm sm:text-base md:text-lg lg:text-xl text-indigo-400 flex items-center gap-2">
+                🌙 Village Chat
+                <span className="text-xs font-normal text-indigo-300">(Scrambled)</span>
+              </CardTitle>
+              <p className="text-xs text-indigo-300 mt-1">
+                Type to blend in - all messages appear scrambled to hide werewolf activity!
               </p>
-              <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-400">
-                {actedCount}/{totalActors} players have acted
+            </CardHeader>
+            <CardContent className="p-0 flex-grow overflow-hidden">
+              <Chat gameState={gameState} channel="player" />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Waiting Info Panel */}
+        <div className="flex-1 max-w-xl">
+          <Card className="h-full bg-gray-900/90 border-2 border-gray-600 flex flex-col">
+            <CardContent className="p-4 sm:p-6 md:p-8 text-center flex-grow flex flex-col justify-center">
+              <div className="text-4xl sm:text-5xl md:text-6xl mb-4">🌙</div>
+              <h3 className="text-xl sm:text-2xl font-cinzel font-bold text-gray-300 mb-2">
+                Night Time
+              </h3>
+              <p className="text-gray-400 text-sm sm:text-base md:text-lg mb-4">
+                The night is dark and full of secrets. Wait while others perform
+                their actions.
               </p>
-              <div className="w-full bg-blue-200 dark:bg-blue-900 rounded-full h-2 mt-3">
-                <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{
-                    width: `${(actedCount / totalActors) * 100}%`,
-                  }}
-                ></div>
+              
+              {/* Shield Button */}
+              <ShieldButton />
+              
+              <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-300 dark:border-blue-700">
+                <p className="text-blue-800 dark:text-blue-300 font-semibold text-sm sm:text-base mb-2">
+                  Night Progress
+                </p>
+                <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-400">
+                  {actedCount}/{totalActors} players have acted
+                </p>
+                <div className="w-full bg-blue-200 dark:bg-blue-900 rounded-full h-2 mt-3">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{
+                      width: `${totalActors > 0 ? (actedCount / totalActors) * 100 : 0}%`,
+                    }}
+                  ></div>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -408,7 +429,7 @@ export default function NightActionInterface({
                   : "Select Player"}
               </Button>
               <Button
-                onClick={() => gameState.performNightAction()}
+                onClick={handleSkip}
                 variant="secondary"
                 className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 sm:py-3 px-4 sm:px-4 md:px-6 text-xs sm:text-sm md:text-base lg:text-lg"
               >

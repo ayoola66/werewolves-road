@@ -135,7 +135,7 @@ serve(async (req) => {
       night: 120,
       day: 180,
       voting: 120,
-      voting_results: 15
+      voting_results: 10  // Changed from 15 to 10 seconds
     }
 
     // Update game status - start with role_reveal phase

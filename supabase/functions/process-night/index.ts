@@ -47,7 +47,7 @@ serve(async (req) => {
         night: 120,
         day: 180,
         voting: 120,
-        voting_results: 15
+        voting_results: 10
       }
 
       const phaseTimer = PHASE_TIMERS.night
@@ -92,7 +92,7 @@ serve(async (req) => {
         night: 120,
         day: 180,
         voting: 120,
-        voting_results: 15
+        voting_results: 10
       }
 
       const phaseTimer = PHASE_TIMERS.day
@@ -391,7 +391,7 @@ serve(async (req) => {
         night: 120,
         day: 180,
         voting: 120,
-        voting_results: 15
+        voting_results: 10
       }
 
       // Transition to day phase
