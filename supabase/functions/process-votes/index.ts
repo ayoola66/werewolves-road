@@ -134,6 +134,7 @@ serve(async (req) => {
 
       // Transition to night phase
       const newNight = (game.night_count || 0) + 1
+      const newDayCount = (game.day_count || 0) + 1
       const phaseTimer = PHASE_TIMERS.night
       const phaseEndTime = new Date(Date.now() + phaseTimer * 1000)
       
@@ -144,6 +145,7 @@ serve(async (req) => {
           phase_timer: phaseTimer,
           phase_end_time: phaseEndTime.toISOString(),
           night_count: newNight,
+          day_count: newDayCount,
           last_phase_change: new Date().toISOString()
         })
         .eq('id', game.id)
