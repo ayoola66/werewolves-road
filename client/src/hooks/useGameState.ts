@@ -179,13 +179,18 @@ export function useGameState() {
 
   // Phase timer checking - automatically transition phases when timer expires
   useEffect(() => {
-    if (!gameState?.game?.gameCode || currentScreen !== 'game') return;
+    if (!gameState?.game?.gameCode || currentScreen !== "game") return;
 
-    const currentPhase = gameState.game?.currentPhase || gameState.game?.phase || gameState.phase;
+    const currentPhase =
+      gameState.game?.currentPhase || gameState.game?.phase || gameState.phase;
     const phaseEndTime = gameState.game?.phaseEndTime;
 
     // Only check for night and voting phases (these need automatic processing)
-    if (currentPhase !== 'night' && currentPhase !== 'voting' && currentPhase !== 'role_reveal') {
+    if (
+      currentPhase !== "night" &&
+      currentPhase !== "voting" &&
+      currentPhase !== "role_reveal"
+    ) {
       return;
     }
 
@@ -201,7 +206,7 @@ export function useGameState() {
       // If timer has expired, call appropriate process function
       if (now >= endTime) {
         try {
-          if (currentPhase === 'night') {
+          if (currentPhase === "night") {
             // Process night actions
             const response = await fetch(
               `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-night`,
@@ -209,7 +214,9 @@ export function useGameState() {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
-                  Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                  Authorization: `Bearer ${
+                    import.meta.env.VITE_SUPABASE_ANON_KEY
+                  }`,
                 },
                 body: JSON.stringify({
                   gameCode: gameState.game.gameCode,
@@ -229,7 +236,7 @@ export function useGameState() {
               // Refresh game state after processing
               await fetchGameState(gameState.game.gameCode);
             }
-          } else if (currentPhase === 'voting') {
+          } else if (currentPhase === "voting") {
             // Process votes
             const response = await fetch(
               `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-votes`,
@@ -237,7 +244,9 @@ export function useGameState() {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
-                  Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                  Authorization: `Bearer ${
+                    import.meta.env.VITE_SUPABASE_ANON_KEY
+                  }`,
                 },
                 body: JSON.stringify({
                   gameCode: gameState.game.gameCode,
@@ -257,7 +266,7 @@ export function useGameState() {
               // Refresh game state after processing
               await fetchGameState(gameState.game.gameCode);
             }
-          } else if (currentPhase === 'role_reveal') {
+          } else if (currentPhase === "role_reveal") {
             // Transition from role_reveal to night phase
             // Call process-night to transition (it will handle role_reveal → night)
             const response = await fetch(
@@ -266,7 +275,9 @@ export function useGameState() {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
-                  Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                  Authorization: `Bearer ${
+                    import.meta.env.VITE_SUPABASE_ANON_KEY
+                  }`,
                 },
                 body: JSON.stringify({
                   gameCode: gameState.game.gameCode,
@@ -276,7 +287,10 @@ export function useGameState() {
 
             const data = await response.json();
             if (data.error) {
-              console.error("Error transitioning from role_reveal:", data.error);
+              console.error(
+                "Error transitioning from role_reveal:",
+                data.error
+              );
               logError(data.error, {
                 source: "edge-function",
                 functionName: "process-night",
@@ -308,7 +322,13 @@ export function useGameState() {
     return () => {
       clearInterval(interval);
     };
-  }, [gameState?.game?.gameCode, gameState?.game?.currentPhase, gameState?.game?.phaseEndTime, currentScreen, logError]);
+  }, [
+    gameState?.game?.gameCode,
+    gameState?.game?.currentPhase,
+    gameState?.game?.phaseEndTime,
+    currentScreen,
+    logError,
+  ]);
 
   const createGame = useCallback(
     async (name: string, settings: GameSettings) => {

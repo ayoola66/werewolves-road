@@ -131,7 +131,31 @@ serve(async (req) => {
       .eq('game_id', game.id)
       .eq('is_alive', true)
 
-    const winCheck = checkWinCondition(alivePlayers || [])
+    // Handle empty array case
+    if (!alivePlayers || !Array.isArray(alivePlayers) || alivePlayers.length === 0) {
+      await supabase
+        .from('games')
+        .update({ 
+          status: 'finished',
+          current_phase: 'game_over'
+        })
+        .eq('id', game.id)
+
+      await supabase
+        .from('chat_messages')
+        .insert({
+          game_id: game.id,
+          message: '🎉 Game Over! No players remaining.',
+          type: 'system'
+        })
+
+      return new Response(
+        JSON.stringify({ success: true, gameOver: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const winCheck = checkWinCondition(alivePlayers)
 
     if (winCheck.gameOver) {
       await supabase
