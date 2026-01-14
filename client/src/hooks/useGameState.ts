@@ -70,6 +70,54 @@ export function useGameState() {
     };
   }, [gameState?.game?.gameCode, debouncedFetchGameState]);
 
+  // Retry logic helper for Edge Function calls
+  const callEdgeFunctionWithRetry = useCallback(async (
+    url: string,
+    body: any,
+    functionName: string,
+    maxRetries = 3
+  ): Promise<any> => {
+    let lastError: any = null;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify(body),
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok || data.error) {
+          throw new Error(data.error || `HTTP ${response.status}`);
+        }
+
+        return data;
+      } catch (error: any) {
+        lastError = error;
+        
+        if (attempt < maxRetries) {
+          // Exponential backoff: 1s, 2s, 4s
+          const delay = Math.pow(2, attempt - 1) * 1000;
+          await new Promise(resolve => setTimeout(resolve, delay));
+          
+          toast({
+            title: "Retrying...",
+            description: `Attempt ${attempt + 1} of ${maxRetries}`,
+            duration: delay,
+          });
+        }
+      }
+    }
+
+    // All retries failed
+    throw lastError;
+  }, [toast]);
+
   const fetchGameState = async (gameCode: string) => {
     try {
       const { data: game } = await supabase
@@ -334,20 +382,11 @@ export function useGameState() {
     async (name: string, settings: GameSettings) => {
       try {
         setPlayerName(name);
-        const response = await fetch(
+        const data = await callEdgeFunctionWithRetry(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-game`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            },
-            body: JSON.stringify({ playerName: name, settings }),
-          }
+          { playerName: name, settings },
+          "create-game"
         );
-
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
 
         setPlayerId(data.playerId);
         setCurrentScreen("lobby");
@@ -358,6 +397,12 @@ export function useGameState() {
           description: `Game code: ${data.gameCode}`,
         });
       } catch (error: any) {
+        logError(error.message || "Failed to create game", {
+          details: error.stack || JSON.stringify(error),
+          source: "edge-function",
+          functionName: "create-game",
+          stack: error.stack,
+        });
         toast({
           title: "Error",
           description: error.message,
@@ -365,30 +410,21 @@ export function useGameState() {
         });
       }
     },
-    [toast]
+    [toast, callEdgeFunctionWithRetry, logError, fetchGameState]
   );
 
   const joinGame = useCallback(
     async (gameCode: string, name: string) => {
       try {
         setPlayerName(name);
-        const response = await fetch(
+        const data = await callEdgeFunctionWithRetry(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/join-game`,
           {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            },
-            body: JSON.stringify({
-              gameCode: gameCode.toUpperCase(),
-              playerName: name,
-            }),
-          }
+            gameCode: gameCode.toUpperCase(),
+            playerName: name,
+          },
+          "join-game"
         );
-
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
 
         setPlayerId(data.playerId);
         setCurrentScreen("lobby");
@@ -414,7 +450,7 @@ export function useGameState() {
         });
       }
     },
-    [toast, logError]
+    [toast, logError, callEdgeFunctionWithRetry, fetchGameState]
   );
 
   const startGame = useCallback(async () => {
@@ -439,23 +475,14 @@ export function useGameState() {
           : null,
       });
 
-      const response = await fetch(
+      const data = await callEdgeFunctionWithRetry(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/start-game`,
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({
-            gameCode: gameState.game.gameCode,
-            playerId: playerId,
-          }),
-        }
+          gameCode: gameState.game.gameCode,
+          playerId: playerId,
+        },
+        "start-game"
       );
-
-      const data = await response.json();
-      if (data.error) throw new Error(data.error);
 
       // Refresh game state after starting
       await fetchGameState(gameState.game.gameCode);
@@ -489,25 +516,16 @@ export function useGameState() {
       if (!gameState || !playerId) return;
 
       try {
-        const response = await fetch(
+        await callEdgeFunctionWithRetry(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-chat`,
           {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            },
-            body: JSON.stringify({
-              gameCode: gameState.game.gameCode,
-              playerId,
-              message,
-              channel: channel || "all",
-            }),
-          }
+            gameCode: gameState.game.gameCode,
+            playerId,
+            message,
+            channel: channel || "all",
+          },
+          "send-chat"
         );
-
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
       } catch (error: any) {
         logError(error.message || "Failed to send chat message", {
           details: error.stack || JSON.stringify(error),
@@ -532,24 +550,15 @@ export function useGameState() {
       if (!gameState || !playerId) return;
 
       try {
-        const response = await fetch(
+        await callEdgeFunctionWithRetry(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-vote`,
           {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            },
-            body: JSON.stringify({
-              gameCode: gameState.game.gameCode,
-              playerId,
-              targetId,
-            }),
-          }
+            gameCode: gameState.game.gameCode,
+            playerId,
+            targetId,
+          },
+          "submit-vote"
         );
-
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
 
         setShowVoteOverlay(false);
         setSelectedPlayer(null);
@@ -582,27 +591,16 @@ export function useGameState() {
       if (!gameState || !playerId) return;
 
       try {
-        const response = await fetch(
-          `${
-            import.meta.env.VITE_SUPABASE_URL
-          }/functions/v1/submit-night-action`,
+        await callEdgeFunctionWithRetry(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-night-action`,
           {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            },
-            body: JSON.stringify({
-              gameCode: gameState.game.gameCode,
-              playerId,
-              targetId,
-              action,
-            }),
-          }
+            gameCode: gameState.game.gameCode,
+            playerId,
+            targetId,
+            action,
+          },
+          "submit-night-action"
         );
-
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
 
         setShowNightActionOverlay(false);
         setSelectedPlayer(null);
@@ -658,23 +656,14 @@ export function useGameState() {
     if (!gameState || !playerId) return;
 
     try {
-      const response = await fetch(
+      await callEdgeFunctionWithRetry(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/leave-game`,
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({
-            gameCode: gameState.game.gameCode,
-            playerId,
-          }),
-        }
+          gameCode: gameState.game.gameCode,
+          playerId,
+        },
+        "leave-game"
       );
-
-      const data = await response.json();
-      if (data.error) throw new Error(data.error);
 
       // Clean up state
       setGameState(null);
@@ -724,23 +713,14 @@ export function useGameState() {
     if (!gameState || !playerId) return;
 
     try {
-      const response = await fetch(
+      await callEdgeFunctionWithRetry(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/start-voting`,
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({
-            gameCode: gameState.game.gameCode,
-            playerId,
-          }),
-        }
+          gameCode: gameState.game.gameCode,
+          playerId,
+        },
+        "start-voting"
       );
-
-      const data = await response.json();
-      if (data.error) throw new Error(data.error);
 
       toast({
         title: "Voting Started",
