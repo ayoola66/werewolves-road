@@ -32,10 +32,49 @@ serve(async (req) => {
       )
     }
 
-    if (game.current_phase !== 'night') {
+    // Allow processing if in night phase OR role_reveal phase (transition role_reveal → night)
+    if (game.current_phase !== 'night' && game.current_phase !== 'role_reveal') {
       return new Response(
-        JSON.stringify({ error: 'Not in night phase' }),
+        JSON.stringify({ error: 'Not in night or role_reveal phase' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // If in role_reveal phase, just transition to night without processing actions
+    if (game.current_phase === 'role_reveal') {
+      const PHASE_TIMERS = {
+        role_reveal: 15,
+        night: 120,
+        day: 180,
+        voting: 120,
+        voting_results: 15
+      }
+
+      const phaseTimer = PHASE_TIMERS.night
+      const phaseEndTime = new Date(Date.now() + phaseTimer * 1000)
+      
+      await supabase
+        .from('games')
+        .update({ 
+          current_phase: 'night',
+          phase_timer: phaseTimer,
+          phase_end_time: phaseEndTime.toISOString(),
+          night_count: 1,
+          last_phase_change: new Date().toISOString()
+        })
+        .eq('id', game.id)
+
+      await supabase
+        .from('chat_messages')
+        .insert({
+          game_id: game.id,
+          message: '🌙 Night falls... Werewolves, choose your target.',
+          type: 'system'
+        })
+
+      return new Response(
+        JSON.stringify({ success: true, phase: 'night' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 

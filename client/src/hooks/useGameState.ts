@@ -58,8 +58,6 @@ export function useGameState() {
   }, [gameState?.game?.gameCode]);
 
   const fetchGameState = async (gameCode: string) => {
-
-  const fetchGameState = async (gameCode: string) => {
     try {
       const { data: game } = await supabase
         .from("games")
@@ -247,8 +245,34 @@ export function useGameState() {
               await fetchGameState(gameState.game.gameCode);
             }
           } else if (currentPhase === 'role_reveal') {
-            // Transition from role_reveal to night - just refresh state
-            await fetchGameState(gameState.game.gameCode);
+            // Transition from role_reveal to night phase
+            // Call process-night to transition (it will handle role_reveal → night)
+            const response = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-night`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                },
+                body: JSON.stringify({
+                  gameCode: gameState.game.gameCode,
+                }),
+              }
+            );
+
+            const data = await response.json();
+            if (data.error) {
+              console.error("Error transitioning from role_reveal:", data.error);
+              logError(data.error, {
+                source: "edge-function",
+                functionName: "process-night",
+                gameCode: gameState.game.gameCode,
+              });
+            } else {
+              // Refresh game state after processing
+              await fetchGameState(gameState.game.gameCode);
+            }
           }
         } catch (error: any) {
           console.error("Error in phase timer check:", error);
