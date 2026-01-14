@@ -774,12 +774,12 @@ export function useGameState() {
   const canChat = (): boolean => {
     const currentPlayer = getCurrentPlayer();
     if (!currentPlayer || !currentPlayer.isAlive) return false;
-    
+
     const currentPhase = gameState?.game?.currentPhase || gameState?.phase;
-    
+
     // Night phase: Everyone can chat (werewolves clear, villagers scrambled)
     if (currentPhase === "night") return true;
-    
+
     // All other phases: No chat (day = physical discussion, voting = voting only)
     return false;
   };
@@ -933,7 +933,8 @@ export function useGameState() {
 
       toast({
         title: "⚡ STRUCK BY LIGHTNING!",
-        description: "The Grand Wizard does not tolerate silence! You have been eliminated for failing to participate.",
+        description:
+          "The Grand Wizard does not tolerate silence! You have been eliminated for failing to participate.",
         variant: "destructive",
         duration: 10000, // Show for 10 seconds
       });

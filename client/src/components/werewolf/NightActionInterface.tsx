@@ -153,11 +153,35 @@ export default function NightActionInterface({
     playerRole || ""
   );
 
+  // Get the action type based on the player's role for the edge function
+  const getActionType = () => {
+    switch (playerRole) {
+      case "werewolf":
+        return "kill";
+      case "doctor":
+        return "protect";
+      case "seer":
+        return "investigate";
+      case "bodyguard":
+        return "protect";
+      default:
+        return "skip";
+    }
+  };
+
   const handleAction = () => {
     if (selectedPlayerId && !hasActed) {
-      gameState.performNightAction(selectedPlayerId);
+      const actionType = getActionType();
+      gameState.performNightAction(selectedPlayerId, actionType);
       setHasActed(true);
     }
+  };
+
+  const handleSkip = () => {
+    // Skip action - just mark as acted without performing any action
+    setHasActed(true);
+    // Optionally notify the server about skipping (no target, no actual action)
+    // For now, we just update local state - the timer will handle phase transition
   };
 
   // Calculate action progress
