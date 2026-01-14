@@ -25,13 +25,18 @@ export function useGameState() {
   const lastFetchRef = useRef<number>(0);
   const DEBOUNCE_MS = 500;
 
+  // Define fetchGameState first so it can be used in the debounced version
+  const fetchGameStateRef = useRef<(gameCode: string) => Promise<void>>();
+  
   const debouncedFetchGameState = useCallback(async (gameCode: string) => {
     const now = Date.now();
     if (now - lastFetchRef.current < DEBOUNCE_MS) {
       return; // Skip if called too recently
     }
     lastFetchRef.current = now;
-    await fetchGameState(gameCode);
+    if (fetchGameStateRef.current) {
+      await fetchGameStateRef.current(gameCode);
+    }
   }, []);
 
   useEffect(() => {
@@ -69,6 +74,38 @@ export function useGameState() {
       supabase.removeChannel(channel);
     };
   }, [gameState?.game?.gameCode, debouncedFetchGameState]);
+
+  // CRITICAL: Auto-switch to game screen when game starts for non-host players
+  // This ensures all players transition to the game screen when the host starts the game
+  useEffect(() => {
+    if (!gameState) return;
+
+    const gameStatus = gameState.game?.status;
+    const gamePhase = gameState.game?.currentPhase || gameState.phase;
+
+    console.log("Game status check:", {
+      gameStatus,
+      gamePhase,
+      currentScreen,
+    });
+
+    // If game has started (status is 'playing') and we're still on lobby, switch to game
+    if (gameStatus === "playing" && currentScreen === "lobby") {
+      console.log("Game started! Switching to game screen...");
+      setCurrentScreen("game");
+      setShowRoleReveal(true);
+
+      toast({
+        title: "Game Started",
+        description: "The game has begun!",
+      });
+    }
+
+    // If game is finished, switch to game over state
+    if (gamePhase === "game_over" && currentScreen === "game") {
+      setShowGameOverOverlay(true);
+    }
+  }, [gameState?.game?.status, gameState?.game?.currentPhase, gameState?.phase, currentScreen, toast]);
 
   // Retry logic helper for Edge Function calls
   const callEdgeFunctionWithRetry = useCallback(
@@ -121,7 +158,7 @@ export function useGameState() {
     [toast]
   );
 
-  const fetchGameState = async (gameCode: string) => {
+  const fetchGameState = useCallback(async (gameCode: string) => {
     try {
       console.log("Fetching game state for:", gameCode);
       const { data: game, error: gameError } = await supabase
@@ -257,7 +294,12 @@ export function useGameState() {
       });
       console.error("Error fetching game state:", error);
     }
-  };
+  }, [logError]);
+
+  // Update the ref when fetchGameState changes
+  useEffect(() => {
+    fetchGameStateRef.current = fetchGameState;
+  }, [fetchGameState]);
 
   // Phase timer checking - automatically transition phases when timer expires
   useEffect(() => {
@@ -524,7 +566,7 @@ export function useGameState() {
       try {
         await fetchGameState(gameState.game.gameCode);
         console.log("Game state fetched after start");
-        
+
         // Double-check game state was loaded before switching screens
         const updatedState = await supabase
           .from("games")
@@ -546,14 +588,17 @@ export function useGameState() {
         });
       } catch (fetchError: any) {
         console.error("Error fetching game state after start:", fetchError);
-        logError(fetchError.message || "Failed to fetch game state after starting", {
-          details: fetchError.stack || JSON.stringify(fetchError),
-          source: "client",
-          functionName: "startGame-fetchState",
-          stack: fetchError.stack,
-          gameCode: gameState?.game?.gameCode,
-          playerId: playerId || undefined,
-        });
+        logError(
+          fetchError.message || "Failed to fetch game state after starting",
+          {
+            details: fetchError.stack || JSON.stringify(fetchError),
+            source: "client",
+            functionName: "startGame-fetchState",
+            stack: fetchError.stack,
+            gameCode: gameState?.game?.gameCode,
+            playerId: playerId || undefined,
+          }
+        );
         throw fetchError; // Re-throw to trigger error handling
       }
     } catch (error: any) {
