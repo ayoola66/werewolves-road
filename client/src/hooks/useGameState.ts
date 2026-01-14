@@ -770,6 +770,20 @@ export function useGameState() {
     return currentPlayer?.isHost || false;
   };
 
+  // Check if player can chat based on phase and alive status
+  const canChat = (): boolean => {
+    const currentPlayer = getCurrentPlayer();
+    if (!currentPlayer || !currentPlayer.isAlive) return false;
+    
+    const currentPhase = gameState?.game?.currentPhase || gameState?.phase;
+    
+    // Night phase: Everyone can chat (werewolves clear, villagers scrambled)
+    if (currentPhase === "night") return true;
+    
+    // All other phases: No chat (day = physical discussion, voting = voting only)
+    return false;
+  };
+
   const leaveGame = useCallback(async () => {
     if (!gameState || !playerId) return;
 
@@ -892,5 +906,6 @@ export function useGameState() {
     leaveGame,
     startVoting,
     clearGameState,
+    canChat,
   };
 }

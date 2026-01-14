@@ -51,7 +51,7 @@ export default function Chat({ gameState, channel = "player" }: ChatProps) {
   };
 
   const currentPlayer = gameState.getCurrentPlayer();
-  const canChat = gameState.canChat();
+  const canChat = gameState.canChat ? gameState.canChat() : (currentPlayer?.isAlive || false);
   const game = gameState.gameState;
   const currentPhase =
     game?.game?.currentPhase || game?.game?.phase || game?.phase;
@@ -60,20 +60,24 @@ export default function Chat({ gameState, channel = "player" }: ChatProps) {
   const isWerewolf = playerRole === "werewolf" || playerRole === "minion";
   const isNightPhase = currentPhase === "night";
 
-  // Determine chat label
+  // Determine chat label based on phase and channel
   let chatLabel = "Village Chat";
   let chatSubtitle = "";
 
   if (isNightPhase) {
-    if (isWerewolf) {
+    if (channel === "werewolf" && isWerewolf) {
       chatLabel = "🐺 Werewolf Chat";
-      chatSubtitle = "Private communication";
+      chatSubtitle = "Private - only werewolves can read this";
     } else {
       chatLabel = "🌙 Village Chat";
-      chatSubtitle = "Messages scrambled for disguise";
+      chatSubtitle = "Messages scrambled - type to blend in!";
     }
-  } else if (currentPhase === "day" || currentPhase === "voting") {
-    chatLabel = "☀️ Village Chat";
+  } else if (currentPhase === "day") {
+    chatLabel = "☀️ Verbal Discussion";
+    chatSubtitle = "Chat disabled - discuss with other players verbally";
+  } else if (currentPhase === "voting" || currentPhase === "voting_results") {
+    chatLabel = "⚖️ Voting Phase";
+    chatSubtitle = "Chat disabled during voting";
   }
 
   return (

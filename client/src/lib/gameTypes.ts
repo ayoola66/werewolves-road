@@ -14,6 +14,7 @@ export type Phase =
   | "night"
   | "day"
   | "voting"
+  | "voting_results"
   | "game_over";
 export type GameStatus = "waiting" | "playing" | "finished";
 export type ActionType =

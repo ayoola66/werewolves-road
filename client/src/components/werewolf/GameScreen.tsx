@@ -372,20 +372,23 @@ export default function GameScreen({ gameState }: GameScreenProps) {
                   </div>
                 </div>
 
-                {/* Chat - Hidden during voting, voting_results and night phase */}
-                {!(
-                  game?.game?.currentPhase === "voting" ||
-                  game?.game?.phase === "voting" ||
-                  game?.phase === "voting" ||
-                  game?.game?.currentPhase === "voting_results" ||
-                  game?.game?.phase === "voting_results" ||
-                  game?.phase === "voting_results" ||
-                  game?.game?.currentPhase === "night" ||
-                  game?.game?.phase === "night" ||
-                  game?.phase === "night"
-                ) && (
-                  <div className="flex-grow">
-                    <Chat gameState={gameState} />
+                {/* Day Phase - No Chat, Physical Discussion Only */}
+                {(game?.game?.currentPhase === "day" ||
+                  game?.game?.phase === "day" ||
+                  game?.phase === "day") && (
+                  <div className="flex-grow flex items-center justify-center">
+                    <div className="text-center p-8 bg-amber-50 dark:bg-gray-800 rounded-lg border-2 border-amber-600/30 max-w-md">
+                      <div className="text-6xl mb-4">🗣️</div>
+                      <h3 className="font-cinzel text-2xl font-bold text-amber-900 dark:text-amber-100 mb-3">
+                        Discussion Time
+                      </h3>
+                      <p className="text-amber-800 dark:text-amber-200 text-lg mb-4">
+                        Chat is disabled during the day. Discuss with other players verbally to find the werewolves!
+                      </p>
+                      <div className="text-sm text-amber-600 dark:text-amber-400 italic">
+                        "The wise villagers speak face to face, for the written word may be intercepted..."
+                      </div>
+                    </div>
                   </div>
                 )}
 

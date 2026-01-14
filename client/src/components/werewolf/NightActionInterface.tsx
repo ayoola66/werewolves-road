@@ -220,21 +220,42 @@ export default function NightActionInterface({
   // Main night action interface
   return (
     <div className="flex-grow flex flex-col md:flex-row gap-2 sm:gap-3 md:gap-4 p-2 sm:p-3 md:p-4 overflow-hidden">
-      {/* Werewolf Chat - Only visible to werewolves */}
-      {isWerewolf && (
-        <div className="flex-1 min-h-[180px] md:min-h-0 max-h-[300px] md:max-h-full">
-          <Card className="h-full bg-red-900/10 border-2 border-red-600">
+      {/* Chat Panel - Different for werewolves vs villagers */}
+      <div className="flex-1 min-h-[180px] md:min-h-0 max-h-[300px] md:max-h-full flex flex-col gap-2">
+        {/* Werewolf Private Chat - Only visible to werewolves */}
+        {isWerewolf && (
+          <Card className="flex-1 bg-red-900/10 border-2 border-red-600">
             <CardHeader className="pb-2 sm:pb-3 p-2 sm:p-3 md:p-4">
               <CardTitle className="font-cinzel text-sm sm:text-base md:text-lg lg:text-xl text-red-400 flex items-center gap-2">
                 🐺 Werewolf Chat
+                <span className="text-xs font-normal text-red-300">(Private)</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <Chat gameState={gameState} channel="werewolf" />
             </CardContent>
           </Card>
-        </div>
-      )}
+        )}
+        
+        {/* Village Chat - Visible to ALL players during night (scrambled for non-werewolves) */}
+        <Card className={`flex-1 ${isWerewolf ? 'max-h-[150px]' : ''} bg-indigo-900/10 border-2 border-indigo-600`}>
+          <CardHeader className="pb-2 sm:pb-3 p-2 sm:p-3 md:p-4">
+            <CardTitle className="font-cinzel text-sm sm:text-base md:text-lg lg:text-xl text-indigo-400 flex items-center gap-2">
+              🌙 Village Chat
+              <span className="text-xs font-normal text-indigo-300">(Scrambled)</span>
+            </CardTitle>
+            <p className="text-xs text-indigo-300 mt-1">
+              {isWerewolf 
+                ? "Type here to blend in with villagers - your messages are scrambled to them!"
+                : "Type to blend in - all messages appear scrambled to hide werewolf activity!"
+              }
+            </p>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Chat gameState={gameState} channel="player" />
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Action Selection Panel */}
       <div className={isWerewolf ? "flex-1" : "flex-1 max-w-3xl mx-auto"}>
