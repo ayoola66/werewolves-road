@@ -913,6 +913,44 @@ export function useGameState() {
     }
   }, [gameState, playerId, toast, logError, fetchGameState]);
 
+  // Lightning strike - auto-eliminate player who failed to type during night
+  const triggerLightningStrike = useCallback(async () => {
+    if (!gameState || !playerId) return;
+
+    try {
+      await callEdgeFunctionWithRetry(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/lightning-strike`,
+        {
+          gameCode: gameState.game.gameCode,
+          playerId,
+          reason: "Failed to meet minimum typing requirement",
+        },
+        "lightning-strike"
+      );
+
+      // Refresh game state to reflect death
+      await fetchGameState(gameState.game.gameCode);
+
+      toast({
+        title: "⚡ STRUCK BY LIGHTNING!",
+        description: "The Grand Wizard does not tolerate silence! You have been eliminated for failing to participate.",
+        variant: "destructive",
+        duration: 10000, // Show for 10 seconds
+      });
+    } catch (error: any) {
+      logError(error.message || "Failed to trigger lightning strike", {
+        details: error.stack || JSON.stringify(error),
+        source: "edge-function",
+        functionName: "lightning-strike",
+        stack: error.stack,
+        gameCode: gameState?.game?.gameCode,
+        playerId: playerId || undefined,
+      });
+      // Don't show error toast - just log it
+      console.error("Lightning strike error:", error);
+    }
+  }, [gameState, playerId, toast, logError, fetchGameState]);
+
   return {
     gameState,
     playerId,
@@ -946,5 +984,6 @@ export function useGameState() {
     clearGameState,
     canChat,
     useShield,
+    triggerLightningStrike,
   };
 }
