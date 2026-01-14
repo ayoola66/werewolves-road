@@ -83,7 +83,7 @@ serve(async (req) => {
       eliminatedPlayerId = playersWithMaxVotes[0]
     }
 
-    if (eliminatedPlayerId) {
+    if (eliminatedPlayerId && maxVotes > 0) {
       // Eliminate player - use player_id field (text) not id (integer)
       await supabase
         .from('players')
@@ -104,11 +104,16 @@ serve(async (req) => {
           type: 'system'
         })
     } else {
+      // Tie vote or no votes - no elimination
+      const tieMessage = maxVotes > 0 
+        ? `🤷 No one was eliminated (tie vote - ${playersWithMaxVotes.length} players tied with ${maxVotes} vote${maxVotes !== 1 ? 's' : ''}).`
+        : `🤷 No one was eliminated (no votes cast).`
+      
       await supabase
         .from('chat_messages')
         .insert({
           game_id: game.id,
-          message: `🤷 No one was eliminated (tie vote or no votes).`,
+          message: tieMessage,
           type: 'system'
         })
     }
