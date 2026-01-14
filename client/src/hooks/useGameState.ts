@@ -166,6 +166,113 @@ export function useGameState() {
     }
   };
 
+  // Phase timer checking - automatically transition phases when timer expires
+  useEffect(() => {
+    if (!gameState?.game?.gameCode || currentScreen !== 'game') return;
+
+    const currentPhase = gameState.game?.currentPhase || gameState.game?.phase || gameState.phase;
+    const phaseEndTime = gameState.game?.phaseEndTime;
+
+    // Only check for night and voting phases (these need automatic processing)
+    if (currentPhase !== 'night' && currentPhase !== 'voting' && currentPhase !== 'role_reveal') {
+      return;
+    }
+
+    // If no phase_end_time, don't check
+    if (!phaseEndTime) {
+      return;
+    }
+
+    const checkPhaseTimer = async () => {
+      const now = Date.now();
+      const endTime = new Date(phaseEndTime).getTime();
+
+      // If timer has expired, call appropriate process function
+      if (now >= endTime) {
+        try {
+          if (currentPhase === 'night') {
+            // Process night actions
+            const response = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-night`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                },
+                body: JSON.stringify({
+                  gameCode: gameState.game.gameCode,
+                }),
+              }
+            );
+
+            const data = await response.json();
+            if (data.error) {
+              console.error("Error processing night:", data.error);
+              logError(data.error, {
+                source: "edge-function",
+                functionName: "process-night",
+                gameCode: gameState.game.gameCode,
+              });
+            } else {
+              // Refresh game state after processing
+              await fetchGameState(gameState.game.gameCode);
+            }
+          } else if (currentPhase === 'voting') {
+            // Process votes
+            const response = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-votes`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                },
+                body: JSON.stringify({
+                  gameCode: gameState.game.gameCode,
+                }),
+              }
+            );
+
+            const data = await response.json();
+            if (data.error) {
+              console.error("Error processing votes:", data.error);
+              logError(data.error, {
+                source: "edge-function",
+                functionName: "process-votes",
+                gameCode: gameState.game.gameCode,
+              });
+            } else {
+              // Refresh game state after processing
+              await fetchGameState(gameState.game.gameCode);
+            }
+          } else if (currentPhase === 'role_reveal') {
+            // Transition from role_reveal to night - just refresh state
+            await fetchGameState(gameState.game.gameCode);
+          }
+        } catch (error: any) {
+          console.error("Error in phase timer check:", error);
+          logError(error.message || "Failed to process phase transition", {
+            details: error.stack || JSON.stringify(error),
+            source: "client",
+            functionName: "phase-timer-check",
+            gameCode: gameState.game.gameCode,
+          });
+        }
+      }
+    };
+
+    // Check immediately
+    checkPhaseTimer();
+
+    // Check every 5 seconds
+    const interval = setInterval(checkPhaseTimer, 5000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [gameState?.game?.gameCode, gameState?.game?.currentPhase, gameState?.game?.phaseEndTime, currentScreen, logError]);
+
   const createGame = useCallback(
     async (name: string, settings: GameSettings) => {
       try {
