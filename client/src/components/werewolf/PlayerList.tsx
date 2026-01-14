@@ -86,6 +86,7 @@ export default function PlayerList({ gameState }: PlayerListProps) {
             <div className="space-y-1 text-sm">
               {Object.entries(
                 Object.entries(game.votes || {}).reduce((acc: Record<string, number>, [voterId, targetId]) => {
+                  if (!Array.isArray(game.players)) return acc;
                   const target = game.players.find((p: any) => p.playerId === targetId);
                   if (target) {
                     acc[target.name] = (acc[target.name] || 0) + 1;

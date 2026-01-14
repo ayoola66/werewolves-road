@@ -19,12 +19,14 @@ export default function NightActionOverlay({
   const playerRole = gameState.getPlayerRole();
 
   // Calculate night action progress
-  const nightActions = game?.nightActions || [];
+  const nightActions = Array.isArray(game?.nightActions) ? game.nightActions : [];
   const rolesWithActions = ["werewolf", "seer", "doctor", "witch", "bodyguard"];
   const playersWithRoles =
-    game?.players?.filter(
-      (p: any) => p.isAlive && rolesWithActions.includes(p.role)
-    ) || [];
+    Array.isArray(game?.players)
+      ? game.players.filter(
+          (p: any) => p.isAlive && rolesWithActions.includes(p.role)
+        )
+      : [];
   const actorsWhoActed = nightActions.map((a: any) => a.actorId);
   const totalActors = playersWithRoles.length;
   const actedCount = actorsWhoActed.length;
@@ -38,7 +40,9 @@ export default function NightActionOverlay({
           description:
             "Select a player to eliminate tonight. Type their name exactly to confirm.",
           targets:
-            game?.alivePlayers?.filter((p: any) => p.role !== "werewolf") || [],
+            Array.isArray(game?.alivePlayers)
+              ? game.alivePlayers.filter((p: any) => p.role !== "werewolf")
+              : [],
           actionTypes: ["kill"],
           requiresConfirmation: true,
         };
@@ -49,10 +53,10 @@ export default function NightActionOverlay({
           title: "Divine a Player",
           description: `Choose a player to learn their role. Investigations remaining: ${investigationsLeft}`,
           targets:
-            investigationsLeft > 0
-              ? game?.alivePlayers?.filter(
+            investigationsLeft > 0 && Array.isArray(game?.alivePlayers)
+              ? game.alivePlayers.filter(
                   (p: any) => p.playerId !== gameState.playerId
-                ) || []
+                )
               : [],
           actionTypes: ["investigate"],
           requiresConfirmation: false,
@@ -62,7 +66,7 @@ export default function NightActionOverlay({
           title: "Protect a Player",
           description:
             "Choose a player to protect from werewolf attacks. You can save yourself or others.",
-          targets: game?.alivePlayers || [],
+          targets: Array.isArray(game?.alivePlayers) ? game.alivePlayers : [],
           actionTypes: ["save"],
           requiresConfirmation: false,
         };
@@ -70,7 +74,7 @@ export default function NightActionOverlay({
         return {
           title: "Use Your Potions",
           description: "Choose to save or poison a player.",
-          targets: game?.alivePlayers || [],
+          targets: Array.isArray(game?.alivePlayers) ? game.alivePlayers : [],
           actionTypes: ["save", "poison"],
           requiresConfirmation: false,
         };
@@ -80,9 +84,11 @@ export default function NightActionOverlay({
           description:
             "Choose a player to protect. You will die if they are attacked.",
           targets:
-            game?.alivePlayers?.filter(
-              (p: any) => p.playerId !== gameState.playerId
-            ) || [],
+            Array.isArray(game?.alivePlayers)
+              ? game.alivePlayers.filter(
+                  (p: any) => p.playerId !== gameState.playerId
+                )
+              : [],
           actionTypes: ["protect"],
           requiresConfirmation: false,
         };

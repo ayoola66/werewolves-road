@@ -21,8 +21,8 @@ export default function VotingInterface({ gameState }: VotingInterfaceProps) {
     [];
 
   // Get votes data
-  const votes = game?.votes || [];
-  const allPlayers = game?.players || [];
+  const votes = Array.isArray(game?.votes) ? game.votes : [];
+  const allPlayers = Array.isArray(game?.players) ? game.players : [];
 
   // Check if current player has voted
   const currentPlayerVote = votes.find(

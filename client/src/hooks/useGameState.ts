@@ -138,10 +138,12 @@ export function useGameState() {
           chatMessages: [],
           phase: game.current_phase || game.phase || "lobby",
           phaseTimer: 0,
-          werewolfCount: Array.isArray(alivePlayers) ? alivePlayers.filter((p) => p.role === "werewolf")
-            .length : 0,
-          villagerCount: Array.isArray(alivePlayers) ? alivePlayers.filter((p) => p.role !== "werewolf")
-            .length : 0,
+          werewolfCount: Array.isArray(alivePlayers)
+            ? alivePlayers.filter((p) => p.role === "werewolf").length
+            : 0,
+          villagerCount: Array.isArray(alivePlayers)
+            ? alivePlayers.filter((p) => p.role !== "werewolf").length
+            : 0,
           seerInvestigationsLeft: {},
         });
 
@@ -260,9 +262,9 @@ export function useGameState() {
 
     try {
       // Get current player for logging (don't include in dependency array to avoid circular dependency)
-      const currentPlayer = gameState?.players?.find(
-        (p) => p.playerId === playerId
-      );
+      const currentPlayer = Array.isArray(gameState?.players) 
+        ? gameState.players.find((p) => p.playerId === playerId)
+        : null;
       console.log("Starting game with:", {
         gameCode: gameState.game.gameCode,
         playerId,
@@ -468,13 +470,15 @@ export function useGameState() {
   };
 
   const getPlayerRole = () => {
-    if (!gameState || !playerId || !Array.isArray(gameState.players)) return null;
+    if (!gameState || !playerId || !Array.isArray(gameState.players))
+      return null;
     const player = gameState.players.find((p) => p.playerId === playerId);
     return player?.role || null;
   };
 
   const getCurrentPlayer = (): Player | null => {
-    if (!gameState || !playerId || !Array.isArray(gameState.players)) return null;
+    if (!gameState || !playerId || !Array.isArray(gameState.players))
+      return null;
     const player = gameState.players.find((p) => p.playerId === playerId);
     return player || null;
   };

@@ -32,7 +32,7 @@ export default function Lobby({ gameState }: LobbyProps) {
     }
   };
 
-  const canStart = gameState.isHost() && game?.players.length >= 4;
+  const canStart = gameState.isHost() && Array.isArray(game?.players) && game.players.length >= 4;
 
   return (
     <Card className="panel rounded-lg shadow-2xl">
@@ -55,10 +55,10 @@ export default function Lobby({ gameState }: LobbyProps) {
       <CardContent>
         <div>
           <h3 className="text-2xl font-bold mb-4 border-b border-gray-700 pb-2 font-cinzel">
-            Players Joined ({game?.players.length || 0}/16)
+            Players Joined ({Array.isArray(game?.players) ? game.players.length : 0}/16)
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {game?.players.map((player: any) => (
+            {Array.isArray(game?.players) && game.players.map((player: any) => (
               <div key={player.playerId} className="bg-gray-800/50 p-3 rounded-lg text-center">
                 <span className="font-bold block">{player.name}</span>
                 {player.isHost && (
@@ -89,8 +89,8 @@ export default function Lobby({ gameState }: LobbyProps) {
         
         <p className="text-center text-gray-500 mt-2">
           {gameState.isHost() 
-            ? game?.players.length < 4 
-              ? `Need ${4 - (game?.players.length || 0)} more players to start`
+            ? !Array.isArray(game?.players) || game.players.length < 4 
+              ? `Need ${4 - (Array.isArray(game?.players) ? game.players.length : 0)} more players to start`
               : 'Ready to start!'
             : 'Waiting for host to start the game...'
           }
