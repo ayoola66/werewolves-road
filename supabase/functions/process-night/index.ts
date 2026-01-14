@@ -133,16 +133,35 @@ serve(async (req) => {
           type: 'system'
         })
     } else {
+      // Phase timers (in seconds)
+      const PHASE_TIMERS = {
+        role_reveal: 15,
+        night: 120,
+        day: 180,
+        voting: 120,
+        voting_results: 15
+      }
+
       // Transition to day phase
+      const phaseTimer = PHASE_TIMERS.day
+      const phaseEndTime = new Date(Date.now() + phaseTimer * 1000)
+      const newDayCount = (game.day_count || 0) + 1
+      
       await supabase
         .from('games')
-        .update({ current_phase: 'day' })
-        .eq('id', gameId)
+        .update({ 
+          current_phase: 'day',
+          phase_timer: phaseTimer,
+          phase_end_time: phaseEndTime.toISOString(),
+          day_count: newDayCount,
+          last_phase_change: new Date().toISOString()
+        })
+        .eq('id', game.id)
 
       await supabase
         .from('chat_messages')
         .insert({
-          game_id: gameId,
+          game_id: game.id,
           message: '☀️ Day breaks. Discuss and vote to eliminate a suspect.',
           type: 'system'
         })
