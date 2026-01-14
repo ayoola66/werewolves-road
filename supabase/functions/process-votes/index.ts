@@ -45,21 +45,43 @@ serve(async (req) => {
       .select('*')
       .eq('game_id', game.id)
 
-    // Count votes - target_id is TEXT (player_id string), not integer
+    // Get all players to check for sheriff bonus
+    const { data: allPlayers } = await supabase
+      .from('players')
+      .select('player_id, is_sheriff')
+      .eq('game_id', game.id)
+
+    // Count votes with sheriff bonus - target_id is TEXT (player_id string), not integer
     const voteCounts = new Map<string, number>()
     votes?.forEach(vote => {
-      voteCounts.set(vote.target_id, (voteCounts.get(vote.target_id) || 0) + 1)
+      const currentCount = voteCounts.get(vote.target_id) || 0
+      // Check if voter is sheriff - sheriff vote counts as 2
+      const voter = allPlayers?.find(p => p.player_id === vote.voter_id)
+      const voteWeight = voter?.is_sheriff ? 2 : 1
+      voteCounts.set(vote.target_id, currentCount + voteWeight)
     })
 
-    // Find player with most votes
+    // Find player(s) with most votes - check for ties
     let eliminatedPlayerId: string | null = null
     let maxVotes = 0
+    const playersWithMaxVotes: string[] = []
+    
     voteCounts.forEach((count, playerId) => {
       if (count > maxVotes) {
         maxVotes = count
-        eliminatedPlayerId = playerId
+        playersWithMaxVotes.length = 0
+        playersWithMaxVotes.push(playerId)
+      } else if (count === maxVotes && maxVotes > 0) {
+        playersWithMaxVotes.push(playerId)
       }
     })
+
+    // If tie (multiple players with same max votes), no elimination
+    if (playersWithMaxVotes.length > 1) {
+      eliminatedPlayerId = null
+    } else if (playersWithMaxVotes.length === 1) {
+      eliminatedPlayerId = playersWithMaxVotes[0]
+    }
 
     if (eliminatedPlayerId) {
       // Eliminate player - use player_id field (text) not id (integer)
