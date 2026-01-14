@@ -1,41 +1,44 @@
-# GameWorldQuest - Werewolf Game
+# Werewolves Road - Real-Time Multiplayer Werewolf Game
 
-A real-time multiplayer Werewolf (Mafia) game built with React, TypeScript, Express, and PostgreSQL.
+A real-time multiplayer Werewolf (Mafia) game built with React, TypeScript, Supabase Edge Functions, and Supabase PostgreSQL.
+
+**Live Demo**: [https://werewolves-road.netlify.app](https://werewolves-road.netlify.app)
 
 ## Features
 
-- Real-time multiplayer gameplay with WebSocket support
-- Multiple game roles: Werewolf, Seer, Doctor, Sheriff, and more
-- Interactive chat system
-- Responsive UI built with Tailwind CSS and Radix UI
+- Real-time multiplayer gameplay with Supabase Realtime subscriptions
+- Multiple game roles: Werewolf, Seer, Doctor, Bodyguard, Witch, Sheriff, Minion, Jester, and Villager
+- Interactive chat system with scrambled messages for villagers during night
+- Anti-AFK lightning strike system
+- Protective shields for players
+- Responsive UI built with Tailwind CSS and shadcn/ui components
 - Secure game sessions with proper state management
+- Custom error logging and monitoring dashboard
 
 ## Tech Stack
 
-**Frontend:**
-- React 18 + TypeScript
-- Vite for build tooling
-- Tailwind CSS + Radix UI components
-- WebSocket client for real-time updates
-
-**Backend:**
-- Express.js + TypeScript
-- WebSocket server (ws library)
-- Drizzle ORM with PostgreSQL
-- Session-based authentication
+| Layer | Technology |
+|-------|------------|
+| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui (Radix UI), wouter (routing), Framer Motion |
+| **Backend** | Supabase Edge Functions (Deno/TypeScript) |
+| **Database** | Supabase PostgreSQL with Drizzle ORM |
+| **Real-time** | Supabase Realtime subscriptions |
+| **Auth** | Simple player/session-based (game codes + player IDs) |
+| **Hosting** | Netlify (frontend) + Supabase (backend/database) |
+| **Observability** | Custom error logging to Supabase `error_logs` table |
 
 ## Prerequisites
 
 - Node.js 20.x or higher
-- PostgreSQL database
+- Supabase project (free tier works)
 - npm or yarn
 
 ## Local Development
 
 1. **Clone the repository**
    ```bash
-   git clone [your-repo-url]
-   cd GameWorldQuest
+   git clone https://github.com/ayoola66/werewolves-road.git
+   cd werewolves-road
    ```
 
 2. **Install dependencies**
@@ -44,81 +47,118 @@ A real-time multiplayer Werewolf (Mafia) game built with React, TypeScript, Expr
    ```
 
 3. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   ```
    
-   Edit `.env` with your database URL:
-   ```
-   DATABASE_URL=postgresql://username:password@localhost:5432/gameworldquest
-   NODE_ENV=development
+   Create a `.env` file in the root directory:
+   ```env
+   VITE_SUPABASE_URL=https://your-project.supabase.co
+   VITE_SUPABASE_ANON_KEY=your-anon-key
+   DATABASE_URL=postgresql://username:password@db.your-project.supabase.co:5432/postgres
    ```
 
-4. **Run database migrations**
-   ```bash
-   npm run migrate
-   ```
+4. **Set up Supabase**
+   - Create a new project at [supabase.com](https://supabase.com)
+   - Run the SQL migrations in `db/migrations/` folder
+   - Deploy Edge Functions from `supabase/functions/` folder
 
 5. **Start development server**
    ```bash
    npm run dev
    ```
 
-   The app will be available at `http://localhost:3000`
+   The app will be available at `http://localhost:5173`
 
 ## Deployment
 
-### Railway (Recommended - Free Tier Available)
+### Current Setup: Netlify + Supabase
 
-1. **Push to GitHub** (if not already done)
+The app is deployed with:
+- **Frontend**: Netlify (auto-deploys from GitHub)
+- **Backend**: Supabase Edge Functions
+- **Database**: Supabase PostgreSQL
+
+### Deploy to Netlify
+
+1. **Push to GitHub**
    ```bash
    git add .
-   git commit -m "Prepare for Railway deployment"
+   git commit -m "Deploy update"
    git push origin main
    ```
 
-2. **Deploy to Railway**
-   - Visit [railway.app](https://railway.app)
-   - Sign up/in with GitHub
-   - Click "New Project" → "Deploy from GitHub repo"
-   - Select your GameWorldQuest repository
-   - Railway will auto-detect the Node.js app
+2. **Connect to Netlify**
+   - Visit [netlify.com](https://netlify.com)
+   - Click "Add new site" → "Import an existing project"
+   - Select your GitHub repository
+   - Build settings:
+     - Build command: `npm run build`
+     - Publish directory: `dist`
 
-3. **Add PostgreSQL Database**
-   - In your Railway project, click "New Service"
-   - Select "Database" → "PostgreSQL"
-   - Railway will automatically set DATABASE_URL environment variable
+3. **Set Environment Variables** in Netlify:
+   - `VITE_SUPABASE_URL` - Your Supabase project URL
+   - `VITE_SUPABASE_ANON_KEY` - Your Supabase anon key
 
-4. **Configure Environment Variables**
-   - Go to your app service → "Variables"
-   - Ensure these are set:
-     - `DATABASE_URL` (auto-set by Railway)
-     - `NODE_ENV=production`
-     - `PORT` (auto-set by Railway)
+### Deploy Edge Functions to Supabase
 
-5. **Deploy**
-   - Railway will automatically build and deploy
-   - Your app will be available at `https://your-app-name.railway.app`
-
-### Alternative Deployment Options
-
-#### Render.com
-The project includes a `render.yaml` for Render deployment (currently configured).
-
-#### Docker Deployment
-A Dockerfile is included for container deployment:
 ```bash
-docker build -t gameworldquest .
-docker run -p 3000:3000 -e DATABASE_URL=your_db_url gameworldquest
+# Install Supabase CLI
+npm install -g supabase
+
+# Login to Supabase
+supabase login
+
+# Link your project
+supabase link --project-ref your-project-ref
+
+# Deploy all Edge Functions
+supabase functions deploy
 ```
+
+### Edge Functions Available
+
+| Function | Purpose |
+|----------|---------|
+| `create-game` | Creates a new game lobby |
+| `join-game` | Joins an existing game |
+| `start-game` | Starts the game and assigns roles |
+| `submit-night-action` | Submits werewolf/seer/doctor actions |
+| `process-night` | Resolves night actions and transitions to day |
+| `submit-vote` | Submits a vote during voting phase |
+| `process-votes` | Resolves votes and eliminates player |
+| `use-shield` | Activates player's protective shield |
+| `lightning-strike` | Eliminates AFK players |
+| `log-error` | Logs client-side errors |
+| `get-game-state` | Fetches current game state |
 
 ## Available Scripts
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm start` - Start production server
-- `npm run migrate` - Run database migrations
-- `npm run db:push` - Push schema changes to database
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start Vite development server (port 5173) |
+| `npm run build` | Build frontend for production |
+| `npm run preview` | Preview production build locally |
+| `npm run migrate` | Run Drizzle database migrations |
+| `npm run db:push` | Push schema changes to Supabase |
+
+## Project Structure
+
+```
+werewolves-road/
+├── client/                 # React frontend
+│   ├── src/
+│   │   ├── components/     # UI components
+│   │   │   └── werewolf/   # Game-specific components
+│   │   ├── hooks/          # React hooks (useGameState, etc.)
+│   │   ├── lib/            # Utilities and types
+│   │   └── pages/          # Page components
+│   └── public/             # Static assets
+├── supabase/
+│   └── functions/          # Edge Functions (Deno)
+├── db/
+│   └── migrations/         # SQL migrations
+├── shared/
+│   └── schema.ts           # Drizzle schema definitions
+└── _bmad-output/           # Planning artifacts and docs
+```
 
 ## 🎮 How to Play
 
