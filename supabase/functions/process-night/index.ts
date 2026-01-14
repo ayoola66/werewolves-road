@@ -84,58 +84,230 @@ serve(async (req) => {
       .select('*')
       .eq('game_id', game.id)
 
-    // Get all alive players
-    const { data: players } = await supabase
+    // Handle empty actions array
+    if (!actions || !Array.isArray(actions)) {
+      // No actions submitted, just transition to day
+      const PHASE_TIMERS = {
+        role_reveal: 15,
+        night: 120,
+        day: 180,
+        voting: 120,
+        voting_results: 15
+      }
+
+      const phaseTimer = PHASE_TIMERS.day
+      const phaseEndTime = new Date(Date.now() + phaseTimer * 1000)
+      const newDayCount = (game.day_count || 0) + 1
+      
+      await supabase
+        .from('games')
+        .update({ 
+          current_phase: 'day',
+          phase_timer: phaseTimer,
+          phase_end_time: phaseEndTime.toISOString(),
+          day_count: newDayCount,
+          last_phase_change: new Date().toISOString()
+        })
+        .eq('id', game.id)
+
+      await supabase
+        .from('chat_messages')
+        .insert({
+          game_id: game.id,
+          message: '☀️ Day breaks. No actions were taken during the night.',
+          type: 'system'
+        })
+
+      return new Response(
+        JSON.stringify({ success: true, phase: 'day' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Get all players (alive and dead) to check shields, roles, etc.
+    const { data: allPlayers } = await supabase
       .from('players')
       .select('*')
       .eq('game_id', game.id)
-      .eq('is_alive', true)
 
-    // Process actions
+    // Handle empty players array
+    if (!allPlayers || !Array.isArray(allPlayers) || allPlayers.length === 0) {
+      await supabase
+        .from('games')
+        .update({ 
+          status: 'finished',
+          current_phase: 'game_over'
+        })
+        .eq('id', game.id)
+
+      return new Response(
+        JSON.stringify({ success: true, gameOver: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Filter alive players
+    const players = allPlayers.filter(p => p.is_alive)
+
+    // Process actions in priority order
     let killedPlayerId: string | null = null
-    let protectedPlayerId: string | null = null
+    let doctorSaveTargetId: string | null = null
+    let bodyguardProtectTargetId: string | null = null
+    let bodyguardPlayerId: string | null = null
+    let witchSaveTargetId: string | null = null
+    let witchPoisonTargetId: string | null = null
     let investigationResult: string | null = null
+    const deaths: string[] = []
+    const messages: string[] = []
 
-    // Find werewolf kill
-    const killAction = actions?.find(a => a.action_type === 'kill')
+    // 1. Find werewolf kill
+    const killAction = actions.find(a => a.action_type === 'kill')
     if (killAction) {
       killedPlayerId = killAction.target_id
     }
 
-    // Find doctor protection
-    const protectAction = actions?.find(a => a.action_type === 'protect')
-    if (protectAction) {
-      protectedPlayerId = protectAction.target_id
+    // 2. Find witch save (processed before kill)
+    const witchSaveAction = actions.find(a => a.action_type === 'save' && 
+      allPlayers.find(p => p.player_id === a.player_id)?.role === 'witch')
+    if (witchSaveAction) {
+      witchSaveTargetId = witchSaveAction.target_id
+      const witch = allPlayers.find(p => p.player_id === witchSaveAction.player_id)
+      if (witch && !witch.action_used) {
+        // Mark witch action as used
+        await supabase
+          .from('players')
+          .update({ action_used: true })
+          .eq('player_id', witch.player_id)
+      }
     }
 
-    // Find seer investigation
-    const investigateAction = actions?.find(a => a.action_type === 'investigate')
+    // 3. Find doctor protection/save
+    const doctorAction = actions.find(a => 
+      (a.action_type === 'protect' || a.action_type === 'save') &&
+      allPlayers.find(p => p.player_id === a.player_id)?.role === 'doctor')
+    if (doctorAction) {
+      doctorSaveTargetId = doctorAction.target_id
+    }
+
+    // 4. Find bodyguard protection
+    const bodyguardAction = actions.find(a => a.action_type === 'protect' &&
+      allPlayers.find(p => p.player_id === a.player_id)?.role === 'bodyguard')
+    if (bodyguardAction) {
+      bodyguardProtectTargetId = bodyguardAction.target_id
+      bodyguardPlayerId = bodyguardAction.player_id
+    }
+
+    // 5. Find seer investigation
+    const investigateAction = actions.find(a => a.action_type === 'investigate')
     if (investigateAction) {
-      const target = players?.find(p => p.player_id === investigateAction.target_id)
+      const target = allPlayers.find(p => p.player_id === investigateAction.target_id)
       investigationResult = target?.role === 'werewolf' ? 'werewolf' : 'not werewolf'
+      const seer = allPlayers.find(p => p.player_id === investigateAction.player_id)
+      if (seer && target) {
+        messages.push(`🔮 The seer investigated ${target.name} and discovered they are ${investigationResult === 'werewolf' ? 'a werewolf' : 'not a werewolf'}!`)
+      }
     }
 
-    // Apply kill if not protected
-    if (killedPlayerId && killedPlayerId !== protectedPlayerId) {
+    // 6. Find witch poison (processed after kill)
+    const witchPoisonAction = actions.find(a => a.action_type === 'poison' &&
+      allPlayers.find(p => p.player_id === a.player_id)?.role === 'witch')
+    if (witchPoisonAction) {
+      witchPoisonTargetId = witchPoisonAction.target_id
+      const witch = allPlayers.find(p => p.player_id === witchPoisonAction.player_id)
+      if (witch && !witch.action_used) {
+        // Mark witch action as used
+        await supabase
+          .from('players')
+          .update({ action_used: true })
+          .eq('player_id', witch.player_id)
+      }
+    }
+
+    // Process kills in priority order:
+    // 1. Check shield (highest priority - personal protection)
+    // 2. Check witch save
+    // 3. Check doctor save
+    // 4. Apply werewolf kill
+    // 5. Apply bodyguard death mechanic
+    // 6. Apply witch poison
+
+    if (killedPlayerId) {
+      const target = allPlayers.find(p => p.player_id === killedPlayerId)
+      
+      // Check if target has shield (personal protection - highest priority)
+      if (target?.has_shield) {
+        messages.push(`🛡️ ${target.name} used their shield and survived the attack!`)
+        // Remove shield after use
+        await supabase
+          .from('players')
+          .update({ has_shield: false })
+          .eq('player_id', killedPlayerId)
+      }
+      // Check witch save (processed before kill)
+      else if (killedPlayerId === witchSaveTargetId) {
+        messages.push(`🧪 The witch saved ${target?.name || 'someone'} from death!`)
+        killedPlayerId = null // Prevent kill
+      }
+      // Check doctor save
+      else if (killedPlayerId === doctorSaveTargetId) {
+        messages.push(`💊 The doctor saved ${target?.name || 'someone'} from death!`)
+        killedPlayerId = null // Prevent kill
+      }
+      // Check bodyguard protection
+      else if (killedPlayerId === bodyguardProtectTargetId && bodyguardPlayerId) {
+        const bodyguard = allPlayers.find(p => p.player_id === bodyguardPlayerId)
+        // Bodyguard dies protecting
+        deaths.push(bodyguardPlayerId)
+        messages.push(`🛡️ ${bodyguard?.name || 'The bodyguard'} died protecting ${target?.name || 'someone'}!`)
+        
+        // Check if protected player has shield or doctor save
+        const protectedPlayer = allPlayers.find(p => p.player_id === bodyguardProtectTargetId)
+        if (protectedPlayer?.has_shield) {
+          messages.push(`🛡️ ${protectedPlayer.name} used their shield and survived!`)
+          await supabase
+            .from('players')
+            .update({ has_shield: false })
+            .eq('player_id', bodyguardProtectTargetId)
+        } else if (bodyguardProtectTargetId === doctorSaveTargetId) {
+          messages.push(`💊 The doctor saved ${protectedPlayer?.name || 'someone'}!`)
+        } else {
+          // Protected player also dies
+          deaths.push(bodyguardProtectTargetId)
+          messages.push(`💀 ${protectedPlayer?.name || 'Someone'} died alongside their bodyguard!`)
+        }
+        killedPlayerId = null // Werewolf kill prevented by bodyguard
+      }
+      // Apply werewolf kill
+      else if (killedPlayerId) {
+        deaths.push(killedPlayerId)
+        messages.push(`💀 ${target?.name || 'Someone'} was killed during the night!`)
+      }
+    }
+
+    // Apply witch poison (after kill processing)
+    if (witchPoisonTargetId) {
+      const poisonedPlayer = allPlayers.find(p => p.player_id === witchPoisonTargetId)
+      if (poisonedPlayer && poisonedPlayer.is_alive) {
+        deaths.push(witchPoisonTargetId)
+        messages.push(`☠️ ${poisonedPlayer.name} was poisoned by the witch!`)
+      }
+    }
+
+    // Update all deaths
+    for (const deadPlayerId of deaths) {
       await supabase
         .from('players')
         .update({ is_alive: false })
-        .eq('player_id', killedPlayerId)
+        .eq('player_id', deadPlayerId)
+    }
 
-      const killedPlayer = players?.find(p => p.player_id === killedPlayerId)
+    // Insert all chat messages
+    for (const message of messages) {
       await supabase
         .from('chat_messages')
         .insert({
           game_id: game.id,
-          message: `💀 ${killedPlayer?.name} was killed during the night!`,
-          type: 'system'
-        })
-    } else if (killedPlayerId && killedPlayerId === protectedPlayerId) {
-      await supabase
-        .from('chat_messages')
-        .insert({
-          game_id: game.id,
-          message: `🛡️ The doctor saved someone from death!`,
+          message,
           type: 'system'
         })
     }
