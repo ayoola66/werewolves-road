@@ -79,16 +79,18 @@ export default function GameOverOverlay({ gameState }: GameOverOverlayProps) {
           <div className="flex justify-center space-x-4">
             <Button
               onClick={() => {
-                // Reset game state for new game
-                gameState.setShowGameOverOverlay(false);
-                gameState.setCurrentScreen('initial');
+                // Clear game state and return to initial screen
+                gameState.clearGameState?.();
               }}
               className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg"
             >
               Play Again
             </Button>
             <Button
-              onClick={gameState.leaveGame}
+              onClick={() => {
+                // Clear game state and leave
+                gameState.clearGameState?.();
+              }}
               variant="secondary"
               className="text-white font-bold py-3 px-8 rounded-lg"
             >

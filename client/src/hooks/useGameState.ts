@@ -707,6 +707,19 @@ export function useGameState() {
     }
   }, [gameState, playerId, toast, logError]);
 
+  const clearGameState = useCallback(() => {
+    setGameState(null);
+    setPlayerId(null);
+    setPlayerName("");
+    setCurrentScreen("initial");
+    setSelectedPlayer(null);
+    setShowRoleReveal(false);
+    setShowVoteOverlay(false);
+    setShowNightActionOverlay(false);
+    setShowGameOverOverlay(false);
+    setHasPerformedNightAction(false);
+  }, []);
+
   const startVoting = useCallback(async () => {
     if (!gameState || !playerId) return;
 
@@ -780,5 +793,6 @@ export function useGameState() {
     isHost,
     leaveGame,
     startVoting,
+    clearGameState,
   };
 }
