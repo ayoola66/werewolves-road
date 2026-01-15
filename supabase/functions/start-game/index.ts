@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { corsHeaders, createSupabaseClient, assignRoles } from '../_shared/utils.ts'
+import { corsHeaders, createSupabaseClient, assignRoles, shuffleArray } from '../_shared/utils.ts'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -128,14 +128,16 @@ serve(async (req) => {
       )
     }
 
-    // Assign roles
+    // Assign roles - shuffle BOTH roles AND players to ensure true randomness
+    // This prevents the host (who is typically first in the array) from always getting the first role
     const roles = assignRoles(players.length, game.settings)
+    const shuffledPlayers = shuffleArray([...players])
     
-    for (let i = 0; i < players.length; i++) {
+    for (let i = 0; i < shuffledPlayers.length; i++) {
       await supabase
         .from('players')
         .update({ role: roles[i] })
-        .eq('id', players[i].id)
+        .eq('id', shuffledPlayers[i].id)
     }
 
     // Phase timers (in seconds)

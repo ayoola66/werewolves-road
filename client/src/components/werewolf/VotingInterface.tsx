@@ -227,8 +227,43 @@ export default function VotingInterface({ gameState }: VotingInterfaceProps) {
     );
   }
 
+  // CRITICAL: Dead players should only spectate, not vote
+  if (!currentPlayer?.isAlive) {
+    return (
+      <div className="flex-grow flex flex-col items-center justify-center p-2 sm:p-4 md:p-6">
+        <Card className="w-full max-w-xl bg-gray-900/90 border-2 border-gray-600">
+          <CardContent className="p-4 sm:p-6 md:p-8 text-center">
+            <div className="text-4xl sm:text-5xl md:text-6xl mb-4">👻</div>
+            <h3 className="text-xl sm:text-2xl font-cinzel font-bold text-gray-400 mb-2">
+              Spectating
+            </h3>
+            <p className="text-gray-500 text-sm sm:text-base md:text-lg mb-4">
+              You have been eliminated and cannot vote. Watch as the village decides...
+            </p>
+            <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gray-800 rounded-lg border border-gray-700">
+              <p className="text-gray-400 font-semibold text-sm sm:text-base mb-2">
+                Voting Progress
+              </p>
+              <p className="text-xs sm:text-sm text-gray-500">
+                {totalVotes}/{totalAlivePlayers} players have voted
+              </p>
+              <div className="w-full bg-gray-700 rounded-full h-2 mt-3">
+                <div
+                  className="bg-gray-500 h-2 rounded-full transition-all duration-300"
+                  style={{
+                    width: `${totalAlivePlayers > 0 ? (totalVotes / totalAlivePlayers) * 100 : 0}%`,
+                  }}
+                ></div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // If not voted yet, show voting interface with radio buttons
-  if (!hasVoted && currentPlayer?.isAlive) {
+  if (!hasVoted) {
     return (
       <div className="flex-grow flex flex-col p-2 sm:p-4 md:p-6 overflow-hidden">
         <Card className="w-full max-w-4xl mx-auto bg-white dark:bg-gray-900/90 border-2 border-red-600 flex flex-col max-h-full">

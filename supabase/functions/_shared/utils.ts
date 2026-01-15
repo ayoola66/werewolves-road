@@ -38,9 +38,14 @@ export function assignRoles(playerCount: number, settings: any) {
     roles.push('werewolf')
   }
   
-  // Add special roles
-  if (settings.hasSeer) roles.push('seer')
-  if (settings.hasDoctor) roles.push('doctor')
+  // Add special roles (support both property naming conventions)
+  if (settings.hasSeer || settings.seer) roles.push('seer')
+  if (settings.hasDoctor || settings.doctor) roles.push('doctor')
+  if (settings.hasBodyguard || settings.bodyguard) roles.push('bodyguard')
+  if (settings.hasMinion || settings.minion) roles.push('minion')
+  if (settings.hasHunter || settings.hunter) roles.push('hunter')
+  if (settings.hasWitch || settings.witch) roles.push('witch')
+  if (settings.hasJester || settings.jester) roles.push('jester')
   
   // Fill remaining with villagers
   while (roles.length < playerCount) {
