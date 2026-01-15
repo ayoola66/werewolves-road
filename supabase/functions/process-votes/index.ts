@@ -164,7 +164,7 @@ serve(async (req) => {
           status: 'finished',
           current_phase: 'game_over'
         })
-        .eq('id', gameId)
+        .eq('id', game.id)
 
       await supabase
         .from('chat_messages')

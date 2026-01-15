@@ -43,33 +43,33 @@ export async function joinGame(gameCode: string, playerName: string) {
   return result
 }
 
-export async function startGame(gameId: number, playerId: number) {
-  const result = await callEdgeFunction('start-game', { gameId, playerId })
+export async function startGame(gameCode: string, playerId: string) {
+  const result = await callEdgeFunction('start-game', { gameCode, playerId })
   return result
 }
 
-export async function sendChatMessage(gameId: number, playerId: number, message: string) {
-  const result = await callEdgeFunction('send-chat', { gameId, playerId, message })
+export async function sendChatMessage(gameCode: string, playerId: string, message: string, channel?: string) {
+  const result = await callEdgeFunction('send-chat', { gameCode, playerId, message, channel })
   return result
 }
 
-export async function submitVote(gameId: number, voterId: number, targetId: number) {
-  const result = await callEdgeFunction('submit-vote', { gameId, voterId, targetId })
+export async function submitVote(gameCode: string, playerId: string, targetId: string) {
+  const result = await callEdgeFunction('submit-vote', { gameCode, playerId, targetId })
   return result
 }
 
-export async function submitNightAction(gameId: number, actorId: number, targetId: number, actionType: string) {
-  const result = await callEdgeFunction('submit-night-action', { gameId, actorId, targetId, actionType })
+export async function submitNightAction(gameCode: string, playerId: string, targetId: string, action: string) {
+  const result = await callEdgeFunction('submit-night-action', { gameCode, playerId, targetId, action })
   return result
 }
 
-export async function processNight(gameId: number) {
-  const result = await callEdgeFunction('process-night', { gameId })
+export async function processNight(gameCode: string) {
+  const result = await callEdgeFunction('process-night', { gameCode })
   return result
 }
 
-export async function processVotes(gameId: number) {
-  const result = await callEdgeFunction('process-votes', { gameId })
+export async function processVotes(gameCode: string) {
+  const result = await callEdgeFunction('process-votes', { gameCode })
   return result
 }
 

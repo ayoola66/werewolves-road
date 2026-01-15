@@ -39,7 +39,8 @@ serve(async (req) => {
       .eq('game_id', game.id)
 
     // Verify player is host - use player_id field (text) not id (integer)
-    const { data: player, error: playerError } = await supabase
+    // Use 'let' to allow reassignment in fallback logic
+    let { data: player, error: playerError } = await supabase
       .from('players')
       .select('is_host, player_id, name')
       .eq('player_id', playerId)
@@ -79,7 +80,7 @@ serve(async (req) => {
             { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           )
         }
-        // Assign hostPlayer to player variable
+        // Assign hostPlayer to player variable (now works because we use 'let')
         player = hostPlayer
       } else {
         const playerList = allPlayers?.map(p => `${p.name} (${p.player_id})`).join(', ') || 'none'
@@ -103,6 +104,14 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Only host can start the game' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Check game status
+    if (game.status !== 'waiting') {
+      return new Response(
+        JSON.stringify({ error: 'Game has already started' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -135,7 +144,7 @@ serve(async (req) => {
       night: 120,
       day: 180,
       voting: 120,
-      voting_results: 10  // Changed from 15 to 10 seconds
+      voting_results: 10
     }
 
     // Update game status - start with role_reveal phase
@@ -156,20 +165,13 @@ serve(async (req) => {
 
     if (updateError) throw updateError
 
-    // Add system message
+    // Add system messages
     await supabase
       .from('chat_messages')
       .insert({
         game_id: game.id,
+        player_name: 'System',
         message: '🎮 The game has started! Roles are being revealed...',
-        type: 'system'
-      })
-
-    await supabase
-      .from('chat_messages')
-      .insert({
-        game_id: game.id,
-        message: '🌙 Night falls... Werewolves, choose your target.',
         type: 'system'
       })
 
@@ -177,11 +179,13 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true,
         gameCode: game.game_code,
-        gameId: game.id
+        phase: 'role_reveal',
+        phaseTimer: phaseTimer
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
+    console.error('start-game error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
