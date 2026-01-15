@@ -13,6 +13,7 @@ export default function NightActionInterface({
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>("");
   const [hasActed, setHasActed] = useState(false);
   const [shieldActivated, setShieldActivated] = useState(false);
+  const [hasEndedNight, setHasEndedNight] = useState(false); // Tracks if player clicked "End Night"
 
   const game = gameState.gameState;
   const currentPlayer = gameState.getCurrentPlayer();
@@ -34,6 +35,11 @@ export default function NightActionInterface({
   const currentPlayerAction = nightActions.find(
     (a: any) => a.playerId === gameState.playerId
   );
+  
+  // Check if player has already ended their night
+  const endNightAction = nightActions.find(
+    (a: any) => a.playerId === gameState.playerId && a.actionType === 'end_night'
+  );
 
   useEffect(() => {
     if (currentPlayerAction) {
@@ -42,7 +48,10 @@ export default function NightActionInterface({
     if (shieldActionThisNight) {
       setShieldActivated(true);
     }
-  }, [currentPlayerAction, shieldActionThisNight]);
+    if (endNightAction) {
+      setHasEndedNight(true);
+    }
+  }, [currentPlayerAction, shieldActionThisNight, endNightAction]);
   
   // Handle shield activation
   const handleUseShield = async () => {
@@ -51,8 +60,33 @@ export default function NightActionInterface({
     try {
       await gameState.useShield();
       setShieldActivated(true);
+      // Using shield also marks as ready for night end
+      setHasEndedNight(true);
     } catch (error) {
       console.error('Failed to activate shield:', error);
+    }
+  };
+  
+  // Handle "Don't Use Shield" - marks player as ready without using shield
+  const handleDontUseShield = async () => {
+    try {
+      // Submit a "skip_shield" action to mark player as ready
+      await gameState.performNightAction(null, 'skip_shield');
+      setHasEndedNight(true);
+    } catch (error) {
+      console.error('Failed to skip shield:', error);
+      setHasEndedNight(true); // Still mark locally
+    }
+  };
+  
+  // Handle "End Night" button - marks player as ready to proceed
+  const handleEndNight = async () => {
+    try {
+      await gameState.performNightAction(null, 'end_night');
+      setHasEndedNight(true);
+    } catch (error) {
+      console.error('Failed to end night:', error);
+      setHasEndedNight(true); // Still mark locally
     }
   };
 
@@ -184,11 +218,17 @@ export default function NightActionInterface({
     // For now, we just update local state - the timer will handle phase transition
   };
 
-  // Calculate action progress
+  // Calculate action progress - ALL alive players must act/end night
+  const totalAlivePlayers = allAlivePlayers.length;
+  
+  // Count unique players who have submitted any night action (action, shield, skip, end_night)
+  const uniqueActedPlayerIds = new Set(nightActions.map((a: any) => a.playerId));
+  const actedCount = uniqueActedPlayerIds.size;
+  
+  // Legacy: roles with special actions (for display purposes)
   const rolesWithActions = ["werewolf", "seer", "doctor", "bodyguard"];
   const playersWithRoles = allAlivePlayers.filter((p: any) => rolesWithActions.includes(p.role));
   const totalActors = playersWithRoles.length;
-  const actedCount = nightActions.length;
 
   // Shield Button Component (reusable)
   const ShieldButton = () => {
