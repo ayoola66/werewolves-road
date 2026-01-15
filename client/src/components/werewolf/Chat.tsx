@@ -153,15 +153,10 @@ export default function Chat({ gameState, channel = "player" }: ChatProps) {
     }
   };
 
-  const currentPlayer = gameState.getCurrentPlayer();
+  // Use already-declared variables from above (lines 34-39)
   const canChat = gameState.canChat ? gameState.canChat() : (currentPlayer?.isAlive || false);
-  const game = gameState.gameState;
-  const currentPhase =
-    game?.game?.currentPhase || game?.game?.phase || game?.phase;
-
   const playerRole = gameState.getPlayerRole();
   const isWerewolf = playerRole === "werewolf" || playerRole === "minion";
-  const isNightPhase = currentPhase === "night";
 
   // Determine chat label based on phase and channel
   let chatLabel = "Village Chat";

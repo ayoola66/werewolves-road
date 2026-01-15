@@ -17,13 +17,17 @@ interface PlayerSidebarProps {
   alivePlayers: Player[];
   deadPlayers: Player[];
   currentPlayerId?: string;
+  gamePhase?: string; // To check if game is over (Bug #11 fix)
 }
 
 export default function PlayerSidebar({
   alivePlayers,
   deadPlayers,
   currentPlayerId,
+  gamePhase,
 }: PlayerSidebarProps) {
+  // Only show dead player roles when game is over
+  const showDeadRoles = gamePhase === "game_over";
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleSidebar = () => setIsOpen(!isOpen);
@@ -153,7 +157,7 @@ export default function PlayerSidebar({
                                 ⭐ SHERIFF
                               </Badge>
                             )}
-                            {player.role && (
+                            {showDeadRoles && player.role && (
                               <Badge className="text-xs bg-gray-700 uppercase">
                                 {player.role}
                               </Badge>

@@ -68,6 +68,30 @@ export function useGameState() {
           await debouncedFetchGameState(gameState.game.gameCode);
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "votes",
+          filter: `game_id=eq.${gameState.game.id}`,
+        },
+        async () => {
+          await debouncedFetchGameState(gameState.game.gameCode);
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "night_actions",
+          filter: `game_id=eq.${gameState.game.id}`,
+        },
+        async () => {
+          await debouncedFetchGameState(gameState.game.gameCode);
+        }
+      )
       .subscribe();
 
     return () => {
@@ -256,6 +280,25 @@ export function useGameState() {
           throw playersError;
         }
 
+        // Fetch votes from database
+        const { data: votes } = await supabase
+          .from("votes")
+          .select("*")
+          .eq("game_id", game.id);
+
+        // Fetch night actions from database
+        const { data: nightActions } = await supabase
+          .from("night_actions")
+          .select("*")
+          .eq("game_id", game.id);
+
+        // Fetch chat messages from database
+        const { data: chatMessages } = await supabase
+          .from("chat_messages")
+          .select("*")
+          .eq("game_id", game.id)
+          .order("created_at", { ascending: true });
+
         if (game && players && Array.isArray(players)) {
           const alivePlayers = players.filter((p) => p.is_alive);
           const deadPlayers = players.filter((p) => !p.is_alive);
@@ -314,9 +357,32 @@ export function useGameState() {
               hasShield: p.has_shield,
               actionUsed: p.action_used,
             })),
-            votes: {},
-            nightActions: {},
-            chatMessages: [],
+            votes: Array.isArray(votes) ? votes.map((v) => ({
+              id: v.id,
+              gameId: v.game_id,
+              voterId: v.voter_id,
+              targetId: v.target_id,
+              phase: v.phase,
+              createdAt: v.created_at,
+            })) : [],
+            nightActions: Array.isArray(nightActions) ? nightActions.map((a) => ({
+              id: a.id,
+              gameId: a.game_id,
+              playerId: a.player_id,
+              targetId: a.target_id,
+              actionType: a.action_type,
+              phase: a.phase,
+              createdAt: a.created_at,
+            })) : [],
+            chatMessages: Array.isArray(chatMessages) ? chatMessages.map((m) => ({
+              id: m.id,
+              gameId: m.game_id,
+              playerId: m.player_id,
+              playerName: m.player_name,
+              message: m.message,
+              type: m.type,
+              createdAt: m.created_at,
+            })) : [],
             phase: game.current_phase || game.phase || "lobby",
             phaseTimer: 0,
             werewolfCount: Array.isArray(alivePlayers)
@@ -360,10 +426,11 @@ export function useGameState() {
       gameState.game?.currentPhase || gameState.game?.phase || gameState.phase;
     const phaseEndTime = gameState.game?.phaseEndTime;
 
-    // Only check for night and voting phases (these need automatic processing)
+    // Only check for phases that need automatic processing
     if (
       currentPhase !== "night" &&
       currentPhase !== "voting" &&
+      currentPhase !== "voting_results" &&
       currentPhase !== "role_reveal"
     ) {
       return;
@@ -469,6 +536,39 @@ export function useGameState() {
               logError(data.error, {
                 source: "edge-function",
                 functionName: "process-night",
+                gameCode: gameState.game.gameCode,
+              });
+            } else {
+              // Refresh game state after processing
+              await fetchGameState(gameState.game.gameCode);
+            }
+          } else if (currentPhase === "voting_results") {
+            // Transition from voting_results to night phase (Bug #8 fix)
+            const response = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/transition-to-night`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${
+                    import.meta.env.VITE_SUPABASE_ANON_KEY
+                  }`,
+                },
+                body: JSON.stringify({
+                  gameCode: gameState.game.gameCode,
+                }),
+              }
+            );
+
+            const data = await response.json();
+            if (data.error) {
+              console.error(
+                "Error transitioning from voting_results:",
+                data.error
+              );
+              logError(data.error, {
+                source: "edge-function",
+                functionName: "transition-to-night",
                 gameCode: gameState.game.gameCode,
               });
             } else {

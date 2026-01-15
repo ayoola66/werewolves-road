@@ -11,6 +11,7 @@ export default function VotingInterface({ gameState }: VotingInterfaceProps) {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>("");
   const [hasVoted, setHasVoted] = useState(false);
   const [countdown, setCountdown] = useState(15);
+  const [votedForName, setVotedForName] = useState<string>(""); // Bug #19 fix: Store voted target name locally
 
   const game = gameState.gameState;
   const currentPlayer = gameState.getCurrentPlayer();
@@ -45,7 +46,46 @@ export default function VotingInterface({ gameState }: VotingInterfaceProps) {
   const totalVotes = votes.length;
 
   // SECRET VOTING: Check if all players have voted
-  const allPlayersVoted = totalVotes >= totalAlivePlayers;
+  const allPlayersVoted = totalVotes >= totalAlivePlayers && totalAlivePlayers > 0;
+
+  // Auto-process votes when all players have voted (Bug #7 fix)
+  useEffect(() => {
+    if (allPlayersVoted && currentPhase === "voting" && !isVotingResults) {
+      console.log("All players have voted! Auto-processing votes...");
+      
+      // Call process-votes edge function
+      const processVotes = async () => {
+        try {
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-votes`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              },
+              body: JSON.stringify({
+                gameCode: game?.game?.gameCode || game?.gameCode,
+              }),
+            }
+          );
+          
+          const data = await response.json();
+          if (data.error) {
+            console.error("Error processing votes:", data.error);
+          } else {
+            console.log("Votes processed successfully");
+          }
+        } catch (error) {
+          console.error("Failed to process votes:", error);
+        }
+      };
+
+      // Small delay to ensure all votes are recorded
+      const timer = setTimeout(processVotes, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [allPlayersVoted, currentPhase, isVotingResults, game?.game?.gameCode, game?.gameCode]);
 
   // Get timer from game state
   const phaseEndTime = game?.game?.phaseEndTime || game?.phaseEndTime;
@@ -84,6 +124,11 @@ export default function VotingInterface({ gameState }: VotingInterfaceProps) {
 
   const handleVote = () => {
     if (selectedPlayerId && !hasVoted) {
+      // Bug #19 fix: Store the voted target name locally before voting
+      const targetPlayer = alivePlayers.find((p: any) => p.playerId === selectedPlayerId);
+      if (targetPlayer) {
+        setVotedForName(targetPlayer.name);
+      }
       gameState.vote(selectedPlayerId);
       setHasVoted(true);
     }
@@ -292,9 +337,11 @@ export default function VotingInterface({ gameState }: VotingInterfaceProps) {
             You voted for:{" "}
             <span className="font-bold text-red-600 dark:text-red-400">
               {
+                votedForName || 
                 allPlayers.find(
                   (p: any) => p.playerId === currentPlayerVote?.targetId
-                )?.name
+                )?.name ||
+                "Loading..."
               }
             </span>
           </p>

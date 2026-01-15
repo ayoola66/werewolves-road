@@ -180,34 +180,23 @@ serve(async (req) => {
         night: 120,
         day: 180,
         voting: 120,
-        voting_results: 10  // Changed from 15 to 10 seconds
+        voting_results: 10  // Show voting results for 10 seconds
       }
 
-      // Transition to night phase
-      const newNight = (game.night_count || 0) + 1
-      const newDayCount = (game.day_count || 0) + 1
-      const phaseTimer = PHASE_TIMERS.night
+      // Transition to voting_results phase FIRST (Bug #8 fix)
+      // This shows who was eliminated before transitioning to night
+      const phaseTimer = PHASE_TIMERS.voting_results
       const phaseEndTime = new Date(Date.now() + phaseTimer * 1000)
       
       await supabase
         .from('games')
         .update({ 
-          current_phase: 'night',
+          current_phase: 'voting_results',
           phase_timer: phaseTimer,
           phase_end_time: phaseEndTime.toISOString(),
-          night_count: newNight,
-          day_count: newDayCount,
           last_phase_change: new Date().toISOString()
         })
         .eq('id', game.id)
-
-      await supabase
-        .from('chat_messages')
-        .insert({
-          game_id: game.id,
-          message: `🌙 Night ${newNight} falls... Werewolves, choose your target.`,
-          type: 'system'
-        })
     }
 
     return new Response(

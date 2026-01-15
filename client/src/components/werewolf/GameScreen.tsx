@@ -332,6 +332,7 @@ export default function GameScreen({ gameState }: GameScreenProps) {
           alivePlayers={game?.alivePlayers || []}
           deadPlayers={game?.deadPlayers || []}
           currentPlayerId={gameState.playerId}
+          gamePhase={game?.game?.currentPhase || game?.phase}
         />
 
         {/* Main Content Area */}
