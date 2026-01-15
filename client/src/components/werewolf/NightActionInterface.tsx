@@ -271,11 +271,7 @@ export default function NightActionInterface({
             <CardHeader className="pb-2 sm:pb-3 p-2 sm:p-3 md:p-4">
               <CardTitle className="font-cinzel text-sm sm:text-base md:text-lg lg:text-xl text-indigo-400 flex items-center gap-2">
                 🌙 Village Chat
-                <span className="text-xs font-normal text-indigo-300">(Scrambled)</span>
               </CardTitle>
-              <p className="text-xs text-indigo-300 mt-1">
-                Type to blend in - all messages appear scrambled to hide werewolf activity!
-              </p>
             </CardHeader>
             <CardContent className="p-0 flex-grow overflow-hidden">
               <Chat gameState={gameState} channel="player" />
@@ -299,16 +295,13 @@ export default function NightActionInterface({
               {/* Shield Button */}
               <ShieldButton />
               
-              <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-300 dark:border-blue-700">
-                <p className="text-blue-800 dark:text-blue-300 font-semibold text-sm sm:text-base mb-2">
-                  Night Progress
+              <div className="mt-3 p-2 sm:p-3 bg-blue-900/20 rounded-lg border border-blue-700">
+                <p className="text-blue-300 font-semibold text-xs sm:text-sm">
+                  Night Progress: {actedCount}/{totalActors} acted
                 </p>
-                <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-400">
-                  {actedCount}/{totalActors} players have acted
-                </p>
-                <div className="w-full bg-blue-200 dark:bg-blue-900 rounded-full h-2 mt-3">
+                <div className="w-full bg-blue-900 rounded-full h-1.5 mt-2">
                   <div
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    className="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
                     style={{
                       width: `${totalActors > 0 ? (actedCount / totalActors) * 100 : 0}%`,
                     }}
@@ -381,19 +374,12 @@ export default function NightActionInterface({
           </Card>
         )}
         
-        {/* Village Chat - Visible to ALL players during night (scrambled for non-werewolves) */}
+        {/* Village Chat - Visible to ALL players during night */}
         <Card className={`flex-1 ${isWerewolf ? 'max-h-[150px]' : ''} bg-indigo-900/10 border-2 border-indigo-600`}>
-          <CardHeader className="pb-2 sm:pb-3 p-2 sm:p-3 md:p-4">
-            <CardTitle className="font-cinzel text-sm sm:text-base md:text-lg lg:text-xl text-indigo-400 flex items-center gap-2">
+          <CardHeader className="pb-1 sm:pb-2 p-2 sm:p-3">
+            <CardTitle className="font-cinzel text-sm sm:text-base md:text-lg text-indigo-400 flex items-center gap-2">
               🌙 Village Chat
-              <span className="text-xs font-normal text-indigo-300">(Scrambled)</span>
             </CardTitle>
-            <p className="text-xs text-indigo-300 mt-1">
-              {isWerewolf 
-                ? "Type here to blend in with villagers - your messages are scrambled to them!"
-                : "Type to blend in - all messages appear scrambled to hide werewolf activity!"
-              }
-            </p>
           </CardHeader>
           <CardContent className="p-0">
             <Chat gameState={gameState} channel="player" />

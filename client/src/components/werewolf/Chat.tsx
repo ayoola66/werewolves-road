@@ -116,9 +116,15 @@ export default function Chat({ gameState, channel = "player" }: ChatProps) {
     const chatMessages = gameState?.gameState?.chatMessages;
     if (chatMessages && Array.isArray(chatMessages)) {
       // Filter messages by channel
-      const filteredMessages = chatMessages.filter(
-        (msg: any) => msg.type === channel
-      );
+      // For "player" channel, include both "player" and "scrambled" types
+      // For "werewolf" channel, only include "werewolf" type
+      const filteredMessages = chatMessages.filter((msg: any) => {
+        if (channel === "werewolf") {
+          return msg.type === "werewolf";
+        }
+        // For player/village channel, show player and scrambled messages (not werewolf or system)
+        return msg.type === "player" || msg.type === "scrambled";
+      });
       setMessages(filteredMessages);
       setTimeout(scrollToBottom, 100);
     }
@@ -168,7 +174,7 @@ export default function Chat({ gameState, channel = "player" }: ChatProps) {
       chatSubtitle = "Private - only werewolves can read this";
     } else {
       chatLabel = "🌙 Village Chat";
-      chatSubtitle = "Messages scrambled - type to blend in!";
+      chatSubtitle = "";
     }
   } else if (currentPhase === "day") {
     chatLabel = "☀️ Verbal Discussion";
