@@ -2,26 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+   WEREWOLVES VILLAGE - "Forged in Moonlight"
+   Ember & Shadow Colour Palette
+   ============================================ */
+
 :root {
-  --background: hsl(240, 10%, 3.9%);
-  --foreground: hsl(0, 0%, 98%);
-  --muted: hsl(240, 3.7%, 15.9%);
-  --muted-foreground: hsl(240, 5%, 64.9%);
-  --popover: hsl(240, 10%, 3.9%);
-  --popover-foreground: hsl(0, 0%, 98%);
-  --card: hsl(240, 10%, 3.9%);
-  --card-foreground: hsl(0, 0%, 98%);
-  --border: hsl(240, 3.7%, 15.9%);
-  --input: hsl(240, 3.7%, 15.9%);
-  --primary: hsl(0, 72%, 51%);
-  --primary-foreground: hsl(0, 0%, 98%);
-  --secondary: hsl(240, 3.7%, 15.9%);
-  --secondary-foreground: hsl(0, 0%, 98%);
-  --accent: hsl(240, 3.7%, 15.9%);
-  --accent-foreground: hsl(0, 0%, 98%);
-  --destructive: hsl(0, 62.8%, 30.6%);
-  --destructive-foreground: hsl(0, 0%, 98%);
-  --ring: hsl(240, 4.9%, 83.9%);
+  /* Primary (Backgrounds & Base) */
+  --deep-slate: #1A1A1D;
+  --iron-gray: #3E424B;
+  
+  /* Secondary (Text & Structure) */
+  --parchment-white: #E0D8C8;
+  
+  /* Accent (Vibrancy & Focus) */
+  --ember-gold: #FF9F1C;
+  --blood-rust: #8D230F;
+  
+  /* System Colours - Based on Ember & Shadow */
+  --background: 220 10% 10%;
+  --foreground: 38 25% 85%;
+  --muted: 220 8% 20%;
+  --muted-foreground: 220 5% 55%;
+  --popover: 220 10% 12%;
+  --popover-foreground: 38 25% 85%;
+  --card: 220 10% 12%;
+  --card-foreground: 38 25% 85%;
+  --border: 30 30% 25%;
+  --input: 220 8% 18%;
+  --primary: 36 100% 55%;
+  --primary-foreground: 220 10% 10%;
+  --secondary: 220 8% 24%;
+  --secondary-foreground: 38 25% 85%;
+  --accent: 36 100% 55%;
+  --accent-foreground: 220 10% 10%;
+  --destructive: 8 80% 30%;
+  --destructive-foreground: 38 25% 85%;
+  --ring: 36 80% 50%;
   --radius: 0.5rem;
 }
 
@@ -31,131 +48,382 @@
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
-    font-family: 'Inter', sans-serif;
+    @apply font-sans antialiased;
+    font-family: 'Montserrat', 'Inter', sans-serif;
+    background-color: var(--deep-slate);
+    color: var(--parchment-white);
+  }
+  
+  /* Parchment text styling */
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--parchment-white);
   }
 }
 
-/* Werewolf Game Specific Styles */
+/* ============================================
+   TYPOGRAPHY - Medieval Modern
+   ============================================ */
+
+/* Primary Title Font - Cinzel Decorative for headers */
 .font-cinzel {
-  font-family: 'Cinzel Decorative', cursive;
+  font-family: 'Cinzel Decorative', 'Cinzel', serif;
+  letter-spacing: 0.05em;
 }
 
+/* Chiselled text effect for main titles */
+.text-chiselled {
+  background: linear-gradient(180deg, #E0D8C8 0%, #C4BAA8 50%, #A89E8C 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+/* Ember glow text effect */
+.text-ember-glow {
+  color: var(--ember-gold);
+  text-shadow: 
+    0 0 10px rgba(255, 159, 28, 0.5),
+    0 0 20px rgba(255, 159, 28, 0.3),
+    0 0 30px rgba(255, 159, 28, 0.2);
+}
+
+/* ============================================
+   PANELS - Stone Tablet / Medieval Scroll
+   ============================================ */
+
 .panel {
-  background: linear-gradient(145deg, rgba(30, 30, 50, 0.9), rgba(20, 20, 40, 0.95));
+  background: linear-gradient(
+    145deg, 
+    rgba(62, 66, 75, 0.95), 
+    rgba(26, 26, 29, 0.98)
+  );
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
-  border: 2px solid rgba(139, 92, 46, 0.8);
-  border-radius: 12px;
+  border: 2px solid var(--iron-gray);
+  border-radius: 4px;
   box-shadow: 
-    inset 0 2px 0 rgba(255, 215, 0, 0.2),
-    inset 0 -2px 0 rgba(139, 92, 46, 0.4),
-    0 8px 25px rgba(0, 0, 0, 0.8),
-    0 0 30px rgba(139, 92, 46, 0.2);
+    inset 0 1px 0 rgba(255, 159, 28, 0.15),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(62, 66, 75, 0.5);
   position: relative;
 }
 
-.panel::before {
+/* Stone tablet variant */
+.panel-stone {
+  background: 
+    linear-gradient(145deg, rgba(62, 66, 75, 0.9), rgba(30, 30, 35, 0.95)),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+  border: 3px solid transparent;
+  border-image: linear-gradient(
+    180deg, 
+    rgba(255, 159, 28, 0.4) 0%, 
+    rgba(62, 66, 75, 0.6) 50%, 
+    rgba(141, 35, 15, 0.4) 100%
+  ) 1;
+}
+
+/* Iron-framed panel */
+.panel-iron {
+  border: 3px solid var(--iron-gray);
+  box-shadow: 
+    inset 0 0 20px rgba(0, 0, 0, 0.4),
+    0 4px 20px rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+
+.panel-iron::before {
   content: '';
   position: absolute;
-  top: -1px;
-  left: -1px;
-  right: -1px;
-  bottom: -1px;
-  background: linear-gradient(45deg, rgba(255, 215, 0, 0.3), rgba(139, 92, 46, 0.2), rgba(205, 127, 50, 0.3));
-  border-radius: 12px;
-  z-index: -1;
-  filter: blur(3px);
+  top: 4px;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  border: 1px solid rgba(255, 159, 28, 0.1);
+  pointer-events: none;
 }
 
+/* ============================================
+   BUTTONS - Forge-Style Medieval Modern
+   ============================================ */
+
+/* Primary CTA - Ember Gold */
+.btn-ember {
+  background: linear-gradient(180deg, #FF9F1C 0%, #E8890A 100%);
+  color: var(--deep-slate);
+  font-weight: 700;
+  border: 2px solid #FFB347;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.2),
+    0 4px 12px rgba(255, 159, 28, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.btn-ember:hover {
+  background: linear-gradient(180deg, #FFB347 0%, #FF9F1C 100%);
+  border-color: #FFD700;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.2),
+    0 6px 20px rgba(255, 159, 28, 0.5),
+    0 0 30px rgba(255, 159, 28, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-ember:active {
+  transform: translateY(1px);
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Secondary Button - Iron */
+.btn-iron {
+  background: linear-gradient(180deg, #4A4E57 0%, #3E424B 100%);
+  color: var(--parchment-white);
+  font-weight: 600;
+  border: 2px solid #5A5E67;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+    0 2px 8px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.btn-iron:hover {
+  background: linear-gradient(180deg, #5A5E67 0%, #4A4E57 100%);
+  border-color: #6A6E77;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* Danger Button - Blood Rust */
+.btn-blood {
+  background: linear-gradient(180deg, #A42A12 0%, #8D230F 100%);
+  color: var(--parchment-white);
+  font-weight: 600;
+  border: 2px solid #B8341A;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+    0 2px 8px rgba(141, 35, 15, 0.4);
+  transition: all 0.2s ease;
+}
+
+.btn-blood:hover {
+  background: linear-gradient(180deg, #B8341A 0%, #A42A12 100%);
+  box-shadow: 
+    0 4px 16px rgba(141, 35, 15, 0.5),
+    0 0 20px rgba(141, 35, 15, 0.3);
+}
+
+/* Legacy button compatibility */
 .btn-primary {
-  background-color: hsl(0, 72%, 35%);
-  border: 2px solid hsl(30, 50%, 30%);
-  box-shadow: inset 0 1px 0 rgba(139, 92, 46, 0.3), 0 2px 6px rgba(0, 0, 0, 0.5);
-}
-
-.btn-primary:hover {
-  background-color: hsl(0, 72%, 25%);
-  border-color: hsl(30, 50%, 40%);
-  box-shadow: inset 0 1px 0 rgba(139, 92, 46, 0.5), 0 4px 12px rgba(0, 0, 0, 0.7);
+  @apply btn-ember;
 }
 
 .btn-secondary {
-  background-color: hsl(240, 3.7%, 28%);
-  border: 2px solid hsl(30, 30%, 25%);
-  box-shadow: inset 0 1px 0 rgba(139, 92, 46, 0.2), 0 2px 6px rgba(0, 0, 0, 0.5);
-}
-
-.btn-secondary:hover {
-  background-color: hsl(240, 3.7%, 18%);
-  border-color: hsl(30, 30%, 35%);
-  box-shadow: inset 0 1px 0 rgba(139, 92, 46, 0.4), 0 4px 12px rgba(0, 0, 0, 0.7);
+  @apply btn-iron;
 }
 
 .btn-cancel {
-  background-color: hsl(240, 3.7%, 35%);
+  @apply btn-iron;
 }
 
-.btn-cancel:hover {
-  background-color: hsl(240, 3.7%, 28%);
+/* ============================================
+   INPUT FIELDS - Iron-Framed
+   ============================================ */
+
+.input-iron {
+  background: rgba(26, 26, 29, 0.8);
+  border: 2px solid var(--iron-gray);
+  color: var(--parchment-white);
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.3),
+    0 1px 0 rgba(255, 159, 28, 0.1);
+  transition: all 0.2s ease;
 }
 
-/* Player Card States */
+.input-iron::placeholder {
+  color: rgba(224, 216, 200, 0.4);
+}
+
+.input-iron:focus {
+  border-color: var(--ember-gold);
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.3),
+    0 0 0 3px rgba(255, 159, 28, 0.15),
+    0 0 20px rgba(255, 159, 28, 0.1);
+  outline: none;
+}
+
+/* ============================================
+   PLAYER CARD STATES
+   ============================================ */
+
+.player-card {
+  background: linear-gradient(135deg, rgba(62, 66, 75, 0.6), rgba(26, 26, 29, 0.8));
+  border: 2px solid var(--iron-gray);
+  transition: all 0.2s ease;
+}
+
+.player-card:hover {
+  border-color: var(--ember-gold);
+  box-shadow: 0 0 15px rgba(255, 159, 28, 0.2);
+}
+
 .player-card.alive {
-  border-left: 4px solid hsl(142, 76%, 36%);
+  border-left: 4px solid #22c55e;
 }
 
 .player-card.dead {
-  border-left: 4px solid hsl(0, 84%, 60%);
+  border-left: 4px solid var(--blood-rust);
   opacity: 0.6;
+  filter: grayscale(30%);
 }
 
 .player-card.voted {
-  border: 2px solid hsl(45, 93%, 47%);
+  border: 2px solid var(--ember-gold);
+  box-shadow: 0 0 20px rgba(255, 159, 28, 0.3);
 }
 
 .player-card.selected {
-  background-color: rgba(239, 68, 68, 0.2);
+  background: linear-gradient(135deg, rgba(141, 35, 15, 0.3), rgba(62, 66, 75, 0.6));
+  border-color: var(--blood-rust);
 }
 
-/* Role Colors */
+/* ============================================
+   ROLE COLOURS - Thematic
+   ============================================ */
+
 .role-werewolf {
-  color: hsl(0, 84%, 60%);
+  color: #DC2626;
+  text-shadow: 0 0 10px rgba(220, 38, 38, 0.5);
 }
 
 .role-villager {
-  color: hsl(142, 76%, 36%);
+  color: #22C55E;
 }
 
 .role-seer {
-  color: hsl(221, 83%, 53%);
+  color: #3B82F6;
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
 }
 
 .role-doctor {
-  color: hsl(158, 64%, 52%);
+  color: #10B981;
 }
 
 .role-hunter {
-  color: hsl(43, 96%, 56%);
+  color: var(--ember-gold);
 }
 
 .role-witch {
-  color: hsl(262, 83%, 58%);
+  color: #A855F7;
+  text-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
 }
 
 .role-bodyguard {
-  color: hsl(188, 94%, 43%);
+  color: #06B6D4;
 }
 
 .role-minion {
-  color: hsl(0, 84%, 60%);
+  color: #B91C1C;
 }
 
 .role-jester {
-  color: hsl(24, 95%, 53%);
+  color: #F97316;
 }
 
-/* Animations */
+/* ============================================
+   DECORATIVE ELEMENTS
+   ============================================ */
+
+/* Medieval divider line */
+.divider-medieval {
+  height: 2px;
+  background: linear-gradient(
+    90deg, 
+    transparent 0%, 
+    var(--iron-gray) 20%, 
+    var(--ember-gold) 50%, 
+    var(--iron-gray) 80%, 
+    transparent 100%
+  );
+  position: relative;
+}
+
+.divider-medieval::before,
+.divider-medieval::after {
+  content: '◆';
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ember-gold);
+  font-size: 12px;
+}
+
+.divider-medieval::before {
+  left: 45%;
+}
+
+.divider-medieval::after {
+  right: 45%;
+}
+
+/* Chain border */
+.border-chain {
+  border-image: repeating-linear-gradient(
+    90deg,
+    var(--iron-gray) 0px,
+    var(--iron-gray) 10px,
+    transparent 10px,
+    transparent 15px
+  ) 1;
+}
+
+/* Corner ornaments */
+.corner-ornament {
+  position: relative;
+}
+
+.corner-ornament::before,
+.corner-ornament::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--ember-gold);
+}
+
+.corner-ornament::before {
+  top: -5px;
+  left: -5px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.corner-ornament::after {
+  bottom: -5px;
+  right: -5px;
+  border-left: none;
+  border-top: none;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
 .chat-message {
   animation: fadeIn 0.3s ease-in;
 }
@@ -172,15 +440,17 @@
 }
 
 .timer-warning {
-  animation: pulse 1s infinite;
+  animation: emberPulse 1s infinite;
 }
 
-@keyframes pulse {
+@keyframes emberPulse {
   0%, 100% {
     opacity: 1;
+    text-shadow: 0 0 10px rgba(255, 159, 28, 0.5);
   }
   50% {
-    opacity: 0.5;
+    opacity: 0.7;
+    text-shadow: 0 0 20px rgba(255, 159, 28, 0.8);
   }
 }
 
@@ -191,7 +461,7 @@
 @keyframes phaseChange {
   0% {
     opacity: 0;
-    transform: scale(0.9);
+    transform: scale(0.95);
   }
   100% {
     opacity: 1;
@@ -199,7 +469,36 @@
   }
 }
 
-/* Ghost Animation */
+/* Moonlight glow animation */
+@keyframes moonGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 20px rgba(255, 159, 28, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 40px rgba(255, 159, 28, 0.5));
+  }
+}
+
+.moon-glow {
+  animation: moonGlow 4s ease-in-out infinite;
+}
+
+/* Fire flicker for ember elements */
+@keyframes fireFlicker {
+  0%, 100% { opacity: 1; }
+  25% { opacity: 0.9; }
+  50% { opacity: 1; }
+  75% { opacity: 0.95; }
+}
+
+.fire-flicker {
+  animation: fireFlicker 0.5s ease-in-out infinite;
+}
+
+/* ============================================
+   GHOST ANIMATION (Enhanced)
+   ============================================ */
+
 .ghost-container {
   position: fixed;
   top: 0;
@@ -213,7 +512,7 @@
 
 .ghost {
   position: absolute;
-  color: rgba(255, 255, 255, 0.1);
+  color: rgba(224, 216, 200, 0.08);
   font-size: 50px;
   animation: drift 20s linear infinite;
   opacity: 0;
@@ -233,7 +532,10 @@
   }
 }
 
-/* Notification styles */
+/* ============================================
+   NOTIFICATIONS
+   ============================================ */
+
 .notification {
   position: fixed;
   top: 20px;
@@ -251,28 +553,35 @@
   }
 }
 
-/* Custom scrollbar */
+/* ============================================
+   CUSTOM SCROLLBAR - Iron & Ember
+   ============================================ */
+
 .overflow-y-auto::-webkit-scrollbar {
-  width: 8px;
+  width: 10px;
 }
 
 .overflow-y-auto::-webkit-scrollbar-track {
-  background: linear-gradient(to bottom, rgba(139, 92, 46, 0.2), rgba(30, 30, 50, 0.8));
-  border-radius: 4px;
-  border: 1px solid rgba(139, 92, 46, 0.3);
+  background: var(--deep-slate);
+  border: 1px solid var(--iron-gray);
+  border-radius: 2px;
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, rgba(255, 215, 0, 0.6), rgba(139, 92, 46, 0.8));
-  border-radius: 4px;
-  border: 1px solid rgba(139, 92, 46, 0.5);
+  background: linear-gradient(180deg, var(--iron-gray) 0%, #2A2A2F 100%);
+  border: 1px solid rgba(255, 159, 28, 0.3);
+  border-radius: 2px;
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, rgba(255, 215, 0, 0.8), rgba(139, 92, 46, 1));
+  background: linear-gradient(180deg, #4A4E57 0%, var(--iron-gray) 100%);
+  border-color: var(--ember-gold);
 }
 
-/* Magical particle effect */
+/* ============================================
+   MAGICAL PARTICLE EFFECT (Enhanced)
+   ============================================ */
+
 @keyframes sparkle {
   0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
   50% { opacity: 1; transform: scale(1) rotate(180deg); }
@@ -282,12 +591,64 @@
   position: absolute;
   width: 4px;
   height: 4px;
-  background: radial-gradient(circle, rgba(255, 215, 0, 0.8), transparent);
+  background: radial-gradient(circle, rgba(255, 159, 28, 0.8), transparent);
   border-radius: 50%;
-  animation: sparkle 2s infinite;
+  animation: sparkle 3s infinite;
 }
 
 .sparkle:nth-child(1) { top: 10%; left: 20%; animation-delay: 0s; }
-.sparkle:nth-child(2) { top: 20%; right: 15%; animation-delay: 0.5s; }
-.sparkle:nth-child(3) { bottom: 30%; left: 10%; animation-delay: 1s; }
-.sparkle:nth-child(4) { bottom: 10%; right: 20%; animation-delay: 1.5s; }
+.sparkle:nth-child(2) { top: 20%; right: 15%; animation-delay: 0.7s; }
+.sparkle:nth-child(3) { bottom: 30%; left: 10%; animation-delay: 1.4s; }
+.sparkle:nth-child(4) { bottom: 10%; right: 20%; animation-delay: 2.1s; }
+
+/* ============================================
+   BACKGROUND TEXTURES
+   ============================================ */
+
+.bg-stone-texture {
+  background-color: var(--deep-slate);
+  background-image: 
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
+}
+
+.bg-parchment-overlay {
+  background: 
+    linear-gradient(180deg, rgba(26, 26, 29, 0.9) 0%, rgba(26, 26, 29, 0.7) 50%, rgba(26, 26, 29, 0.95) 100%);
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+.text-ember { color: var(--ember-gold); }
+.text-blood { color: var(--blood-rust); }
+.text-parchment { color: var(--parchment-white); }
+.text-iron { color: var(--iron-gray); }
+
+.bg-ember { background-color: var(--ember-gold); }
+.bg-blood { background-color: var(--blood-rust); }
+.bg-deep-slate { background-color: var(--deep-slate); }
+.bg-iron { background-color: var(--iron-gray); }
+
+.border-ember { border-color: var(--ember-gold); }
+.border-blood { border-color: var(--blood-rust); }
+.border-iron { border-color: var(--iron-gray); }
+
+/* ============================================
+   BADGE STYLES
+   ============================================ */
+
+.badge-host {
+  background: linear-gradient(135deg, var(--ember-gold), #E8890A);
+  color: var(--deep-slate);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: 0 2px 8px rgba(255, 159, 28, 0.4);
+}
+
+.badge-role {
+  background: linear-gradient(135deg, var(--iron-gray), #2A2A2F);
+  border: 1px solid rgba(255, 159, 28, 0.3);
+  color: var(--parchment-white);
+}
