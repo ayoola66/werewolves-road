@@ -259,6 +259,10 @@ export default function Chat({ gameState, channel = "player" }: ChatProps) {
             ) : (
               messages.map((msg, i) => {
                 const isCurrentPlayer = msg.playerId === gameState.playerId;
+                // Werewolves see original (unscrambled) messages in village chat
+                const displayMessage = isWerewolf && msg.originalMessage 
+                  ? msg.originalMessage 
+                  : msg.message;
                 return (
                   <div
                     key={`${msg.id || i}-${msg.createdAt}`}
@@ -305,7 +309,7 @@ export default function Chat({ gameState, channel = "player" }: ChatProps) {
                             : "text-gray-800 dark:text-gray-200"
                         }`}
                       >
-                        {msg.message}
+                        {displayMessage}
                       </p>
                     </div>
                   </div>
